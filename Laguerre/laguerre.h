@@ -41,7 +41,6 @@ public:
 
   complex<double> laguerre(vector<complex<double>>, complex<double>);
 
-
 private:
   vector<complex<double>> _polyCoeffs;// Polynomial coefficients
 };
