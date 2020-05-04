@@ -17,23 +17,15 @@ CriticalCurveCaustic::CriticalCurveCaustic(
                            )
 {
   _length = cccLength;
+  z2c = conj(z2);
+  z3c = conj(z3);
 };
 
-// Get initialize position params
-// Uses complex conjugate lens positions to get coeffs of critical curve
-void CriticalCurveCaustic::_getPos()
-{
-    z2c.real(a);
-    z2c.imag(0.0);
-    z3c.real(b*cos(th));
-    z3c.imag(-b*sin(th));
-};
 
 // Main method to initialise vector with critical curve
 void CriticalCurveCaustic::getCC()
 {
-  _getPos();
-  
+
   complex<double> cc[7];
   complex<double> eiphi;
 

@@ -19,6 +19,11 @@
 #ifndef LENS_H
 #define LENS_H
 
+#include <complex>
+#include <iostream>
+
+using namespace std;
+
 class Lens {
   public:
 	  double a; 
@@ -26,13 +31,23 @@ class Lens {
 	  double th;
 	  double m2;
 	  double m3;
-	
+    complex<double> z1;
+    complex<double> z2;
+    complex<double> z3;
+
 	  Lens(double aa,
 	       double bb,
 	       double theta,
 	       double mass2,
 	       double mass3
 	      );
+
+    void moveToCenter(); // move lens so that z1+z2+z3=0
+    void moveToZ1(); // move z1 to coordinate origin
+
+  private:
+    void _setPos();
+    bool _isCentered = false;    
 };
 
 #endif
