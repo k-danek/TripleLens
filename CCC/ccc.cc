@@ -144,9 +144,7 @@ void CriticalCurveCaustic::printCCC(std::string fileName)
     }  
     outFile << "\n";
   }  
-
   outFile.close();
-
 };
 
 
@@ -188,6 +186,24 @@ extern "C"
   {
     ccc->printCCC(fileName);
   };
+
+  // In order to access the data in python, 
+  // we copy them to array of complex<double>
+  void copy_cc_ca(CriticalCurveCaustic* ccc,
+                  complex<double>*      cc,
+                  complex<double>*      ca)
+  {
+    unsigned int length = ccc->ccVec[0].size();
+    unsigned int idx = 0;
+
+    for(unsigned int root = 0; root < 6; root++)
+      for(unsigned int step = 0; step < length; step++)
+      {
+        idx = root * length + step;
+        cc[idx] = ccc->ccVec[root][step];
+        ca[idx] = ccc->caVec[root][step];
+      }
+  }
 
 }
 

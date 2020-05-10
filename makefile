@@ -1,7 +1,7 @@
 CC=g++
 # Note flag -Ofast as it made execution cca 10 times faster
 # Flag -fPIC makes o files usable in the shared library
-CFLAGS= -Wl,--no-undefined -fPIC -Ofast -g
+CFLAGS= -Wl,--no-undefined -fPIC -Ofast -g -std=c++11
 CFLAGS_SHARED= -shared
 INC_CCC=./CCC
 INC_LENS=./LensCore
@@ -15,6 +15,9 @@ ccc_test: main.o lens.o liblaguerre.a ccc.o imgpoint.o
 
 imgpoint.o: $(INC_IMG)/imgpoint.cc $(INC_IMG)/imgpoint.h lens.o laguerre.o
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/liblaguerre.a $(INC_IMG)/imgpoint.cc
+
+imgpoint.so: imgpoint.o liblaguerre.a imgpoint.o 
+	$(CC) -c $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/imgpoint.so $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/liblaguerre.a $(BUILD_TARGET)/lens.o
 
 ccc.o: $(INC_CCC)/ccc.cc $(INC_CCC)/ccc.h lens.o liblaguerre.a
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/liblaguerre.a $(INC_CCC)/ccc.cc 

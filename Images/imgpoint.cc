@@ -136,7 +136,6 @@ vector<complex<double>> ImgPoint::getCoeffs()
 
 }
 
-
 vector<complex<double>> ImgPoint::getCoeffsOpt()
 {
   //complex<double>         z2c = z2;
@@ -334,43 +333,52 @@ vector<complex<double>> ImgPoint::getCoeffsOpt()
 
 
 // Python Wrapper for ctypes module
-//extern "C"
-//{
-//   //Foo* Foo_new(int n) {return new Foo(n);}
-//   //void Foo_bar(Foo* foo) {foo->bar();}
-//   //int Foo_foobar(Foo* foo, int n) {return foo->foobar(n);}
-//  ImgPoint* ccc_new(double a,
-//                                double b,
-//                                double th,
-//                                double m2,
-//                                double m3,
-//                                int    cccLength = 500
-//                               )
-//  {
-//    return new ImgPoint(a,
-//                                    b,
-//                                    th,
-//                                    m2,
-//                                    m3,
-//                                    cccLength
-//                                   );
-//  };
-//
-//  void get_cc(ImgPoint* ccc)
-//  {
-//    ccc->getCC();
-//  };
-//
-//  void get_ca(ImgPoint* ccc)
-//  {
-//    ccc->getCa();
-//  };
-//
-//  void print_ccc(ImgPoint* ccc, char* fileName)
-//  {
-//    ccc->printCCC(fileName);
-//  };
-//
-//}
-//
+extern "C"
+{
+  ImgPoint* img_new(double a,
+                    double b,
+                    double th,
+                    double m2,
+                    double m3,
+                    double posX,
+                    double posY
+                   )
+  {
+    return new ImgPoint(a,
+                        b,
+                        th,
+                        m2,
+                        m3,
+                        posX,
+                        posY
+                       );
+  };
+
+  void get_roots(ImgPoint* img)
+  {
+    img->getRoots();
+  };
+
+  void get_images(ImgPoint* img)
+  {
+    img->getImages();
+  };
+
+  // In order to access the data in python, 
+  // we copy them to array of complex<double>
+  void copy_img(ImgPoint*         img,
+                complex<double>*  roots,
+                bool*             isImg)
+  {
+    unsigned int length = img->roots.size();
+
+    for(unsigned int i = 0; i < length; i++)
+    {
+      roots[i] = img->roots[i];
+      isImg[i] = img->isImg[i];
+    }
+  }
+
+}
+
 

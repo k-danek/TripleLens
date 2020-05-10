@@ -33,7 +33,7 @@ class ImgPoint: public Lens
 
     vector<complex<double>> roots; // As not all of the roots are images  
     vector<complex<double>> imgs;  // Roots verified to be images
-    vector<complex<bool>>   isImg; // Vectors of bools to more 
+    vector<bool>   isImg; // Vectors of bools to more 
 
     vector<complex<double>> getCoeffs();
     vector<complex<double>> getCoeffsOpt();
