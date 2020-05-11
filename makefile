@@ -14,7 +14,7 @@ ccc_test: main.o lens.o liblaguerre.a ccc.o imgpoint.o
 	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/main.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/liblaguerre.a $(BUILD_TARGET)/lens.o
 
 imgpoint.o: $(INC_IMG)/imgpoint.cc $(INC_IMG)/imgpoint.h lens.o laguerre.o
-	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/liblaguerre.a $(INC_IMG)/imgpoint.cc
+	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/liblaguerre.a $(INC_IMG)/imgpoint.cc 
 
 imgpoint.so: imgpoint.o liblaguerre.a imgpoint.o 
 	$(CC) -c $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/imgpoint.so $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/liblaguerre.a $(BUILD_TARGET)/lens.o
