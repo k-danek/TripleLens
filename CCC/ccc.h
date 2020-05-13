@@ -46,9 +46,6 @@ class CriticalCurveCaustic: public Lens
     complex<double> z2c;
     complex<double> z3c;
     vector<complex<double>> _tempRoots;
-
-    // gets lens positions
-    void _getPos();
 };
 
 

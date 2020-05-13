@@ -17,23 +17,15 @@ CriticalCurveCaustic::CriticalCurveCaustic(
                            )
 {
   _length = cccLength;
+  z2c = conj(z2);
+  z3c = conj(z3);
 };
 
-// Get initialize position params
-// Uses complex conjugate lens positions to get coeffs of critical curve
-void CriticalCurveCaustic::_getPos()
-{
-    z2c.real(a);
-    z2c.imag(0.0);
-    z3c.real(b*cos(th));
-    z3c.imag(-b*sin(th));
-};
 
 // Main method to initialise vector with critical curve
 void CriticalCurveCaustic::getCC()
 {
-  _getPos();
-  
+
   complex<double> cc[7];
   complex<double> eiphi;
 
@@ -152,9 +144,7 @@ void CriticalCurveCaustic::printCCC(std::string fileName)
     }  
     outFile << "\n";
   }  
-
   outFile.close();
-
 };
 
 
@@ -196,6 +186,24 @@ extern "C"
   {
     ccc->printCCC(fileName);
   };
+
+  // In order to access the data in python, 
+  // we copy them to array of complex<double>
+  void copy_cc_ca(CriticalCurveCaustic* ccc,
+                  complex<double>*      cc,
+                  complex<double>*      ca)
+  {
+    unsigned int length = ccc->ccVec[0].size();
+    unsigned int idx = 0;
+
+    for(unsigned int root = 0; root < 6; root++)
+      for(unsigned int step = 0; step < length; step++)
+      {
+        idx = root * length + step;
+        cc[idx] = ccc->ccVec[root][step];
+        ca[idx] = ccc->caVec[root][step];
+      }
+  }
 
 }
 
