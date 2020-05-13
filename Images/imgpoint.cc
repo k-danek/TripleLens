@@ -26,7 +26,7 @@ ImgPoint::ImgPoint(
 // In context of the point source, that source radius is just an error term.
 bool ImgPoint::imgCheck(complex<double> img, double sourceRadius)
 {
-   complex<double> testSourcePos=_sourcePos-(1.0-m2-m3)/conj(_sourcePos-z1)-m2/conj(_sourcePos-z2)-m3/conj(_sourcePos-z3);
+   complex<double> testSourcePos=img-(1.0-m2-m3)/conj(img-z1)-m2/conj(img-z2)-m3/conj(img-z3);
 
    if(abs(testSourcePos-_sourcePos)<(sourceRadius))
     return 1;
@@ -57,7 +57,7 @@ void ImgPoint::setPos(complex<double> pos)
 // Main method to initialise vector with critical curve
 void ImgPoint::getRoots()
 {
-  vector<complex<double>> imgCoef = getCoeffs();
+  vector<complex<double>> imgCoef = getCoeffsOpt();
 
   //Beware! This is complex conjugate of the Critical Curve
   Laguerre laguerre(imgCoef);
@@ -93,7 +93,7 @@ void ImgPoint::getImages()
 {
   // clears all the elements of the vector
   imgs.clear();
-  double err = 1.0e-8;
+  double err = 1.0e-10;
 
   if(!_rootsAvailable)
   {

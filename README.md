@@ -13,6 +13,9 @@ As I do not want to bother with the Copyright issues, I use compiled version of 
 ### CCC 
 Class for producing Critical Curves and Caustics, which I use to characterise the microlenses. The class also includes a wrapper to be used within a python.
 
+### ImgPoint 
+Class for producing computing images of Triple lens, also comes with python wrapper.
+
 ### main.cc
 As this is mostly meant as a shared library to be later used within a Python application, main.cc serves for regression testing. Plan is to move to unit testing as the library grows larger. 
 

@@ -34,7 +34,7 @@ laguerre.o: $(INC_LAGUERRE)/laguerre.cc $(INC_LAGUERRE)/laguerre.h
 lens.o: $(INC_LENS)/lens.cc $(INC_LENS)/lens.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lens.o $(INC_LENS)/lens.cc
 
-main.o: main.cc ccc.o lens.o liblaguerre.a ccc.so
+main.o: main.cc ccc.o lens.o liblaguerre.a ccc.so imgpoint.o
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/main.o main.cc
 
 -include $(INCLUDES)

@@ -11,6 +11,8 @@
 #include <ctime>
 
 #include <ccc.h>
+#include <imgpoint.h>
+
 
 int main()
 {
@@ -20,7 +22,9 @@ int main()
   double m2 = 0.25;
   double m3 = 0.25;
   double th = 3.14159;
-  
+ 
+
+  // Critical Curves and Caustic test
   CriticalCurveCaustic ccc(a,b,th,m2,m3,500);
   
   cout << ccc.a;
@@ -30,7 +34,7 @@ int main()
   cout << "ccVec :" << ccc.ccVec[0].size() << "\n";
   ccc.printCCC("./bin/CCC.dat");
 
-// Time benchmark
+  // Critical Curves and Caustic Time benchmark
   clock_t begin = clock();  
   for(unsigned int i = 0; i < 1000; i++)
   {
@@ -39,9 +43,46 @@ int main()
     ccc.getCa();
   }
   clock_t end = clock();
-  cout << double(end - begin) / CLOCKS_PER_SEC << "\n";
+  cout << "1k CCC computations:"
+       << double(end - begin) / CLOCKS_PER_SEC
+       << "s\n";
 
 
+  // Image Point Test
+  ImgPoint img(a,b,th,m2,m3,0.0,0.0);
+  img.getImages();
+  cout << "ImgVec size : " << img.imgs.size() << "\n";
+  cout << "RootVec size : " << img.roots.size() << "\n";
+  cout << "Booleans for completeness size : ";
+  for(auto tf: img.isImg) cout << tf; 
+  cout  << "\n";
+
+  // Image Point Time benchmark
+  begin = clock();  
+  for(unsigned int i = 0; i < 1000; i++)
+  {
+    ImgPoint img(a,b,th,m2,m3,0.0,0.0);
+    img.getImages();
+  }
+  end = clock();
+  cout << "1k Point image calculations:" 
+       << double(end - begin) / CLOCKS_PER_SEC 
+       << "s\n";
+
+  begin = clock();  
+  for(unsigned int i = 0; i < 1000; i++)
+  {
+    // A spiral souce trajectory
+    complex<double> source = (double)i/1000.0*(sin((double)i/100.0), cos((double)i/100.0));
+    img.setPos(source);
+    img.getImages();
+  }
+  end = clock();
+  cout << "1k Point image calculations (moving case):" 
+       << double(end - begin) / CLOCKS_PER_SEC 
+       << "s\n";
+
+  // Laguerre Test
   vector<complex<double>> secCoef = {{1.0,0.0},{2.0,0.0},{1.0,0.0}};
   vector<complex<double>> secSol;
   Laguerre second(secCoef);
