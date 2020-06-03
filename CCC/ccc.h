@@ -17,6 +17,7 @@
 
 #include <lens.h> 
 #include <laguerre.h>
+#include <utils.h>
 
 class CriticalCurveCaustic: public Lens 
 {
@@ -36,6 +37,11 @@ class CriticalCurveCaustic: public Lens
     // Critical curve and caustic caulculation
     void getCC(); 
     void getCa();
+    void getBoundingBox(complex<double>* ccMin,
+                        complex<double>* ccMax,
+                        complex<double>* caMin,
+                        complex<double>* caMax
+                       );
 
     void printCCC(std::string fileName);
 

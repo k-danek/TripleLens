@@ -205,6 +205,33 @@ extern "C"
       }
   }
 
+  void copy_lenses(CriticalCurveCaustics* ccc,
+                   complex<double>*       z1,
+                   complex<double>*       z2,
+                   complex<double>*       z3
+                  )
+  {
+    z1 = ccc->z1;
+    z2 = ccc->z2;
+    z3 = ccc->z3;
+  }
+
+
+  void getBoundingBox(CriticalCurveCaustic* ccc,
+                      complex<double>*      ccMin,
+                      complex<double>*      ccMax,
+                      complex<double>*      caMin,
+                      complex<double>*      caMax
+                     )
+  {
+    for(auto ccRoot: ccc->ccVec)
+      minmax<vector<complex<double>>>(ccRoot, *ccMin, *ccMax);
+
+    for(auto caRoot: ccc->caVec)
+      minmax<vector<complex<double>>>(caRoot, *caMin, *caMax);
+  }
+
+
 }
 
 

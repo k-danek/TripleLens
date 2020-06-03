@@ -7,8 +7,9 @@ INC_CCC=./CCC
 INC_LENS=./LensCore
 INC_LAGUERRE=./Laguerre
 INC_IMG=./Images
+INC_UTILS=./Utils
 BUILD_TARGET=./bin
-INCLUDES= -I. -I$(INC_CCC) -I$(INC_LENS) -I$(INC_LAGUERRE) -I$(INC_IMG) -I$(BUILD_TARGET)
+INCLUDES= -I. -I$(INC_CCC) -I$(INC_LENS) -I$(INC_LAGUERRE) -I$(INC_IMG) -I$(INC_UTILS) -I$(BUILD_TARGET)
 
 ccc_test: main.o lens.o liblaguerre.a ccc.o imgpoint.o
 	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/main.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/liblaguerre.a $(BUILD_TARGET)/lens.o
