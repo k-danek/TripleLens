@@ -10,8 +10,14 @@ Lens::Lens(double aa,
   a = aa;
   b = bb;
   th = theta;
+  m1 = 1.0-mass2-mass3;
   m2 = mass2;
   m3 = mass3;
+//  lensParam.a = aa;
+//  lensParam.b = bb;
+//  lensParam.th = theta;
+//  lensParam.m2 = mass2;
+//  lensParam.m3 = mass3;
   _setPos();
 };
 
@@ -37,7 +43,7 @@ void Lens::moveToZ1()
 {
   z2 -= z2 - z1;
   z3 -= z3 - z1; 
-  z1 = {0.0,0.0};
+  z1 = {0.0, 0.0};
   _isCentered = false;  
 };
 

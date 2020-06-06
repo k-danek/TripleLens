@@ -1,0 +1,16 @@
+CC=g++
+CFLAGS= -Wall -g -fPIC -o
+INCLUDES= -I. -I../LensCore -I../Laguerre -I../Images
+
+#g++ -shared -W1,-soname,ccc.so -o ccc.so ccc.o
+#g++ -shared -o ccc.so ccc.o
+
+
+lcbase.o:
+	$(CC) -c $(INCLUDES) $(CFLAGS) lcbase.o lcbase.cc
+
+-include $(INCLUDES)
+
+clean:
+	rm *.o
+

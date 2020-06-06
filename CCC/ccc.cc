@@ -205,10 +205,10 @@ extern "C"
       }
   }
 
-  void copy_lenses(CriticalCurveCaustics* ccc,
-                   complex<double>*       z1,
-                   complex<double>*       z2,
-                   complex<double>*       z3
+  void copy_lenses(CriticalCurveCaustic* ccc,
+                   complex<double>&       z1,
+                   complex<double>&       z2,
+                   complex<double>&       z3
                   )
   {
     z1 = ccc->z1;

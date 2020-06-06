@@ -24,16 +24,29 @@
 
 using namespace std;
 
-class Lens {
+
+//struct LensParam
+//{
+//	  double a = 0.0; 
+//	  double b = 0.0;
+//	  double th = 0.0;
+//	  double m2 = 0.0;
+//	  double m3 = 0.0;
+//}
+
+class Lens
+{
   public:
 	  double a; 
 	  double b;
 	  double th;
-	  double m2;
+    double m1;
+    double m2;
 	  double m3;
     complex<double> z1;
     complex<double> z2;
     complex<double> z3;
+    // LensParam lensParam;
 
 	  Lens(double aa,
 	       double bb,
@@ -44,6 +57,7 @@ class Lens {
 
     void moveToCenter(); // move lens so that z1+z2+z3=0
     void moveToZ1(); // move z1 to coordinate origin
+  
 
   private:
     void _setPos();

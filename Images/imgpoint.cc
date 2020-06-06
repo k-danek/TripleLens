@@ -8,8 +8,8 @@ ImgPoint::ImgPoint(
                    double       th,
                    double       m2,
                    double       m3,
-                   double       posX,
-                   double       posY
+                   double       posX = 0.0,
+                   double       posY = 0.0
                   ): Lens(
                        a,
                        b,
@@ -112,6 +112,13 @@ void ImgPoint::getImages()
   }  
 
 };
+
+vector<complex<double>> ImgPoint::getImages(complex<double> pos)
+{
+  setPos(pos);
+  getImages();
+  return imgs;
+}  
 
 // Python Wrapper for ctypes module
 extern "C"
