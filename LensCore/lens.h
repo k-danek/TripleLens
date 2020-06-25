@@ -25,14 +25,22 @@
 using namespace std;
 
 
-//struct LensParam
-//{
-//	  double a = 0.0; 
-//	  double b = 0.0;
-//	  double th = 0.0;
-//	  double m2 = 0.0;
-//	  double m3 = 0.0;
-//}
+struct LensPar
+{
+	  double a; 
+	  double b;
+	  double th;
+	  double m2;
+	  double m3;
+
+    LensPar(double aa,
+	          double bb,
+	          double theta,
+	          double mass2,
+	          double mass3
+           );
+};
+
 
 class Lens
 {
@@ -57,7 +65,7 @@ class Lens
 
     void moveToCenter(); // move lens so that z1+z2+z3=0
     void moveToZ1(); // move z1 to coordinate origin
-  
+    LensPar lensPar;  
 
   private:
     void _setPos();

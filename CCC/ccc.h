@@ -31,6 +31,11 @@ class CriticalCurveCaustic: public Lens
                          unsigned int cccLength
                         );
 
+    // Constructor using LensPar object
+    CriticalCurveCaustic(const LensPar &lensParam,
+                         unsigned int  cccLength
+                        );
+
     vector<vector<complex<double>>> ccVec; 
     vector<vector<complex<double>>> caVec;
 

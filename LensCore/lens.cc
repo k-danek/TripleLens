@@ -5,7 +5,8 @@ Lens::Lens(double aa,
 	         double bb,
 	         double theta,
 	         double mass2,
-	         double mass3)
+	         double mass3):
+      lensPar(aa,bb,theta,mass2,mass3)
 {
   a = aa;
   b = bb;
@@ -13,12 +14,21 @@ Lens::Lens(double aa,
   m1 = 1.0-mass2-mass3;
   m2 = mass2;
   m3 = mass3;
-//  lensParam.a = aa;
-//  lensParam.b = bb;
-//  lensParam.th = theta;
-//  lensParam.m2 = mass2;
-//  lensParam.m3 = mass3;
   _setPos();
+};
+
+LensPar::LensPar(double aa,
+	               double bb,
+	               double theta,
+	               double mass2,
+	               double mass3
+                )
+{
+  a = aa;
+  b = bb;
+  th = theta;
+  m2 = mass2;
+  m3 = mass3;
 };
 
 // Sets lens positions in the complex plane

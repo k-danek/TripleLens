@@ -21,6 +21,19 @@ CriticalCurveCaustic::CriticalCurveCaustic(
   z3c = conj(z3);
 };
 
+CriticalCurveCaustic::CriticalCurveCaustic(const LensPar &lensParam,
+                                           unsigned int  cccLength
+                                          ): Lens(lensParam.a,
+                                                  lensParam.b,
+                                                  lensParam.th,
+                                                  lensParam.m2,
+                                                  lensParam.m3
+                                                 )
+{
+  _length = cccLength;
+  z2c = conj(z2);
+  z3c = conj(z3);
+};
 
 // Main method to initialise vector with critical curve
 void CriticalCurveCaustic::getCC()

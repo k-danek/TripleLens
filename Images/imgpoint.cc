@@ -10,15 +10,19 @@ ImgPoint::ImgPoint(
                    double       m3,
                    double       posX = 0.0,
                    double       posY = 0.0
-                  ): Lens(
-                       a,
-                       b,
-                       th,
-                       m2,
-                       m3
-                     )
+                  ): Lens(a, b, th, m2, m3)
 {
   setPos(posX,posY);
+};
+
+ImgPoint::ImgPoint(const LensPar &lensParam): Lens(lensParam.a,
+                                                   lensParam.b,
+                                                   lensParam.th,
+                                                   lensParam.m2,
+                                                   lensParam.m3
+                                                  )
+{
+  setPos(0.0, 0.0);
 };
 
 
@@ -26,7 +30,7 @@ ImgPoint::ImgPoint(
 // In context of the point source, that source radius is just an error term.
 bool ImgPoint::imgCheck(complex<double> img, double sourceRadius)
 {
-   complex<double> testSourcePos=img-(1.0-m2-m3)/conj(img-z1)-m2/conj(img-z2)-m3/conj(img-z3);
+   complex<double> testSourcePos=img-m1/conj(img-z1)-m2/conj(img-z2)-m3/conj(img-z3);
 
    if(abs(testSourcePos-_sourcePos)<(sourceRadius))
     return 1;

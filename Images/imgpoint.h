@@ -31,6 +31,9 @@ class ImgPoint: public Lens
              double       posY
              );
 
+    ImgPoint(const LensPar &lensParam);
+
+
     vector<complex<double>> roots; // As not all of the roots are images  
     vector<complex<double>> imgs;  // Roots verified to be images
     vector<bool>            isImg; // Vectors of bools to more 

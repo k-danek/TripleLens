@@ -8,7 +8,7 @@ LightCurveBase::LightCurveBase(
                             double       m3,
                             unsigned int lcLength = 50
                         ): Lens(a, b, th, m2, m3),
-                           _pointImages(a, b, th, m2, m3, 0.0, 0.0) 
+                           _pointImages(lensPar) 
 {
   _length = lcLength;
   lcVec.resize(_length);
@@ -21,7 +21,7 @@ double LightCurveBase::getPointAmp(complex<double> sourcePos)
 
   for(auto img: imgPos)
   {
-    amp +=1.0/abs(1.0-abs(m1/pow(img-z1,2)+m2/pow(img-z2,2)+m3/pow(img-z3,2)));  
+    amp +=1.0/abs(1.0-norm(m1/pow(img-z1,2)+m2/pow(img-z2,2)+m3/pow(img-z3,2)));  
   }  
 
   return amp;
