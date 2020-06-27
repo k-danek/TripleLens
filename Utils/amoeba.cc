@@ -1,5 +1,5 @@
-#include<amoeba.h>
-
+#include <amoeba.h>
+#include <vector>
 
 Amoeba::Amoeba(long int size)
 {
@@ -16,10 +16,10 @@ Amoeba::Amoeba(long int size)
 void Amoeba::addNode (long int nL, long int nR, long int ny)
 {
   vector<XRange>::iterator it;
-  for (it = amoebae[ny].begin(); it != amoebae[ny].end(); i++) {
+  for (it = amoebae[ny].begin(); it != amoebae[ny].end(); it++) {
       if ( (*it).xright == nR && (*it).xleft == nL ) return;
   }
-  amoebas[ny].push_back(amoeba(nL, nR));
+  amoebae[ny].push_back(XRange(nL, nR));
 }
 
 // check if range is no within known image
@@ -29,12 +29,11 @@ bool Amoeba::checkLine(long int ny, long int nx)
   vector<XRange>::const_iterator it;
    
   if ((ny < 0) || (ny >= _size)) return 0;
-    for (i = amoebae[ny].begin(); i != amoebae[ny].end(); i++) {
-      if ( ( nx <= (*i).xright) && ((*i).xleft <= nx)) {
+    for (it = amoebae[ny].begin(); it != amoebae[ny].end(); it++) {
+      if ( ( nx <= (*it).xright) && ((*it).xleft <= nx)) {
            return 0;
       }
     }
   return 1;       
 }
 
-  

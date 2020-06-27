@@ -45,7 +45,7 @@ complex<double> Laguerre::laguerre(vector<complex<double> > poly, complex<double
     gp = g+sqrt((md-1.)*(md*h-g*g));
     gm = g-sqrt((md-1.)*(md*h-g*g));
     if (abs(gp) < abs(gm)) gp = gm;
-    if (max(abs(gp), abs(gm)) > 0.) dx = md/gp;
+    if (std::max(abs(gp), abs(gm)) > 0.) dx = md/gp;
     else dx = (1.+abs(x))*complex<double>(cos(1.*it), sin(1.*it));
     x1 = x - dx;
     // Reapeated until it converges or exceeds the maximum number of iterations

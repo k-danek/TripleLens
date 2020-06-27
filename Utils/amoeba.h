@@ -1,7 +1,9 @@
-#ifndef AMOEBA_H
-#define AMOEBA_H
+//#ifndef AMOEBA_H
+//#define AMOEBA_H
 
-#include<vector>
+#include <vector>
+
+using std::vector;
 
 /* xright - leftmost x coordinate occupied by the lensed image
    xleft - rightmost x coordinate occupied by the lensed image
@@ -19,7 +21,6 @@ struct XRange
 };
 
 /* main data structure - amoebas as a vector of lists of XRanges */
-//typedef std::vector< vector<XRange> > amoeba;
 
 class Amoeba
 {
@@ -42,4 +43,4 @@ class Amoeba
     long int _size;
 };
 
-#endif  
+//#endif  

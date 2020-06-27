@@ -193,7 +193,10 @@ bool LightCurveIRS::intersectionCheck(complex<double>  sourcePos,
         // return 0;
         
         // A-ab_vector*projected_length*len(AB)/len(AB)^2
-        trialPoint = pointA-pointB*abs(projTimesDistance)/abDistance;
+        // TODO: figure more elegant type deduction here
+        trialPoint = pointA-pointB*static_cast<double>(abs(projTimesDistance)
+                                                           /abDistance);
+
         complex<double> stPoint = trialPoint - sourcePos;
         double closestDist = norm(stPoint);
         

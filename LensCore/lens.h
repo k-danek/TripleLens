@@ -22,8 +22,10 @@
 #include <complex>
 #include <iostream>
 
-using namespace std;
+using std::cout;
 
+template<class T>
+using complex = std::complex<T>;
 
 struct LensPar
 {

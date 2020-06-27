@@ -23,7 +23,10 @@
 #include <complex>
 #include <vector>
 
-using namespace std;
+using std::vector;
+
+template<class T>
+using complex = std::complex<T>;
 
 #define MAX_IT 100
 #define MT 10

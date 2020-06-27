@@ -21,6 +21,10 @@
 #include<lens.h>
 #include<amoeba.h>
 
+template<class T>
+using pair = std::pair<T, T>;
+
+
 class LightCurveIRS: public LightCurveBase
 {
   
@@ -75,7 +79,7 @@ class LightCurveIRS: public LightCurveBase
     complex<double> _bottomLeftCornerImg = {-1.0, -1.0};
     complex<double> _topRightCornerImg = {1.0, 1.0};
     double _imgPlaneSizeDouble;
-    vector<pair<complex<double>, complex<double>>> caBoxes;
+    vector<pair<complex<double>>> caBoxes;
 
     void _getCaBoxes();
  
