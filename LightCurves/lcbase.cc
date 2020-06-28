@@ -32,10 +32,10 @@ void LightCurveBase::getLC(complex<double> startPoint,
                           )
 {
 
-  complex<double> pos = startPoint;
+  complex<double> pos;
   for(unsigned int i = 0; i < _length; i++)
   {
-    pos = (endPoint-startPoint)*(i/(_length-1.0));
+    pos = startPoint + (endPoint-startPoint)*(i/(_length-1.0));
     lcVec[i] = getPointAmp(pos);
   }
 

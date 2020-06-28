@@ -28,10 +28,10 @@ using std::vector;
 template<class T>
 using complex = std::complex<T>;
 
-#define MAX_IT 100
-#define MT 10
-#define EPSS 1e-7
-#define EPS 1.0e-8
+#define MAX_IT 4000
+#define MT 500
+#define EPSS 1.0e-8
+#define EPS 1.0e-9
 
 class Laguerre
 {

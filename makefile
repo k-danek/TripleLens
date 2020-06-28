@@ -13,13 +13,16 @@ BUILD_TARGET=./bin
 INCLUDES= -I. -I$(INC_CCC) -I$(INC_LENS) -I$(INC_LAGUERRE) -I$(INC_IMG) -I$(INC_UTILS) -I$(INC_LC) -I$(BUILD_TARGET)
 
 ccc_test: main.o ccc.so imgpoint.so lcirs.so
-	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/main.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/liblaguerre.a $(BUILD_TARGET)/lens.o
+	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/liblaguerre.a $(BUILD_TARGET)/lens.o
+
+lcbase.o: lens.o imgpoint.o
+	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/imgpoint.o $(INC_LC)/lcbase.cc 
 
 lcirs.o: lens.o ccc.o amoeba.o imgpoint.o
-	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lcirs.o $(INC_LC)/lcirs.cc 
+	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(INC_LC)/lcirs.cc 
 
 lcirs.so: lens.o ccc.o amoeba.o imgpoint.o lcirs.o
-	$(CC) -c $(CFLAGS_SHARED) $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lcirs.so $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o
+	$(CC) -c $(CFLAGS_SHARED) $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lcirs.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o
 
 amoeba.o:
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/amoeba.o $(INC_UTILS)/amoeba.cc 
@@ -45,7 +48,7 @@ laguerre.o: $(INC_LAGUERRE)/laguerre.cc $(INC_LAGUERRE)/laguerre.h
 lens.o: $(INC_LENS)/lens.cc $(INC_LENS)/lens.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lens.o $(INC_LENS)/lens.cc
 
-main.o: main.cc ccc.o lens.o liblaguerre.a imgpoint.o
+main.o: main.cc ccc.o lens.o liblaguerre.a imgpoint.o lcbase.o lcirs.o
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/main.o main.cc
 
 -include $(INCLUDES)

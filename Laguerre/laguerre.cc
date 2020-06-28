@@ -69,10 +69,10 @@ vector<complex<double> > Laguerre::solveRoots()
   for (int j = _polyCoeffs.size()-1; j >= 1; j--)
   {
     
-    x=complex<double>(0,0);
+    x=complex<double>(0.0,0.0);
     x = laguerre(tempPoly, x);
     if (abs(x.imag()) < EPS*abs(x.real())) 
-      x=complex<double>(x.real(),0);// If imaginary part is small enough, make it a real root
+      x=complex<double>(x.real(),0.0);// If imaginary part is small enough, make it a real root
     
     roots.push_back(x);// 
 
@@ -117,7 +117,7 @@ bool Laguerre::checkRoots(vector<complex<double>> roots)
   for (auto root: roots)
     c0 *= root;
 
-  return (1.0-abs(c0/_polyCoeffs[0]) < 1e-3);
+  return (1.0-abs(c0/_polyCoeffs[0]) < 1.0e-3);
 }
 
 

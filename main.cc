@@ -2,6 +2,7 @@
  *
  * This is an example of use of the relevant classes,
  * also used for testing.
+ * It mostly demonstrates that the code does not crash on execution.
  *
  *************************************************************/ 
 
@@ -12,7 +13,8 @@
 
 #include <ccc.h>
 #include <imgpoint.h>
-
+#include <lcbase.h>
+#include <lcirs.h>
 
 int main()
 {
@@ -22,9 +24,9 @@ int main()
   double m2 = 0.25;
   double m3 = 0.25;
   double th = 3.14159;
- 
 
   // Critical Curves and Caustic test
+  cout << "Testing Critical Curve and Caustic generation: \n";
   CriticalCurveCaustic ccc(a,b,th,m2,m3,500);
   
   cout << ccc.a;
@@ -45,19 +47,21 @@ int main()
   clock_t end = clock();
   cout << "1k CCC computations:"
        << double(end - begin) / CLOCKS_PER_SEC
-       << "s\n";
+       << "s\n\n";
 
 
   // Image Point Test
+  cout << "Testing the point images: \n";
   ImgPoint img(a,b,th,m2,m3,0.0,0.0);
   img.getImages();
   cout << "ImgVec size : " << img.imgs.size() << "\n";
   cout << "RootVec size : " << img.roots.size() << "\n";
   cout << "Booleans for completeness size : ";
   for(auto tf: img.isImg) cout << tf; 
-  cout  << "\n";
+  cout  << "\n\n";
 
   // Image Point Time benchmark
+  cout << "Startnig image point calculation: \n";
   begin = clock();  
   for(unsigned int i = 0; i < 1000; i++)
   {
@@ -69,20 +73,64 @@ int main()
        << double(end - begin) / CLOCKS_PER_SEC 
        << "s\n";
 
-  begin = clock();  
-  for(unsigned int i = 0; i < 1000; i++)
+  //begin = clock();  
+  for(unsigned int i = 1; i < 1000; i++)
   {
     // A spiral souce trajectory
-    complex<double> source = (double)i/1000.0*(sin((double)i/100.0), cos((double)i/100.0));
+    complex<double> source = {(double)i/1000.0*cos((double)i/100.0), (double)i/1000.0*sin((double)i/100.0)};
     img.setPos(source);
     img.getImages();
   }
   end = clock();
   cout << "1k Point image calculations (moving case):" 
        << double(end - begin) / CLOCKS_PER_SEC 
-       << "s\n";
+       << "s\n\n";
+
+
+  // Light Curve IRS test 
+  cout << "Starting LC test BASE: \n";
+  LightCurveBase lcBase(a,b,th,m2,m3,200);
+  complex<double> startPoint;
+  complex<double> endPoint;
+  vector<double>  lightCurve;
+  double angle = 0.0;
+
+  // Point source
+  begin = clock();  
+  for(unsigned int i = 0; i <= 10; i++)
+  {
+    angle = (double)i/20.0*3.14159;
+    endPoint = {cos(angle), sin(angle)};  
+    startPoint = -endPoint;
+    lcBase.getLC(startPoint, endPoint);
+    lightCurve = lcBase.lcVec;   
+  }
+  end = clock();  
+  cout << "100 positions point-amp lightcurve:" 
+       << double(end - begin) / CLOCKS_PER_SEC 
+       << "s\n\n";
+
+  // Extended source IRS
+  LightCurveIRS lcIRS(a,b,th,m2,m3, 0.01, 500, 10000);
+
+  begin = clock();  
+  for(unsigned int i = 0; i < 100; i++)
+  {
+    angle = (double)i/200.0*3.14159;
+    endPoint = {cos(angle), sin(angle)};  
+    startPoint = -endPoint;
+    lcIRS.getLCIRS(startPoint, endPoint);
+    lightCurve = lcIRS.lcVec; 
+  }
+  end = clock();
+  cout << "Img plane size was: " << lcIRS.amoebae.amoebae.size() << "\n";  
+  cout << "100 positions IRS lightcurve:" 
+       << double(end - begin) / CLOCKS_PER_SEC 
+       << "s\n\n";
+
 
   // Laguerre Test
+  cout << "Laguerre's Method tests: \n";
   vector<complex<double>> secCoef = {{1.0,0.0},{2.0,0.0},{1.0,0.0}};
   vector<complex<double>> secSol;
   Laguerre second(secCoef);

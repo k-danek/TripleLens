@@ -3,7 +3,9 @@
 * Main class for obtaining and printing out of Light Curve of
 * Gravitational Microlens.
 *
-* This is a base class 
+* This is a base class with point-source amplification.
+* Other classes with extended-source amplification inherit
+* from this class. 
 *
 * Note: Includes a wrapper readable by Python ctypes module.
 *

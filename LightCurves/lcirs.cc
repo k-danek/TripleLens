@@ -19,7 +19,7 @@ LightCurveIRS::LightCurveIRS(
   ccc.getCa();
   _getCaBoxes();
   _getImgPlanePars();
-  _imgPlaneSize = _topRightCornerImg.real() - _bottomLeftCornerImg.real(); 
+  _imgPlaneSizeDouble = _topRightCornerImg.real() - _bottomLeftCornerImg.real(); 
 };
 
 void LightCurveIRS::_getCaBoxes()
@@ -60,6 +60,7 @@ void LightCurveIRS::_getImgPlanePars()
   _bottomLeftCornerImg.imag(centre.imag() - halfEdge);
 
   _imgPlaneSize = static_cast<long int>(halfEdge/_sourceRadius*800);
+  amoebae.amoebae.resize(_imgPlaneSize);
 };
 
 
@@ -76,8 +77,9 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
     complex<double> trialPoint;
     bool pointTaken = false;
 
-    if(imgPos.size()<4 || imgPos.size() % 2 == 1 )
-      cout << "Incorrect number of images: " << imgPos.size() << "\n";
+    // This check should be put in once the issue of missing images is resolved
+    //if(imgPos.size()<4 || imgPos.size() % 2 == 1 )
+    //  cout << "Incorrect number of images: " << imgPos.size() << "\n";
 
     // this whole bit can be in an additional method
     for(unsigned int rootInd = 0; rootInd < 6; rootInd++)
@@ -121,15 +123,13 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
     {
       lineFloodFill(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
-
     
-  lcVec.push_back(_amplification);
+    lcVec.push_back(_amplification);
+    
+    if(_amplification > 0.0)
+      cout << "non-zero amplification:" << _amplification << "\n";
 
   }
-
-  
-
-
 
   _hasLightCurve = true;
 };

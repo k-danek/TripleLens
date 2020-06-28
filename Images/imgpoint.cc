@@ -33,9 +33,19 @@ bool ImgPoint::imgCheck(complex<double> img, double sourceRadius)
    complex<double> testSourcePos=img-m1/conj(img-z1)-m2/conj(img-z2)-m3/conj(img-z3);
 
    if(abs(testSourcePos-_sourcePos)<(sourceRadius))
-    return 1;
+   {
+     // Commenting out debugging output as the issue is not fully resolved
+     //cout << "Accepted: " << std::setw(5) << abs(testSourcePos-_sourcePos) << ", "
+     //                     << _sourcePos << ", " << img << "\n"; 
+     return 1;
+   } 
    else
-    return 0;
+   {
+     // Commenting out debugging output
+     //cout << "Rejected: " << std::setw(5) << abs(testSourcePos-_sourcePos) << ", "
+     //                     << _sourcePos << ", " << img << "\n"; 
+     return 0;
+   }  
 };
 
 // Sets the image position
@@ -69,8 +79,8 @@ void ImgPoint::getRoots()
   //This part decides whether to polish previous or calculate new roots.
   //Doing just polishing should speed up the process cca twice.
   //Also, it leaves the roots in the same order as in the previous step.
-  //<10 condition is there to check whether    
-  if(_tempRoots.size() < 10)
+  //<=10 condition is there to check whether tempRoots holds all 10 roots    
+  if(_tempRoots.size() <= 10)
   {
     _tempRoots = laguerre.solveRoots();
   }
@@ -97,7 +107,7 @@ void ImgPoint::getImages()
 {
   // clears all the elements of the vector
   imgs.clear();
-  double err = 1.0e-10;
+  double err = 1.0e-6;
 
   if(!_rootsAvailable)
   {
@@ -115,6 +125,15 @@ void ImgPoint::getImages()
       isImg.push_back(false);
   }  
 
+  // This is an important check for correct number of images
+  // Unfortunatelly, this fails a way too often!
+  // Come back to this after full testing of other functionality. 
+  //if(imgs.size() % 2 != 0 || imgs.size() < 4)
+  //  cout << "Wrong number of images after the check: " << imgs.size()
+  //       << "\n";  
+    
+  _imgsAvailable = true;
+
 };
 
 vector<complex<double>> ImgPoint::getImages(complex<double> pos)
@@ -122,7 +141,7 @@ vector<complex<double>> ImgPoint::getImages(complex<double> pos)
   setPos(pos);
   getImages();
   return imgs;
-}  
+};  
 
 // Python Wrapper for ctypes module
 extern "C"
