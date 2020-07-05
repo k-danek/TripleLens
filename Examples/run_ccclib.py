@@ -37,13 +37,20 @@ class CCC(object):
         lib.print_ccc.argtypes = [ctypes.c_void_p,ctypes.c_char_p]
         lib.print_ccc.restypes = ctypes.c_void_p
 
-        self.obj = lib.ccc_new(a, b, th, m2, m3, length)
-
         lib.copy_cc_ca.argtypes = [ctypes.c_void_p,
                                    ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
                                    ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS")]
         lib.copy_cc_ca.restypes = ctypes.c_void_p
 
+        lib.copy_lenses.argtypes = [ctypes.c_void_p,
+                                    ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS")
+                                   ]
+        lib.copy_lenses.restypes = ctypes.c_void_p
+
+        lib.get_lens_pos.argtypes = [ctypes.c_void_p]
+        lib.get_lens_pos.restypes = ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS") 
+
+        self.obj = lib.ccc_new(a, b, th, m2, m3, length)
 
     def get_cc(self):
         lib.get_cc(self.obj)
@@ -55,13 +62,18 @@ class CCC(object):
         lib.print_ccc(self.obj, file_name)
 
     def copy_cc_ca(self,ccp, cap):
-        lib.copy_cc_ca(self.obj,ccp,cap)
+        lib.copy_cc_ca(self.obj, ccp, cap)
 
+    def copy_lenses(self, lens_pos):
+        lib.copy_lenses(self.obj, lens_pos)
+
+    def get_lens_pos(self):
+        return lib.get_lens_pos(self.obj)
 
 
 # Define lens parameters.
-a = 1.0
-b = 1.0
+a = 1.5
+b = 1.5
 theta = 1.05
 m2 = 1/3
 m3 = 1/3
@@ -71,6 +83,8 @@ start_time = time.time()
 # Initialise the CriticalCurveCaustic object.
 ccc = CCC(a,b,theta,m2,m3,length)
 ccc.get_ca()
+
+# Print out Critical Curve & Caustics
 ccc.print_ccc(ctypes.c_char_p(("./test.dat").encode('utf-8')))
 
 # Copy the data-points from CCC object to numpy arrays
@@ -91,10 +105,28 @@ for ca in ca_array:
   ca_real.append(ca.real)
   ca_imag.append(ca.imag)
 
+# copy lens positions
+#z1 = 0.0+0.0j
+#z2 = 0.0+0.0j
+#z3 = 0.0+0.0j
+lens_pos = np.zeros(3, np.cdouble)
+ccc.copy_lenses(lens_pos)
+#lenses_real = [z1.real, z2.real, z3.real]
+#lenses_imag = [z1.imag, z2.imag, z3.imag]
+#lens_pos = ccc.get_lens_pos()
+print("lens_pos: ", lens_pos)
+lenses_real = []
+lenses_imag = []
+for lens in lens_pos:
+    lenses_real.append(lens.real)
+    lenses_imag.append(lens.imag)
+
 # Plotting
 fig, (ax1, ax2) = plt.subplots(1, 2)
 ax1.scatter(cc_real, cc_imag)
+ax1.scatter(lenses_real, lenses_imag, s= 200.0, marker = 'o')
 ax2.scatter(ca_real, ca_imag)
+ax2.scatter(lenses_real, lenses_imag, s = 200.0, marker = 'o')
 fig.savefig("CCC_test.png", dpi=100)
 
 print("Time to initialise, calculate curves, copy & print & plot the data (s): ",time.time()-start_time)

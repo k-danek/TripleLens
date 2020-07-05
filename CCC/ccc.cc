@@ -17,8 +17,6 @@ CriticalCurveCaustic::CriticalCurveCaustic(
                            )
 {
   _length = cccLength;
-  z2c = conj(z2);
-  z3c = conj(z3);
 };
 
 CriticalCurveCaustic::CriticalCurveCaustic(const LensPar &lensParam,
@@ -31,8 +29,6 @@ CriticalCurveCaustic::CriticalCurveCaustic(const LensPar &lensParam,
                                                  )
 {
   _length = cccLength;
-  z2c = conj(z2);
-  z3c = conj(z3);
 };
 
 // Main method to initialise vector with critical curve
@@ -46,8 +42,8 @@ void CriticalCurveCaustic::getCC()
   ccVec.resize(6);
   for(auto vec: ccVec) vec.reserve(_length);
 
-  cc[1]=2.0*z2c*z3c*(z2c+z3c)*(m2+m3-1.0);
-  cc[0]=-z2c*z2c*z3c*z3c*(m2+m3-1.0);
+  cc[1]=2.0*z2*z3*(z2+z3)*(m2+m3-1.0);
+  cc[0]=-z2*z2*z3*z3*(m2+m3-1.0);
   
   for (unsigned int j=0; j< _length ;j++)
   {
@@ -56,10 +52,10 @@ void CriticalCurveCaustic::getCC()
     eiphi = complex<double>(cos(phi),sin(phi));
 
     cc[6]=-eiphi;
-    cc[5]=2.0*eiphi*(z2c+z3c);
-    cc[4]=1.0-eiphi*(z2c*z2c+z3c*z3c+4.0*z2c*z3c);
-    cc[3]=2.0*eiphi*z2c*z3c*(z2c+z3c)+2.0*z2c*(m2-1.0)+2.0*z3c*(m3-1.0);
-    cc[2]=-eiphi*z2c*z2c*z3c*z3c+4.0*(1.0-m3-m2)*z2c*z3c-z2c*z2c*(m2-1.0)-z3c*z3c*(m3-1.0);
+    cc[5]=2.0*eiphi*(z2+z3);
+    cc[4]=1.0-eiphi*(z2*z2+z3*z3+4.0*z2*z3);
+    cc[3]=2.0*eiphi*z2*z3*(z2+z3)+2.0*z2*(m2-1.0)+2.0*z3*(m3-1.0);
+    cc[2]=-eiphi*z2*z2*z3*z3+4.0*(1.0-m3-m2)*z2*z3-z2*z2*(m2-1.0)-z3*z3*(m3-1.0);
 
     vector<complex<double>> ccCoef (cc, cc + sizeof(cc) / sizeof(complex<double>) );
 
@@ -115,9 +111,9 @@ void CriticalCurveCaustic::getCa()
     for(unsigned int j = 0; j < _length; j++)
     {
       ccSol = ccVec[i][j];
-      caVec[i].push_back(conj(ccSol-(1.0-m2-m3)/conj(ccSol)
-                                   -m2/conj((ccSol-z2c))
-                                   -m3/conj((ccSol-z3c))));
+      caVec[i].push_back(ccSol-(1.0-m2-m3)/conj(ccSol)
+                                   -m2/conj((ccSol-z2))
+                                   -m3/conj((ccSol-z3)));
     }
   }
   // Caustic is now available
@@ -218,24 +214,36 @@ extern "C"
       }
   }
 
+
+  //TODO actually move the vector to complex array instead of copying it
+  //It will destroy the the vector in the process but should be substantially faster
+
+
   void copy_lenses(CriticalCurveCaustic* ccc,
-                   complex<double>&       z1,
-                   complex<double>&       z2,
-                   complex<double>&       z3
+                   complex<double>*      lensPos
                   )
   {
-    z1 = ccc->z1;
-    z2 = ccc->z2;
-    z3 = ccc->z3;
+    lensPos[0] = ccc->z1;
+    lensPos[1] = ccc->z2;
+    lensPos[2] = ccc->z3;
+  }
+
+  complex<double>* get_lens_pos(CriticalCurveCaustic* ccc)
+  {
+    static complex<double> lensPos[3];
+    lensPos[0] = ccc->z1;
+    lensPos[1] = ccc->z2;
+    lensPos[2] = ccc->z3;
+    return lensPos;
   }
 
 
-  void getBoundingBox(CriticalCurveCaustic* ccc,
-                      complex<double>*      ccMin,
-                      complex<double>*      ccMax,
-                      complex<double>*      caMin,
-                      complex<double>*      caMax
-                     )
+  void get_bounding_box(CriticalCurveCaustic* ccc,
+                        complex<double>*      ccMin,
+                        complex<double>*      ccMax,
+                        complex<double>*      caMin,
+                        complex<double>*      caMax
+                       )
   {
     for(auto ccRoot: ccc->ccVec)
       minmax<vector<complex<double>>>(ccRoot, *ccMin, *ccMax);

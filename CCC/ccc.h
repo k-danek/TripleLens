@@ -54,8 +54,6 @@ class CriticalCurveCaustic: public Lens
     unsigned int _length = 500;  
     bool _ccAvailable = false;
     bool _caAvailable = false;
-    complex<double> z2c;
-    complex<double> z3c;
     vector<complex<double>> _tempRoots;
 };
 
