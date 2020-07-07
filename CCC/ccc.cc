@@ -214,7 +214,6 @@ extern "C"
       }
   }
 
-
   //TODO actually move the vector to complex array instead of copying it
   //It will destroy the the vector in the process but should be substantially faster
 
@@ -237,7 +236,6 @@ extern "C"
     return lensPos;
   }
 
-
   void get_bounding_box(CriticalCurveCaustic* ccc,
                         complex<double>*      ccMin,
                         complex<double>*      ccMax,
@@ -245,13 +243,27 @@ extern "C"
                         complex<double>*      caMax
                        )
   {
+    // initialize bounds so the zero is not picked
+    *ccMin = { 1.0e10, 1.0e10};
+    *ccMax = {-1.0e10,-1.0e10};   
+    *caMin = { 1.0e10, 1.0e10};
+    *caMax = {-1.0e10,-1.0e10};
+
     for(auto ccRoot: ccc->ccVec)
       minmax<vector<complex<double>>>(ccRoot, *ccMin, *ccMax);
 
     for(auto caRoot: ccc->caVec)
       minmax<vector<complex<double>>>(caRoot, *caMin, *caMax);
+  
+    // include lens points in the boundaries
+    vector<complex<double>> lensPos{ccc->z1, ccc->z2, ccc->z3};    
+    minmax<vector<complex<double>>>(lensPos, *ccMin, *ccMax);
+    minmax<vector<complex<double>>>(lensPos, *caMin, *caMax);
+    
+    // Squarise the bounds
+    makeSquare(*ccMin, *ccMax);
+    makeSquare(*caMin, *caMax);
   }
-
 
 }
 

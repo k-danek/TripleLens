@@ -47,7 +47,7 @@ void LightCurveIRS::_getImgPlanePars()
 
   halfEdge = max.real()-min.real();
   if(max.imag()-min.imag() > halfEdge)
-   halfEdge = max.imag() - min.imag(); 
+    halfEdge = max.imag() - min.imag(); 
 
   halfEdge *= resizingFactor/2.0;
 

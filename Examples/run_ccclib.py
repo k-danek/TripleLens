@@ -47,8 +47,13 @@ class CCC(object):
                                    ]
         lib.copy_lenses.restypes = ctypes.c_void_p
 
-        lib.get_lens_pos.argtypes = [ctypes.c_void_p]
-        lib.get_lens_pos.restypes = ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS") 
+        lib.get_bounding_box.argtypes = [ctypes.c_void_p,
+                                         ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
+                                         ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
+                                         ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
+                                         ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS")
+                                        ]
+        lib.get_bounding_box.restypes = ctypes.c_void_p
 
         self.obj = lib.ccc_new(a, b, th, m2, m3, length)
 
@@ -67,8 +72,8 @@ class CCC(object):
     def copy_lenses(self, lens_pos):
         lib.copy_lenses(self.obj, lens_pos)
 
-    def get_lens_pos(self):
-        return lib.get_lens_pos(self.obj)
+    def get_bounding_box(self, cc_min, cc_max, ca_min, ca_max):
+        lib.get_bounding_box(self.obj, cc_min, cc_max, ca_min, ca_max)
 
 
 # Define lens parameters.
@@ -106,27 +111,34 @@ for ca in ca_array:
   ca_imag.append(ca.imag)
 
 # copy lens positions
-#z1 = 0.0+0.0j
-#z2 = 0.0+0.0j
-#z3 = 0.0+0.0j
 lens_pos = np.zeros(3, np.cdouble)
 ccc.copy_lenses(lens_pos)
-#lenses_real = [z1.real, z2.real, z3.real]
-#lenses_imag = [z1.imag, z2.imag, z3.imag]
-#lens_pos = ccc.get_lens_pos()
-print("lens_pos: ", lens_pos)
 lenses_real = []
 lenses_imag = []
 for lens in lens_pos:
-    lenses_real.append(lens.real)
-    lenses_imag.append(lens.imag)
+  lenses_real.append(lens.real)
+  lenses_imag.append(lens.imag)
+
+# copy the bounding box
+cc_min = np.zeros(1, np.cdouble)
+cc_max = np.zeros(1, np.cdouble)
+ca_min = np.zeros(1, np.cdouble)
+ca_max = np.zeros(1, np.cdouble)
+ccc.get_bounding_box(cc_min, cc_max, ca_min, ca_max)
+print("Bounding box cc: ", cc_min, cc_max)
+print("Bounding box ca: ", ca_min, ca_max)
 
 # Plotting
 fig, (ax1, ax2) = plt.subplots(1, 2)
+
+ax1.axis(xmin=cc_min.real, xmax=cc_max.real, ymin=cc_min.imag, ymax=cc_max.imag)
 ax1.scatter(cc_real, cc_imag)
 ax1.scatter(lenses_real, lenses_imag, s= 200.0, marker = 'o')
+
+ax2.axis(xmin=ca_min.real, xmax=ca_max.real, ymin=ca_min.imag, ymax=ca_max.imag)
 ax2.scatter(ca_real, ca_imag)
 ax2.scatter(lenses_real, lenses_imag, s = 200.0, marker = 'o')
+
 fig.savefig("CCC_test.png", dpi=100)
 
 print("Time to initialise, calculate curves, copy & print & plot the data (s): ",time.time()-start_time)

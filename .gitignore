@@ -1,4 +1,5 @@
 # exclude everything except source code and makefiles
+*.swl
 *.swo
 *.swp
 *.swn
