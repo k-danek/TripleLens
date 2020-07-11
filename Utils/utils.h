@@ -38,8 +38,8 @@ static void makeSquare(complex<double>  &min,
   if(max.imag()-min.imag() > halfEdge)
     halfEdge = max.imag() - min.imag();
 
-  max = centre + 1.05*complex<double>{halfEdge, halfEdge};
-  min = centre - 1.05*complex<double>{halfEdge, halfEdge};
+  max = centre + 0.55*complex<double>{halfEdge, halfEdge};
+  min = centre - 0.55*complex<double>{halfEdge, halfEdge};
 }
 
 #endif
