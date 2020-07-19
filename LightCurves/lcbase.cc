@@ -18,10 +18,21 @@ double LightCurveBase::getPointAmp(complex<double> sourcePos)
 {
   vector<complex<double>> imgPos = _pointImages.getImages(sourcePos);
   double amp = 0.0;
+  double ampTemp = 0.0;
 
   for(auto img: imgPos)
   {
-    amp +=1.0/abs(1.0-norm(m1/pow(img-z1,2)+m2/pow(img-z2,2)+m3/pow(img-z3,2)));  
+    // beware of using abs, it tends to use math.h version returning ints for some reason. 
+    ampTemp = 1.0/std::abs(1.0-norm(m1/pow(img-z1,2.0)+m2/pow(img-z2,2.0)+m3/pow(img-z3,2.0)));  
+
+    // NaNs are not equal to themselves
+    if(ampTemp != ampTemp)
+    {
+      ampTemp = 0.0;
+      cout << "nan amp, printing img: [" << img.real() << "," << img.imag() << "]\n"; 
+    }
+    amp += ampTemp;
+
   }  
 
   return amp;

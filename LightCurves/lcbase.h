@@ -14,7 +14,7 @@
 
 #ifndef LIGHTCURVEBASE_H
 #define LIGHTCURVEBASE_H
-                
+
 #include<imgpoint.h>
 #include<lens.h>
 

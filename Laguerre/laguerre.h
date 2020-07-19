@@ -28,10 +28,10 @@ using std::vector;
 template<class T>
 using complex = std::complex<T>;
 
-#define MAX_IT 4000
-#define MT 500
-#define EPSS 1.0e-8
-#define EPS 1.0e-9
+#define MAX_IT 100
+#define MT 8
+#define EPSS 1.0e-14
+#define EPS 1.0e-16
 
 class Laguerre
 {
@@ -40,7 +40,7 @@ public:
   vector<complex<double>> solveRoots();
   vector<complex<double>> polishRoots(vector<complex<double>> roots);
 
-  bool checkRoots(vector<complex<double>> roots);
+  bool checkRoots(const vector<complex<double>> roots);
 
   complex<double> laguerre(vector<complex<double>>, complex<double>);
 

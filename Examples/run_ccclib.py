@@ -51,7 +51,8 @@ class CCC(object):
                                          ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
                                          ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
                                          ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
-                                         ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS")
+                                         ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
+                                         ctypes.c_double
                                         ]
         lib.get_bounding_box.restypes = ctypes.c_void_p
 
@@ -72,8 +73,8 @@ class CCC(object):
     def copy_lenses(self, lens_pos):
         lib.copy_lenses(self.obj, lens_pos)
 
-    def get_bounding_box(self, cc_min, cc_max, ca_min, ca_max):
-        lib.get_bounding_box(self.obj, cc_min, cc_max, ca_min, ca_max)
+    def get_bounding_box(self, cc_min, cc_max, ca_min, ca_max, scale):
+        lib.get_bounding_box(self.obj, cc_min, cc_max, ca_min, ca_max, scale)
 
 
 # Define lens parameters.
@@ -124,7 +125,7 @@ cc_min = np.zeros(1, np.cdouble)
 cc_max = np.zeros(1, np.cdouble)
 ca_min = np.zeros(1, np.cdouble)
 ca_max = np.zeros(1, np.cdouble)
-ccc.get_bounding_box(cc_min, cc_max, ca_min, ca_max)
+ccc.get_bounding_box(cc_min, cc_max, ca_min, ca_max, 1.1)
 print("Bounding box cc: ", cc_min, cc_max)
 print("Bounding box ca: ", ca_min, ca_max)
 

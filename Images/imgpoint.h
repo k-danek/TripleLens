@@ -48,7 +48,7 @@ class ImgPoint: public Lens
                  );
 
     // Image position caulculation
-    void getRoots(); 
+    void getRoots(bool forceNewRoots); 
     void getImages();
     
     // update and return images in one functional call

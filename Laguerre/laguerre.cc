@@ -18,15 +18,15 @@ Laguerre::Laguerre(vector<complex<double> > poly)
 complex<double> Laguerre::laguerre(vector<complex<double> > poly, complex<double> x)
 {
 
-  vector<double> frac={0,0.5, 0.25, 0.75, 0.13, 0.38, 0.62, 0.88, 1.};//Fractional steps to be used after breaking the iteration cycle.
-  const int m = poly.size()-1.0;
+  vector<double> frac={0.5, 0.25, 0.75, 0.13, 0.38, 0.62, 0.88, 1.};//Fractional steps to be used after breaking the iteration cycle.
+  const int m = poly.size()-1;
   const double md = static_cast<double>(m); // having double version for complex library
   complex<double> dx, x1, g, gp, gm, h, b, d, f;
   double error;
   for (unsigned int it = 1; it <= MAX_IT; it++)
   {
     b = poly[m];
-    error = abs(b);
+    error = std::abs(b);
     d = complex<double>(0,0);
     f = complex<double>(0,0);
     for ( int j=m-1; j>=0; j--)
@@ -34,25 +34,27 @@ complex<double> Laguerre::laguerre(vector<complex<double> > poly, complex<double
       f = x*f + d;//Second derivative
       d = x*d + b;//First derivative
       b = x*b + poly[j];//Polynom evaluation
-      error = abs(b) + abs(x)*error;//Error term
+      error = std::abs(b) + std::abs(x)*error;//Error term
     }
     error *= EPSS;
-    if (abs(b) < error) return x;//x is already a root
+    if (std::abs(b) < error) return x;//x is already a root
 
     //
     g = d/b;
     h = g*g-2.*f/b;
     gp = g+sqrt((md-1.)*(md*h-g*g));
     gm = g-sqrt((md-1.)*(md*h-g*g));
-    if (abs(gp) < abs(gm)) gp = gm;
-    if (std::max(abs(gp), abs(gm)) > 0.) dx = md/gp;
-    else dx = (1.+abs(x))*complex<double>(cos(1.*it), sin(1.*it));
+    if (std::abs(gp) < std::abs(gm)) gp = gm;
+    if (std::max(std::abs(gp), std::abs(gm)) > 0.) dx = md/gp;
+    else dx = (1.+std::abs(x))*complex<double>(cos(1.*it), sin(1.*it));
     x1 = x - dx;
     // Reapeated until it converges or exceeds the maximum number of iterations
     if ((x.real() == x1.real()) && (x.imag() == x1.imag())) return x;
     if (it%MT) x = x1;
     else x -= complex<double>(frac[it/MT],0)*dx;
   }
+
+  std::cout << "Laguerre: maximum number of iterations exceeded \n";
   return x;
 }
 
@@ -71,7 +73,7 @@ vector<complex<double> > Laguerre::solveRoots()
     
     x=complex<double>(0.0,0.0);
     x = laguerre(tempPoly, x);
-    if (abs(x.imag()) < EPS*abs(x.real())) 
+    if (std::abs(x.imag()) < EPS*std::abs(x.real())) 
       x=complex<double>(x.real(),0.0);// If imaginary part is small enough, make it a real root
     
     roots.push_back(x);// 
@@ -111,13 +113,16 @@ vector<complex<double>> Laguerre::polishRoots(
 // A simple test on the roost.
 // Tests whether the multiple of all the roots is close enough to zeroth coeff.
 // This is mainly to avoid one root added twice by polisRoots method.
-bool Laguerre::checkRoots(vector<complex<double>> roots)
+bool Laguerre::checkRoots(const vector<complex<double>> roots)
 {
-  complex<double> c0 = _polyCoeffs[6]; 
+  // initialise to identity
+  complex<double> c0 = _polyCoeffs.back(); 
   for (auto root: roots)
-    c0 *= root;
+    c0 *= -root;
 
-  return (1.0-abs(c0/_polyCoeffs[0]) < 1.0e-3);
+  return (std::abs(_polyCoeffs[0]) > 1.0e-8) ? 
+                                        (1.0-std::abs(c0/_polyCoeffs[0]) < 1.0e-5):
+                                        (std::abs(c0-_polyCoeffs[0]) < 1.0e-10);
 }
 
 

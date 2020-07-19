@@ -9,3 +9,4 @@
 *.dat
 *.png
 bin/*
+Examples/__pycache__/*

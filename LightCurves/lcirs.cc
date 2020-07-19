@@ -194,7 +194,7 @@ bool LightCurveIRS::intersectionCheck(complex<double>  sourcePos,
         
         // A-ab_vector*projected_length*len(AB)/len(AB)^2
         // TODO: figure more elegant type deduction here
-        trialPoint = pointA-pointB*static_cast<double>(abs(projTimesDistance)
+        trialPoint = pointA-pointB*static_cast<double>(std::abs(projTimesDistance)
                                                            /abDistance);
 
         complex<double> stPoint = trialPoint - sourcePos;
@@ -225,7 +225,7 @@ double LightCurveIRS::irs(double imgX,
    // Computationally heavy part, optimise as much as possible!
    complex<double> img(imgX,imgY);  
    complex<double> testSourcePos=img-m1/conj(img-z1)-m2/conj(img-z2)-m3/conj(img-z3);
-   double R = abs(testSourcePos-sourcePos);
+   double R = std::abs(testSourcePos-sourcePos);
 
    if( R < _sourceRadius)
    {
@@ -333,6 +333,58 @@ void LightCurveIRS::lineFloodFill(long int nx, long int ny, complex<double> sPos
 }
 
 
+// Python Wrapper for ctypes module
+extern "C"
+{
+  LightCurveIRS* lcirs_new(double       a,
+                           double       b,
+                           double       th,
+                           double       m2,
+                           double       m3,
+                           double       sourceSize,
+                           unsigned int lcLength,
+                           long int     imgPlaneSize 
+                          )
+  {
+    return new LightCurveIRS(a,
+                             b,
+                             th,
+                             m2,
+                             m3,
+                             sourceSize,
+                             lcLength,
+                             imgPlaneSize
+                            );
+  }
+
+  // Point source light curve
+  void get_lc(LightCurveIRS* lcirs,
+              double         iniX,
+              double         finX,
+              double         iniY,
+              double         finY
+             )
+  {
+    lcirs->getLC(complex<double>{iniX,iniY},
+                 complex<double>{finX,finY}
+                );
+  }
+
+  // In order to access the data in python, 
+  // we copy them to array of complex<double>
+  void copy_lc(LightCurveIRS*         lc,
+               complex<double>*       lcArray        
+              )
+  {
+    unsigned int length = lc->lcVec.size();
+
+    for(unsigned int i = 0; i < length; i++)
+    {
+      lcArray[i] = lc->lcVec[i];
+    }
+  }
+
+}
 
 
 

@@ -29,7 +29,8 @@ void minmax(const T          &container,
 }
 
 static void makeSquare(complex<double>  &min,
-                       complex<double>  &max
+                       complex<double>  &max,
+                       double           scale
                       ) 
 {
   complex<double> centre = (max+min)/2.0;
@@ -37,9 +38,11 @@ static void makeSquare(complex<double>  &min,
   double halfEdge = max.real() - min.real();
   if(max.imag()-min.imag() > halfEdge)
     halfEdge = max.imag() - min.imag();
+  
+  halfEdge *= scale/2.0;
 
-  max = centre + 0.55*complex<double>{halfEdge, halfEdge};
-  min = centre - 0.55*complex<double>{halfEdge, halfEdge};
+  max = centre + complex<double>{halfEdge, halfEdge};
+  min = centre - complex<double>{halfEdge, halfEdge};
 }
 
 #endif

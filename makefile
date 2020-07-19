@@ -20,7 +20,7 @@ ccc_test: main.o ccc.so imgpoint.so lcirs.so  liblaguerre.a
 
 # Shared libraries
 lcirs.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o liblaguerre.a 
-	$(CC) $(CFLAGS_SHARED) $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lcirs.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o  $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/liblaguerre.a 
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/lcirs.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o  $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/liblaguerre.a 
 
 imgpoint.so: lens.o imgpoint.o liblaguerre.a  
 	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/imgpoint.so $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/liblaguerre.a

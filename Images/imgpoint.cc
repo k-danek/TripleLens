@@ -69,9 +69,9 @@ void ImgPoint::setPos(complex<double> pos)
 };
 
 // Main method to initialise vector with critical curve
-void ImgPoint::getRoots()
+void ImgPoint::getRoots(bool forceNewRoots = false)
 {
-  vector<complex<double>> imgCoef = getCoeffsOpt();
+  vector<complex<double>> imgCoef = getCoeffs();
 
   //Beware! This is complex conjugate of the Critical Curve
   Laguerre laguerre(imgCoef);
@@ -79,10 +79,11 @@ void ImgPoint::getRoots()
   //This part decides whether to polish previous or calculate new roots.
   //Doing just polishing should speed up the process cca twice.
   //Also, it leaves the roots in the same order as in the previous step.
-  //<=10 condition is there to check whether tempRoots holds all 10 roots    
-  if(_tempRoots.size() <= 10)
+  //<10 condition is there to check whether tempRoots holds all 10 roots    
+  if(_tempRoots.size() < 10 || forceNewRoots)
   {
     _tempRoots = laguerre.solveRoots();
+    cout << "Roots recalculated \n";
   }
   else
   {
@@ -107,6 +108,7 @@ void ImgPoint::getImages()
 {
   // clears all the elements of the vector
   imgs.clear();
+  isImg.clear();
   double err = 1.0e-6;
 
   if(!_rootsAvailable)
@@ -128,10 +130,38 @@ void ImgPoint::getImages()
   // This is an important check for correct number of images
   // Unfortunatelly, this fails a way too often!
   // Come back to this after full testing of other functionality. 
-  //if(imgs.size() % 2 != 0 || imgs.size() < 4)
-  //  cout << "Wrong number of images after the check: " << imgs.size()
-  //       << "\n";  
+  if(imgs.size() % 2 != 0 || imgs.size() < 4)
+  { 
     
+    getRoots(true);
+    // clears all the elements of the vector
+    imgs.clear();
+    isImg.clear();
+    
+    for(auto root: roots)
+    {
+      if(imgCheck(root, err))
+      {
+        imgs.push_back(root);
+        isImg.push_back(true);
+      }  
+      else
+        isImg.push_back(false);
+    }    
+    
+    if(imgs.size() % 2 != 0 || imgs.size() < 4)
+    { 
+      vector<complex<double>>  coeffs = getCoeffsOpt();
+      cout << "Wrong number of images after the check: " << imgs.size() << "\n";
+
+      for(auto coeff: coeffs)
+      {
+        cout << std::scientific << std::setw(4) << "[" << coeff.real() 
+             << "," << coeff.imag() << "]";
+      }
+      cout << "\n"; 
+    }
+  }
   _imgsAvailable = true;
 
 };
@@ -175,11 +205,18 @@ extern "C"
     img->getImages();
   };
 
+  void set_pos(ImgPoint* img,
+               double    posX,
+               double    posY)
+  {
+    img->setPos(posX, posY);
+  }
+
   // In order to access the data in python, 
   // we copy them to array of complex<double>
-  void copy_img(ImgPoint*         img,
-                complex<double>*  roots,
-                bool*             isImg)
+  void copy_images(ImgPoint*         img,
+                   complex<double>*  roots,
+                   bool*             isImg)
   {
     unsigned int length = img->roots.size();
 

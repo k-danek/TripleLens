@@ -111,9 +111,9 @@ void CriticalCurveCaustic::getCa()
     for(unsigned int j = 0; j < _length; j++)
     {
       ccSol = ccVec[i][j];
-      caVec[i].push_back(ccSol-(1.0-m2-m3)/conj(ccSol)
-                                   -m2/conj((ccSol-z2))
-                                   -m3/conj((ccSol-z3)));
+      caVec[i].push_back(ccSol-m1/conj(ccSol-z1)
+                              -m2/conj(ccSol-z2)
+                              -m3/conj(ccSol-z3));
     }
   }
   // Caustic is now available
@@ -161,9 +161,6 @@ void CriticalCurveCaustic::printCCC(std::string fileName)
 // Python Wrapper for ctypes module
 extern "C"
 {
-   //Foo* Foo_new(int n) {return new Foo(n);}
-   //void Foo_bar(Foo* foo) {foo->bar();}
-   //int Foo_foobar(Foo* foo, int n) {return foo->foobar(n);}
   CriticalCurveCaustic* ccc_new(double a,
                                 double b,
                                 double th,
@@ -240,7 +237,8 @@ extern "C"
                         complex<double>*      ccMin,
                         complex<double>*      ccMax,
                         complex<double>*      caMin,
-                        complex<double>*      caMax
+                        complex<double>*      caMax,
+                        double                scale = 1.1
                        )
   {
     // initialize bounds so the zero is not picked
@@ -261,8 +259,8 @@ extern "C"
     minmax<vector<complex<double>>>(lensPos, *caMin, *caMax);
     
     // Squarise the bounds
-    makeSquare(*ccMin, *ccMax);
-    makeSquare(*caMin, *caMax);
+    makeSquare(*ccMin, *ccMax, scale);
+    makeSquare(*caMin, *caMax, scale);
   }
 
 }
