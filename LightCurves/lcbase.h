@@ -39,7 +39,7 @@ class LightCurveBase: public Lens
     double getPointAmp(complex<double> sourcePos);
 
   private:
-    unsigned int _length;
+    unsigned int _lcLength;
 
   protected:
     ImgPoint _pointImages;

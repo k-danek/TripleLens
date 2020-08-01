@@ -23,13 +23,13 @@ class ImgPoint: public Lens
 {
   public:
     
-    ImgPoint(double       a,
-             double       b,
-             double       th,
-             double       m2,
-             double       m3,
-             double       posX,
-             double       posY
+    ImgPoint(double a,
+             double b,
+             double th,
+             double m2,
+             double m3,
+             double posX,
+             double posY
              );
 
     ImgPoint(const LensPar &lensParam);

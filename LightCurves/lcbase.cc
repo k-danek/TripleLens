@@ -6,12 +6,12 @@ LightCurveBase::LightCurveBase(
                             double       th,
                             double       m2,
                             double       m3,
-                            unsigned int lcLength = 50
+                            unsigned int lcLength = 100
                         ): Lens(a, b, th, m2, m3),
                            _pointImages(lensPar) 
 {
-  _length = lcLength;
-  lcVec.resize(_length);
+  _lcLength = lcLength;
+  lcVec.resize(_lcLength);
 };
 
 double LightCurveBase::getPointAmp(complex<double> sourcePos)
@@ -32,7 +32,6 @@ double LightCurveBase::getPointAmp(complex<double> sourcePos)
       cout << "nan amp, printing img: [" << img.real() << "," << img.imag() << "]\n"; 
     }
     amp += ampTemp;
-
   }  
 
   return amp;
@@ -44,9 +43,9 @@ void LightCurveBase::getLC(complex<double> startPoint,
 {
 
   complex<double> pos;
-  for(unsigned int i = 0; i < _length; i++)
+  for(unsigned int i = 0; i < _lcLength; i++)
   {
-    pos = startPoint + (endPoint-startPoint)*(i/(_length-1.0));
+    pos = startPoint + (endPoint-startPoint)*(i/(_lcLength-1.0));
     lcVec[i] = getPointAmp(pos);
   }
 

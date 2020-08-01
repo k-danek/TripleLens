@@ -13,8 +13,6 @@ LightCurveIRS::LightCurveIRS(
                                ccc(lensPar, 500),
                                amoebae(imgPlaneSize)
 {
-  _lcLength = lcLength;
-  lcVec.resize(lcLength);
   _sourceRadius = sourceSize;
   ccc.getCa();
   _getCaBoxes();
@@ -360,8 +358,8 @@ extern "C"
   // Point source light curve
   void get_lc(LightCurveIRS* lcirs,
               double         iniX,
-              double         finX,
               double         iniY,
+              double         finX,
               double         finY
              )
   {
@@ -372,8 +370,8 @@ extern "C"
 
   // In order to access the data in python, 
   // we copy them to array of complex<double>
-  void copy_lc(LightCurveIRS*         lc,
-               complex<double>*       lcArray        
+  void copy_lc(LightCurveIRS* lc,
+               double*        lcArray        
               )
   {
     unsigned int length = lc->lcVec.size();
