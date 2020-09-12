@@ -22,18 +22,25 @@ void Amoeba::addNode (long int nL, long int nR, long int ny)
   amoebae[ny].push_back(XRange(nL, nR));
 }
 
-// check if range is no within known image
-// returns 1 if in not in existing image 
+// check if range is not within known image
+// returns 1 if not in existing image 
 bool Amoeba::checkLine(long int ny, long int nx)
 {
   vector<XRange>::const_iterator it;
    
   if ((ny < 0) || (ny >= _size)) return 0;
-    for (it = amoebae[ny].begin(); it != amoebae[ny].end(); it++) {
+
+  for (it = amoebae[ny].begin(); it != amoebae[ny].end(); it++) {
       if ( ( nx <= (*it).xright) && ((*it).xleft <= nx)) {
            return 0;
       }
-    }
+  }
   return 1;       
+}
+
+void Amoeba::resize(long int size)
+{
+  amoebae.resize(size);
+  _size = size;
 }
 

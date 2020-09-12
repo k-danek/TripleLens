@@ -7,7 +7,6 @@
 * Other classes with extended-source amplification inherit
 * from this class. 
 *
-* Note: Includes a wrapper readable by Python ctypes module.
 *
 *****************************************************************************/
 
@@ -38,12 +37,10 @@ class LightCurveBase: public Lens
     
     double getPointAmp(complex<double> sourcePos);
 
-  private:
-    unsigned int _lcLength;
-
   protected:
     ImgPoint _pointImages;
     bool _hasLightCurve = false;
+    unsigned int _lcLength;
 };
 
 #endif                

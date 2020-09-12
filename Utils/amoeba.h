@@ -36,6 +36,9 @@ class Amoeba
                    long int n 
                   );
 
+    void resize(long int size
+               );
+
     // Image plane grid filled with amoebae
     vector< vector<XRange> > amoebae;   
 

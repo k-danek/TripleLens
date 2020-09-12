@@ -39,6 +39,14 @@ class LC_irs(object):
                                  ] 
         lib_lc.get_lc.restypes = ctypes.c_void_p
 
+        lib_lc.get_lc_irs.argtypes = [ctypes.c_void_p,
+                                      ctypes.c_double,
+                                      ctypes.c_double,
+                                      ctypes.c_double,
+                                      ctypes.c_double
+                                     ] 
+        lib_lc.get_lc_irs.restypes = ctypes.c_void_p
+
         lib_lc.copy_lc.argtypes = [ctypes.c_void_p,
                                    ndpointer(dtype=np.double,flags="C_CONTIGUOUS")
                                   ]
@@ -48,6 +56,9 @@ class LC_irs(object):
 
     def get_lc(self, iniX, iniY, finX, finY):
         lib_lc.get_lc(self.obj, iniX, iniY, finX, finY)
+
+    def get_lc_irs(self, iniX, iniY, finX, finY):
+        lib_lc.get_lc_irs(self.obj, iniX, iniY, finX, finY)
 
     def copy_lc(self,lc_vec):
         lib_lc.copy_lc(self.obj, lc_vec)
@@ -105,17 +116,18 @@ print("Bounding box ca: ", ca_min, ca_max)
 pos_x = 1.0
 pos_y = 1.0
 
-#img_generator = Img(a,b,theta,m2,m3,pos_x, pos_y)
-#img_generator.get_images()
+# number of steps
+lc_steps = 100
+source_size = 1e-3
 
-# Copy the data-points from CCC object to numpy arrays
-roots_array = np.zeros(10, np.cdouble)
-isimg_array = np.zeros(10, np.bool_)
+lc_array     = np.zeros(lc_steps, np.double)
+lc_array_irs = lc_array
 
-lc_array = np.zeros(100, np.double)
+lc_irs = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, 300)
+#lc_irs.get_lc(0.0,0.0,1.0,0.577)
+#lc_irs.copy_lc(lc_array)
 
-lc_irs = LC_irs(a,b,theta, m2, m3, 0.01, 100, 10000)
-lc_irs.get_lc(0.0,0.0,1.0,0.577)
+lc_irs.get_lc_irs(0.0,0.0,1.0,0.577)
 lc_irs.copy_lc(lc_array)
 
 print("Copied LC")

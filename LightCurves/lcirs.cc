@@ -1,23 +1,24 @@
 #include<lcirs.h>
 
 LightCurveIRS::LightCurveIRS(
-                            double       a,
-                            double       b,
-                            double       th,
-                            double       m2,
-                            double       m3,
-                            double       sourceSize,
-                            unsigned int lcLength = 100,
-                            long int     imgPlaneSize = 100000
+                             double       a,
+                             double       b,
+                             double       th,
+                             double       m2,
+                             double       m3,
+                             double       sourceSize,
+                             unsigned int lcLength = 100,
+                             long int     pointsPerRadius = 300
                             ): LightCurveBase(a, b, th, m2, m3, lcLength),
                                ccc(lensPar, 500),
-                               amoebae(imgPlaneSize)
+                               amoebae(pointsPerRadius)
 {
+  _lcLength = lcLength;
   _sourceRadius = sourceSize;
+  _pointsPerRadius = pointsPerRadius;
   ccc.getCa();
   _getCaBoxes();
   _getImgPlanePars();
-  _imgPlaneSizeDouble = _topRightCornerImg.real() - _bottomLeftCornerImg.real(); 
 };
 
 void LightCurveIRS::_getCaBoxes()
@@ -30,6 +31,7 @@ void LightCurveIRS::_getCaBoxes()
     caBoxes.push_back(std::make_pair(min, max));
   }
 };
+
 
 void LightCurveIRS::_getImgPlanePars()
 {
@@ -57,8 +59,30 @@ void LightCurveIRS::_getImgPlanePars()
   _bottomLeftCornerImg.real(centre.real() - halfEdge);
   _bottomLeftCornerImg.imag(centre.imag() - halfEdge);
 
-  _imgPlaneSize = static_cast<long int>(halfEdge/_sourceRadius*800);
-  amoebae.amoebae.resize(_imgPlaneSize);
+
+  _imgPlaneSize = static_cast<long int>(halfEdge/_sourceRadius*_pointsPerRadius);
+  amoebae.resize(_imgPlaneSize);
+
+  _imgPlaneSizeDouble = 2*halfEdge;
+
+  // Set the ampScale as number of grid point of the image plane that would fit
+  // in the source radius. Also divide by a factor from source brightness
+  // integration (for source of radius 1).
+  _ampScale = 1.0/M_PI/pow(_pointsPerRadius,2.0)/(1.0-_vFactor/3.0);
+
+  cout << "Image plane parameters:\n";
+  cout << "_imgPlaneSize:" << _imgPlaneSize << "\n";
+  cout << "_imgPlaneSizeDouble:" << _imgPlaneSizeDouble << "\n";
+  cout << "topRightCornerImg:(" << _topRightCornerImg.real() << ","
+       << _topRightCornerImg.imag() << ")\n"; 
+  cout << "bottomLeftCornerImg:(" << _bottomLeftCornerImg.real() << ","
+       << _bottomLeftCornerImg.imag() << ")\n"; 
+
+  cout << "now what indices are given by (0.0, 0.0) : (" << xToNx(0.0) << "," 
+       << yToNy(0.0) <<")\n";
+
+  cout << "ampScale:" << _ampScale << "\n";
+
 };
 
 
@@ -66,14 +90,21 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
                              complex<double> endPoint
                             )
 {
+  
+  cout << "IRS called with imgPlaneSize:" << _imgPlaneSize << "\n";
   complex<double> pos = startPoint;
+
+  // Looping over source positions
   for(unsigned int i = 0; i < _lcLength; i++)
   {
-
+    cout << "started pos:" << i << "\n";
     pos = (endPoint-startPoint)*(i/(_lcLength-1.0));
     vector<complex<double>> imgPos = _pointImages.getImages(pos);
     complex<double> trialPoint;
     bool pointTaken = false;
+
+    // erase amoeba by initialising it again.
+    amoebae = Amoeba(_imgPlaneSize);
 
     // This check should be put in once the issue of missing images is resolved
     //if(imgPos.size()<4 || imgPos.size() % 2 == 1 )
@@ -91,7 +122,7 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
       {
         pointTaken = false;
         
-        // looping over points on ccc for particular to get a closest points 
+        // looping over points on ccc to get a closest points 
         for(unsigned int solInd = 0; solInd < ccc.caVec[rootInd].size()-1; solInd++)
         {
           // if a point is taken the next positive intersection will not add other.
@@ -116,16 +147,23 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
       }  
     }
 
+    cout << "number of trial seeds: " << imgPos.size() << "\n"; 
+
+    // Add up amplification from all the images/seeds
     _amplification = 0.0;
+    _irsCount = 0;
     for(auto imgSeed: imgPos)
     {
+   
+      //cout << "imgseed:(" << imgSeed.real() << "," << imgSeed.imag() << ")\n";
+      //cout << "imgseed int:(" << xToNx(imgSeed.real()) << "," <<  yToNy(imgSeed.imag()) << ")\n";
       lineFloodFill(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
-    
-    lcVec.push_back(_amplification);
-    
-    if(_amplification > 0.0)
-      cout << "non-zero amplification:" << _amplification << "\n";
+    cout << "amplification: " << _amplification*_ampScale << " and the count " << _irsCount << "\n";
+
+    // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
+    // we use looping over the indices rather than push_back.
+    lcVec[i] = _amplification*_ampScale;
 
   }
 
@@ -239,8 +277,8 @@ double LightCurveIRS::nxToX(long int nx)
 {
   double xFrac = nx/double(_imgPlaneSize-1.0);
   double pos = _bottomLeftCornerImg.real();
-  double posDiff = _topRightCornerImg.real() - _bottomLeftCornerImg.real();
-  pos +=xFrac*posDiff;
+  //double posDiff = _topRightCornerImg.real() - _bottomLeftCornerImg.real();
+  pos += xFrac*_imgPlaneSizeDouble;
   return pos;
 }
 
@@ -249,8 +287,8 @@ double LightCurveIRS::nyToY(long int ny)
 {
   double yFrac = ny/double(_imgPlaneSize-1.0);
   double pos = _bottomLeftCornerImg.imag();
-  double posDiff = _topRightCornerImg.imag() - _bottomLeftCornerImg.imag();
-  pos += yFrac*posDiff;
+  //double posDiff = _topRightCornerImg.imag() - _bottomLeftCornerImg.imag();
+  pos += yFrac*_imgPlaneSizeDouble;
   return pos;
 }
 
@@ -258,36 +296,47 @@ double LightCurveIRS::nyToY(long int ny)
 long int LightCurveIRS::xToNx(double x)
 {
   return static_cast<long int>(
-      (x - _bottomLeftCornerImg.real())/_imgPlaneSizeDouble)*_imgPlaneSize;
+      (x - _bottomLeftCornerImg.real())*_imgPlaneSize/_imgPlaneSizeDouble+0.5);
 }
 
 
 long int LightCurveIRS::yToNy(double y)
 {
   return static_cast<long int>(
-      (y - _bottomLeftCornerImg.imag())/_imgPlaneSizeDouble)*_imgPlaneSize;
+      (y - _bottomLeftCornerImg.imag())*_imgPlaneSize/_imgPlaneSizeDouble+0.5);
 }
 
 
 double LightCurveIRS::sourceBrightness(double r)
 {
-  // v_factor = 0.4
-  return 0.6+0.4*sqrt(1.0-r*r);
-};
+  return _OneMvFactor+_vFactor*sqrt(1.0-r*r);
+}
 
 
 void LightCurveIRS::lineFloodFill(long int nx, long int ny, complex<double> sPos) {
     
-    if (ny <= 0 || ny >= _imgPlaneSize) return;
+    if (ny <= 0 || ny >= _imgPlaneSize)
+    {
+      //cout << "Row outside image plane: " << ny << " \n";
+      return;
+    }
 
     long int nL, nR, nn;
 
-    if (!amoebae.checkLine(ny, nx)) return;
-
+    if (!amoebae.checkLine(ny, nx))
+    {
+      //cout << "Amoebae check failed: " << nx << " , " << ny << " \n";
+      return;
+    }
+    
     double y = nyToY(ny), amp = irs(nxToX(nx), y, sPos); 
 
     if( amp <= 0.0) return;
-    else _amplification += amp;
+    else
+    {
+      _amplification += amp;
+      _irsCount++;
+    }
 
     // scan right
     for (nR = nx+1; nR < _imgPlaneSize; nR++) {
@@ -298,7 +347,10 @@ void LightCurveIRS::lineFloodFill(long int nx, long int ny, complex<double> sPos
           break;
         }
         else
+        {
           _amplification += amp;
+          _irsCount++;
+        }
     }
 
     // scan left
@@ -310,21 +362,27 @@ void LightCurveIRS::lineFloodFill(long int nx, long int ny, complex<double> sPos
           break;
         }
         else
+        {
           _amplification += amp;
+          _irsCount++;
+        }
     
     }
 
     amoebae.addNode(nL, nR, ny);
 
-    nn = nL;
-
     // trying a good position to move one row up/down
+    nn = nL;
     while (nn <= nR) {
-      if (!amoebae.checkLine(ny+1, nn))
+      if (amoebae.checkLine(ny+1, nn))
+      {
         lineFloodFill(nn, ny+1, sPos);
-    
-      if (!amoebae.checkLine(ny-1, nn))
+      }    
+
+      if (amoebae.checkLine(ny-1, nn))
+      {
         lineFloodFill(nn, ny-1, sPos);
+      }
       nn++;
     }
     return;
@@ -366,6 +424,19 @@ extern "C"
     lcirs->getLC(complex<double>{iniX,iniY},
                  complex<double>{finX,finY}
                 );
+  }
+
+  // Extended source light curve using Inverse Ray Shooting
+  void get_lc_irs(LightCurveIRS* lcirs,
+                  double         iniX,
+                  double         iniY,
+                  double         finX,
+                  double         finY
+                 )
+  {
+    lcirs->getLCIRS(complex<double>{iniX,iniY},
+                    complex<double>{finX,finY}
+                   );
   }
 
   // In order to access the data in python, 
