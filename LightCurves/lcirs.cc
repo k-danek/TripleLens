@@ -78,11 +78,6 @@ void LightCurveIRS::_getImgPlanePars()
   cout << "bottomLeftCornerImg:(" << _bottomLeftCornerImg.real() << ","
        << _bottomLeftCornerImg.imag() << ")\n"; 
 
-  cout << "now what indices are given by (0.0, 0.0) : (" << xToNx(0.0) << "," 
-       << yToNy(0.0) <<")\n";
-
-  cout << "ampScale:" << _ampScale << "\n";
-
 };
 
 
@@ -106,10 +101,6 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
     // erase amoeba by initialising it again.
     amoebae = Amoeba(_imgPlaneSize);
 
-    // This check should be put in once the issue of missing images is resolved
-    //if(imgPos.size()<4 || imgPos.size() % 2 == 1 )
-    //  cout << "Incorrect number of images: " << imgPos.size() << "\n";
-
     // this whole bit can be in an additional method
     for(unsigned int rootInd = 0; rootInd < 6; rootInd++)
     {
@@ -125,7 +116,7 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
         // looping over points on ccc to get a closest points 
         for(unsigned int solInd = 0; solInd < ccc.caVec[rootInd].size()-1; solInd++)
         {
-          // if a point is taken the next positive intersection will not add other.
+          // If a point is taken the next positive intersection will not add other.
           // Next point then will be added ony if there the previous was not an 
           // intersection. 
           if(intersectionCheck(pos,
@@ -147,16 +138,13 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
       }  
     }
 
-    cout << "number of trial seeds: " << imgPos.size() << "\n"; 
+    //cout << "number of trial seeds: " << imgPos.size() << "\n"; 
 
     // Add up amplification from all the images/seeds
     _amplification = 0.0;
     _irsCount = 0;
     for(auto imgSeed: imgPos)
     {
-   
-      //cout << "imgseed:(" << imgSeed.real() << "," << imgSeed.imag() << ")\n";
-      //cout << "imgseed int:(" << xToNx(imgSeed.real()) << "," <<  yToNy(imgSeed.imag()) << ")\n";
       lineFloodFill(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
     cout << "amplification: " << _amplification*_ampScale << " and the count " << _irsCount << "\n";
@@ -179,13 +167,9 @@ bool LightCurveIRS::intersectionCheck(complex<double>  sourcePos,
 {
     double sourceRadiusSq=pow(_sourceRadius, 2.0);
 
-    //double BCx=Bx-SourceRe;
-    //double BCy=By-SourceIm;
     complex<double> bs = pointB - sourcePos; 
     double bsDistance = norm(bs);
 
-    //double ACx=Ax-SourceRe;
-    //double ACy=Ay-SourceIm;
     complex<double> as = pointA - sourcePos; 
     double asDistance=norm(as);
 
@@ -201,10 +185,6 @@ bool LightCurveIRS::intersectionCheck(complex<double>  sourcePos,
     else if ( aOut && bOut )
     {
       complex<double> ab = pointA - pointB;   
-      //   double BAx=Bx-Ax;
-      //   double BAy=By-Ay;
-      //   double ABdistance=BAx*BAx+BAy*BAy;
-      //   double proj_times_distance=(SourceRe-Ax)*BAx+(SourceIm-Ay)*BAy;
       double abDistance = norm(ab);
       // distance on AB of projected SA times length of AB
       double projTimesDistance = as.real()*ab.real()+as.imag()*ab.imag();
@@ -217,17 +197,7 @@ bool LightCurveIRS::intersectionCheck(complex<double>  sourcePos,
 
       if(projTimesDistance<_sourceRadius)
       {
-        //TrialX=BAx*abs(proj_times_distance)/ABdistance+Ax;
-        //TrialY=BAy*abs(proj_times_distance)/ABdistance+Ay;
-
-        //double CTx=TrialX-SourceRe;
-        //double CTy=TrialY-SourceIm;
-        //double closest_dist=CTx*CTx+CTy*CTy;
-        //if(closest_dist<SourceRadiusSq)
-        // return 1;
-        //else
-        // return 0;
-        
+       
         // A-ab_vector*projected_length*len(AB)/len(AB)^2
         // TODO: figure more elegant type deduction here
         trialPoint = pointA-pointB*static_cast<double>(std::abs(projTimesDistance)
@@ -277,7 +247,6 @@ double LightCurveIRS::nxToX(long int nx)
 {
   double xFrac = nx/double(_imgPlaneSize-1.0);
   double pos = _bottomLeftCornerImg.real();
-  //double posDiff = _topRightCornerImg.real() - _bottomLeftCornerImg.real();
   pos += xFrac*_imgPlaneSizeDouble;
   return pos;
 }
@@ -287,7 +256,6 @@ double LightCurveIRS::nyToY(long int ny)
 {
   double yFrac = ny/double(_imgPlaneSize-1.0);
   double pos = _bottomLeftCornerImg.imag();
-  //double posDiff = _topRightCornerImg.imag() - _bottomLeftCornerImg.imag();
   pos += yFrac*_imgPlaneSizeDouble;
   return pos;
 }
@@ -329,9 +297,10 @@ void LightCurveIRS::lineFloodFill(long int nx, long int ny, complex<double> sPos
       return;
     }
     
+    // need to get the y only once as the fill stays withing a line
     double y = nyToY(ny), amp = irs(nxToX(nx), y, sPos); 
 
-    if( amp <= 0.0) return;
+    if (amp <= 0.0) return;
     else
     {
       _amplification += amp;
@@ -399,7 +368,7 @@ extern "C"
                            double       m3,
                            double       sourceSize,
                            unsigned int lcLength,
-                           long int     imgPlaneSize 
+                           long int     pointsPerRadius 
                           )
   {
     return new LightCurveIRS(a,
@@ -409,7 +378,7 @@ extern "C"
                              m3,
                              sourceSize,
                              lcLength,
-                             imgPlaneSize
+                             pointsPerRadius
                             );
   }
 

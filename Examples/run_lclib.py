@@ -113,25 +113,28 @@ print("Bounding box cc: ", cc_min, cc_max)
 print("Bounding box ca: ", ca_min, ca_max)
 
 # imgs
-pos_x = 1.0
-pos_y = 1.0
+pos_ini_x = 0.0
+pos_ini_y = 0.0
+
+
 
 # number of steps
 lc_steps = 100
-source_size = 1e-3
+source_size = 1e-5
+points_per_radius = 300
 
-lc_array     = np.zeros(lc_steps, np.double)
-lc_array_irs = lc_array
+lc_point_array = np.zeros(lc_steps, np.double)
+lc_irs_array   = np.zeros(lc_steps, np.double)
 
-lc_irs = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, 300)
-#lc_irs.get_lc(0.0,0.0,1.0,0.577)
-#lc_irs.copy_lc(lc_array)
+lc_irs = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
 
 lc_irs.get_lc_irs(0.0,0.0,1.0,0.577)
-lc_irs.copy_lc(lc_array)
+lc_irs.copy_lc(lc_irs_array)
+
+lc_irs.get_lc(0.0,0.0,1.0,0.577)
+lc_irs.copy_lc(lc_point_array)
 
 print("Copied LC")
-print(lc_array)
 
 # Plotting
 fig, (ax1, ax2) = plt.subplots(1, 2)
@@ -145,63 +148,9 @@ ax1.plot([0.0,1.0],[0.0,0.577])
 
 ax2.set_title("Light Curve")
 
-ax2.plot(lc_array)
+ax2.plot(lc_point_array)
+ax2.plot(lc_irs_array)
 
 fig.savefig("LightCurvePoint.png", dpi=200)
 
-
-#for i in range(0,100):
-#  pos_x = 0.01*i
-#  pos_y = 0.00577*i
-#
-#  print("position number ", str(i))  
-#
-#  img_generator.set_pos(pos_x, pos_y)
-#  img_generator.get_images()
-#  #img_generator = Img(a,b,theta,m2,m3,pos_x, pos_y)
-#  #img_generator.get_images()
-#
-#  img_generator.copy_images(roots_array, isimg_array)
-#
-#  true_img_real = []
-#  true_img_imag = []
-#  fake_img_real = []
-#  fake_img_imag = []
-#  
-#  for j in range(0,10):
-#    if isimg_array[j]:
-#      true_img_real.append(roots_array[j].real)
-#      true_img_imag.append(roots_array[j].imag)
-#    else:
-#      fake_img_real.append(roots_array[j].real)
-#      fake_img_imag.append(roots_array[j].imag)
-#  
-#  # Plotting
-#  fig, (ax1, ax2) = plt.subplots(1, 2)
-#  
-#  title = "Number of true images: " + str(len(true_img_real))
-#  
-#  ax1.set_title(title)
-#  
-#  ax1.axis(xmin=cc_min.real, xmax=cc_max.real, ymin=cc_min.imag, ymax=cc_max.imag)
-#  ax1.scatter(cc_real, cc_imag, s = 0.1)
-#  ax1.scatter(lenses_real, lenses_imag, s=200.0, marker = 'o')
-#  ax1.scatter(fake_img_real, fake_img_imag, s=100.0, color = 'red', marker = 'x')
-#  ax1.scatter(true_img_real, true_img_imag, s=100.0, color = 'green', marker = 'x')
-#  
-#  pos_summary = ""
-#  for k in range(0,len(true_img_real)):
-#      pos_summary += "[" + f'{true_img_real[k]:.2f}' + ", " + f'{true_img_imag[k]:.2f}' + "]"
-#      if (k % 3 == 2):
-#          pos_summary += "\n"
-#  
-#  ax2.set_title(pos_summary, fontsize = 8)
-#  
-#  ax2.axis(xmin=ca_min.real, xmax=ca_max.real, ymin=ca_min.imag, ymax=ca_max.imag)
-#  ax2.scatter(ca_real, ca_imag, s = 0.1)
-#  ax2.scatter(lenses_real, lenses_imag, s = 200.0, marker = 'o')
-#  ax2.scatter(pos_x, pos_y, s=100.0, color = 'green', marker = 'x')
-#  
-#  fig.savefig("Img_test"+str(i)+".png", dpi=200)
-#
-print("Time to initialise, calculate curves, copy & print & plot the data (s): ",time.time()-start_time)
+print("Time to initialise and calculate the images (s): ",time.time()-start_time)
