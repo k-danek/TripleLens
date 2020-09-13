@@ -7,3 +7,4 @@
 *.swo
 *.swp
 bin/*
+Examples/__pycache__/*

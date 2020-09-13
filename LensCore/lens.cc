@@ -5,14 +5,30 @@ Lens::Lens(double aa,
 	         double bb,
 	         double theta,
 	         double mass2,
-	         double mass3)
+	         double mass3):
+      lensPar(aa,bb,theta,mass2,mass3)
+{
+  a = aa;
+  b = bb;
+  th = theta;
+  m1 = 1.0-mass2-mass3;
+  m2 = mass2;
+  m3 = mass3;
+  _setPos();
+};
+
+LensPar::LensPar(double aa,
+	               double bb,
+	               double theta,
+	               double mass2,
+	               double mass3
+                )
 {
   a = aa;
   b = bb;
   th = theta;
   m2 = mass2;
   m3 = mass3;
-  _setPos();
 };
 
 // Sets lens positions in the complex plane
@@ -37,7 +53,7 @@ void Lens::moveToZ1()
 {
   z2 -= z2 - z1;
   z3 -= z3 - z1; 
-  z1 = {0.0,0.0};
+  z1 = {0.0, 0.0};
   _isCentered = false;  
 };
 

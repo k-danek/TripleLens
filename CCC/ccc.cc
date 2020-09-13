@@ -17,10 +17,19 @@ CriticalCurveCaustic::CriticalCurveCaustic(
                            )
 {
   _length = cccLength;
-  z2c = conj(z2);
-  z3c = conj(z3);
 };
 
+CriticalCurveCaustic::CriticalCurveCaustic(const LensPar &lensParam,
+                                           unsigned int  cccLength
+                                          ): Lens(lensParam.a,
+                                                  lensParam.b,
+                                                  lensParam.th,
+                                                  lensParam.m2,
+                                                  lensParam.m3
+                                                 )
+{
+  _length = cccLength;
+};
 
 // Main method to initialise vector with critical curve
 void CriticalCurveCaustic::getCC()
@@ -33,8 +42,8 @@ void CriticalCurveCaustic::getCC()
   ccVec.resize(6);
   for(auto vec: ccVec) vec.reserve(_length);
 
-  cc[1]=2.0*z2c*z3c*(z2c+z3c)*(m2+m3-1.0);
-  cc[0]=-z2c*z2c*z3c*z3c*(m2+m3-1.0);
+  cc[1]=2.0*z2*z3*(z2+z3)*(m2+m3-1.0);
+  cc[0]=-z2*z2*z3*z3*(m2+m3-1.0);
   
   for (unsigned int j=0; j< _length ;j++)
   {
@@ -43,10 +52,10 @@ void CriticalCurveCaustic::getCC()
     eiphi = complex<double>(cos(phi),sin(phi));
 
     cc[6]=-eiphi;
-    cc[5]=2.0*eiphi*(z2c+z3c);
-    cc[4]=1.0-eiphi*(z2c*z2c+z3c*z3c+4.0*z2c*z3c);
-    cc[3]=2.0*eiphi*z2c*z3c*(z2c+z3c)+2.0*z2c*(m2-1.0)+2.0*z3c*(m3-1.0);
-    cc[2]=-eiphi*z2c*z2c*z3c*z3c+4.0*(1.0-m3-m2)*z2c*z3c-z2c*z2c*(m2-1.0)-z3c*z3c*(m3-1.0);
+    cc[5]=2.0*eiphi*(z2+z3);
+    cc[4]=1.0-eiphi*(z2*z2+z3*z3+4.0*z2*z3);
+    cc[3]=2.0*eiphi*z2*z3*(z2+z3)+2.0*z2*(m2-1.0)+2.0*z3*(m3-1.0);
+    cc[2]=-eiphi*z2*z2*z3*z3+4.0*(1.0-m3-m2)*z2*z3-z2*z2*(m2-1.0)-z3*z3*(m3-1.0);
 
     vector<complex<double>> ccCoef (cc, cc + sizeof(cc) / sizeof(complex<double>) );
 
@@ -102,9 +111,9 @@ void CriticalCurveCaustic::getCa()
     for(unsigned int j = 0; j < _length; j++)
     {
       ccSol = ccVec[i][j];
-      caVec[i].push_back(conj(ccSol-(1.0-m2-m3)/conj(ccSol)
-                                   -m2/conj((ccSol-z2c))
-                                   -m3/conj((ccSol-z3c))));
+      caVec[i].push_back(ccSol-m1/conj(ccSol-z1)
+                              -m2/conj(ccSol-z2)
+                              -m3/conj(ccSol-z3));
     }
   }
   // Caustic is now available
@@ -152,9 +161,6 @@ void CriticalCurveCaustic::printCCC(std::string fileName)
 // Python Wrapper for ctypes module
 extern "C"
 {
-   //Foo* Foo_new(int n) {return new Foo(n);}
-   //void Foo_bar(Foo* foo) {foo->bar();}
-   //int Foo_foobar(Foo* foo, int n) {return foo->foobar(n);}
   CriticalCurveCaustic* ccc_new(double a,
                                 double b,
                                 double th,
@@ -203,6 +209,58 @@ extern "C"
         cc[idx] = ccc->ccVec[root][step];
         ca[idx] = ccc->caVec[root][step];
       }
+  }
+
+  //TODO actually move the vector to complex array instead of copying it
+  //It will destroy the the vector in the process but should be substantially faster
+
+
+  void copy_lenses(CriticalCurveCaustic* ccc,
+                   complex<double>*      lensPos
+                  )
+  {
+    lensPos[0] = ccc->z1;
+    lensPos[1] = ccc->z2;
+    lensPos[2] = ccc->z3;
+  }
+
+  complex<double>* get_lens_pos(CriticalCurveCaustic* ccc)
+  {
+    static complex<double> lensPos[3];
+    lensPos[0] = ccc->z1;
+    lensPos[1] = ccc->z2;
+    lensPos[2] = ccc->z3;
+    return lensPos;
+  }
+
+  void get_bounding_box(CriticalCurveCaustic* ccc,
+                        complex<double>*      ccMin,
+                        complex<double>*      ccMax,
+                        complex<double>*      caMin,
+                        complex<double>*      caMax,
+                        double                scale = 1.1
+                       )
+  {
+    // initialize bounds so the zero is not picked
+    *ccMin = { 1.0e10, 1.0e10};
+    *ccMax = {-1.0e10,-1.0e10};   
+    *caMin = { 1.0e10, 1.0e10};
+    *caMax = {-1.0e10,-1.0e10};
+
+    for(auto ccRoot: ccc->ccVec)
+      minmax<vector<complex<double>>>(ccRoot, *ccMin, *ccMax);
+
+    for(auto caRoot: ccc->caVec)
+      minmax<vector<complex<double>>>(caRoot, *caMin, *caMax);
+  
+    // include lens points in the boundaries
+    vector<complex<double>> lensPos{ccc->z1, ccc->z2, ccc->z3};    
+    minmax<vector<complex<double>>>(lensPos, *ccMin, *ccMax);
+    minmax<vector<complex<double>>>(lensPos, *caMin, *caMax);
+    
+    // Squarise the bounds
+    makeSquare(*ccMin, *ccMax, scale);
+    makeSquare(*caMin, *caMax, scale);
   }
 
 }

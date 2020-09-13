@@ -22,18 +22,41 @@
 #include <complex>
 #include <iostream>
 
-using namespace std;
+using std::cout;
 
-class Lens {
-  public:
+template<class T>
+using complex = std::complex<T>;
+
+struct LensPar
+{
 	  double a; 
 	  double b;
 	  double th;
 	  double m2;
 	  double m3;
+
+    LensPar(double aa,
+	          double bb,
+	          double theta,
+	          double mass2,
+	          double mass3
+           );
+};
+
+
+class Lens
+{
+  public:
+	  double a; 
+	  double b;
+	  double th;
+    double m1;
+    double m2;
+	  double m3;
     complex<double> z1;
     complex<double> z2;
     complex<double> z3;
+    // LensParam lensParam;
 
 	  Lens(double aa,
 	       double bb,
@@ -44,6 +67,7 @@ class Lens {
 
     void moveToCenter(); // move lens so that z1+z2+z3=0
     void moveToZ1(); // move z1 to coordinate origin
+    LensPar lensPar;  
 
   private:
     void _setPos();

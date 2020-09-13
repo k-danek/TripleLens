@@ -17,6 +17,7 @@
 
 #include <lens.h> 
 #include <laguerre.h>
+#include <utils.h>
 
 class CriticalCurveCaustic: public Lens 
 {
@@ -30,12 +31,22 @@ class CriticalCurveCaustic: public Lens
                          unsigned int cccLength
                         );
 
+    // Constructor using LensPar object
+    CriticalCurveCaustic(const LensPar &lensParam,
+                         unsigned int  cccLength
+                        );
+
     vector<vector<complex<double>>> ccVec; 
     vector<vector<complex<double>>> caVec;
 
     // Critical curve and caustic caulculation
     void getCC(); 
     void getCa();
+    //void getBoundingBox(complex<double>* ccMin,
+    //                    complex<double>* ccMax,
+    //                    complex<double>* caMin,
+    //                    complex<double>* caMax
+    //                   );
 
     void printCCC(std::string fileName);
 
@@ -43,8 +54,6 @@ class CriticalCurveCaustic: public Lens
     unsigned int _length = 500;  
     bool _ccAvailable = false;
     bool _caAvailable = false;
-    complex<double> z2c;
-    complex<double> z3c;
     vector<complex<double>> _tempRoots;
 };
 

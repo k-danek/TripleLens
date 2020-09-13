@@ -1,41 +1,58 @@
 CC=g++
-# Note flag -Ofast as it made execution cca 10 times faster
+# Note flag -Ofast as it made execution cca 10 times faster than -O2 on CCC 
 # Flag -fPIC makes o files usable in the shared library
 CFLAGS= -Wl,--no-undefined -fPIC -Ofast -g -std=c++11
 CFLAGS_SHARED= -shared
 INC_CCC=./CCC
 INC_LENS=./LensCore
 INC_LAGUERRE=./Laguerre
+INC_LC=./LightCurves
 INC_IMG=./Images
+INC_UTILS=./Utils
 BUILD_TARGET=./bin
-INCLUDES= -I. -I$(INC_CCC) -I$(INC_LENS) -I$(INC_LAGUERRE) -I$(INC_IMG) -I$(BUILD_TARGET)
+INCLUDES= -I. -I$(INC_CCC) -I$(INC_LENS) -I$(INC_LAGUERRE) -I$(INC_IMG) -I$(INC_UTILS) -I$(INC_LC) -I$(BUILD_TARGET)
 
-ccc_test: main.o lens.o liblaguerre.a ccc.o imgpoint.o
-	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/main.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/liblaguerre.a $(BUILD_TARGET)/lens.o
+all: imgpoint.so ccc.so lcirs.so ccc_test
 
-imgpoint.o: $(INC_IMG)/imgpoint.cc $(INC_IMG)/imgpoint.h lens.o liblaguerre.a
-	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/liblaguerre.a $(INC_IMG)/imgpoint.cc 
+# Executables
+ccc_test: main.o ccc.so imgpoint.so lcirs.so  liblaguerre.a 
+	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/liblaguerre.a
 
-imgpoint.so: imgpoint.o liblaguerre.a imgpoint.o 
-	$(CC) -c $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/imgpoint.so $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/liblaguerre.a $(BUILD_TARGET)/lens.o
+# Shared libraries
+lcirs.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o liblaguerre.a 
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/lcirs.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o  $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/liblaguerre.a 
 
-ccc.o: $(INC_CCC)/ccc.cc $(INC_CCC)/ccc.h lens.o liblaguerre.a
-	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/liblaguerre.a $(INC_CCC)/ccc.cc 
+imgpoint.so: lens.o imgpoint.o liblaguerre.a  
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/imgpoint.so $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/liblaguerre.a
 
-ccc.so: lens.o liblaguerre.a ccc.o
-	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/ccc.so $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/liblaguerre.a $(BUILD_TARGET)/lens.o 
+ccc.so: lens.o ccc.o liblaguerre.a 
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/ccc.so $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/liblaguerre.a 
 
+# Static libraries
 liblaguerre.a:
 	ar -cvq $(BUILD_TARGET)/liblaguerre.a $(INC_LAGUERRE)/laguerre.o
 
-#laguerre.o: $(INC_LAGUERRE)/laguerre.cc $(INC_LAGUERRE)/laguerre.h
-#	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/laguerre.o $(INC_LAGUERRE)/laguerre.cc
-
-lens.o: $(INC_LENS)/lens.cc $(INC_LENS)/lens.h
-	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lens.o $(INC_LENS)/lens.cc
-
-main.o: main.cc ccc.o lens.o liblaguerre.a ccc.so imgpoint.o
+# Object files
+main.o:
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/main.o main.cc
+
+lcirs.o: $(INC_LC)/lcirs.h
+	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lcirs.o $(INC_LC)/lcirs.cc 
+
+amoeba.o: $(INC_UTILS)/amoeba.h
+	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/amoeba.o $(INC_UTILS)/amoeba.cc 
+
+lcbase.o: $(INC_LC)/lcbase.h
+	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lcbase.o $(INC_LC)/lcbase.cc 
+
+imgpoint.o: $(INC_IMG)/imgpoint.h
+	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/imgpoint.o $(INC_IMG)/imgpoint.cc 
+
+ccc.o: $(INC_CCC)/ccc.h
+	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/ccc.o $(INC_CCC)/ccc.cc 
+
+lens.o: $(INC_LENS)/lens.h
+	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lens.o $(INC_LENS)/lens.cc
 
 -include $(INCLUDES)
 

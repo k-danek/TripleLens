@@ -1,6 +1,6 @@
 /*****************************************************************************
 *
-* Class for getting a point source images and amplification.
+* Class for getting a point source images.
 *
 * Note: Includes a wrapper readable by Python ctypes module.
 *
@@ -14,6 +14,7 @@
 #include <vector>
 #include <fstream>
 #include <algorithm> 
+#include <iomanip>
 
 #include <lens.h> 
 #include <laguerre.h>
@@ -22,18 +23,21 @@ class ImgPoint: public Lens
 {
   public:
     
-    ImgPoint(double       a,
-             double       b,
-             double       th,
-             double       m2,
-             double       m3,
-             double       posX,
-             double       posY
+    ImgPoint(double a,
+             double b,
+             double th,
+             double m2,
+             double m3,
+             double posX,
+             double posY
              );
+
+    ImgPoint(const LensPar &lensParam);
+
 
     vector<complex<double>> roots; // As not all of the roots are images  
     vector<complex<double>> imgs;  // Roots verified to be images
-    vector<bool>   isImg; // Vectors of bools to more 
+    vector<bool>            isImg; // Vectors of bools to more 
 
     vector<complex<double>> getCoeffs();
     vector<complex<double>> getCoeffsOpt();
@@ -43,9 +47,12 @@ class ImgPoint: public Lens
                   double sourceRadius
                  );
 
-    // Critical curve and caustic caulculation
-    void getRoots(); 
+    // Image position caulculation
+    void getRoots(bool forceNewRoots); 
     void getImages();
+    
+    // update and return images in one functional call
+    vector<complex<double>> getImages(complex<double> pos);
 
     // update position of the source
     void setPos(double       posX,
