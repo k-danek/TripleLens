@@ -198,12 +198,30 @@ int main()
   // x^4 - 10 x^3 + 35 x^2 - 50 x + 24
   // (x-1)*(x-2)*(x-3)*(x-4)
   vector<complex<double>> fou2Sol;
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(1.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(2.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(3.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(4.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(-1.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(4.000,0.0)));
+  complex<double> rootToPolish = {1.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);
+
+  rootToPolish = {2.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
+  rootToPolish = {3.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish); 
+
+  rootToPolish = {4.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
+  rootToPolish = {-1.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
+  rootToPolish = {4.00,0.0};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
   cout << "fourth order roots (1,2,3,4):" << "\n";
   for(auto sol: fou2Sol)
   {

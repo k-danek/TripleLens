@@ -22,6 +22,8 @@
 #include <iostream>
 #include <complex>
 #include <vector>
+#include <limits>
+#include <typeinfo>
 
 using std::vector;
 
@@ -30,8 +32,6 @@ using complex = std::complex<T>;
 
 #define MAX_IT 100
 #define MT 8
-#define EPSS 1.0e-14
-#define EPS 1.0e-16
 
 class Laguerre
 {
@@ -40,9 +40,13 @@ public:
   vector<complex<double>> solveRoots();
   vector<complex<double>> polishRoots(vector<complex<double>> roots);
 
-  bool checkRoots(const vector<complex<double>> roots);
+  bool checkRoots(const vector<complex<double>>& roots);
+  bool checkRootsOneByOne(const vector<complex<double>>& roots);
+  bool checkRootsAllAtOnce(const vector<complex<double>>& roots);
 
-  complex<double> laguerre(vector<complex<double>>, complex<double>);
+  bool laguerre(vector<complex<double>> poly, complex<double> &x);
+  
+  constexpr static double EPS = std::numeric_limits<double>::epsilon();  
 
 private:
   vector<complex<double>> _polyCoeffs;// Polynomial coefficients

@@ -87,7 +87,14 @@ void ImgPoint::getRoots(bool forceNewRoots = false)
   }
   else
   {
+    
     _tempRoots = laguerre.polishRoots(_tempRoots);  
+    if(!laguerre.checkRootsOneByOne(_tempRoots))
+      std::cout << "WARNING: roots off after polishing\n";
+
+    if(!laguerre.checkRootsAllAtOnce(_tempRoots))
+      std::cout << "WARNING: Coeffs not reconstructed\n";
+
     if(!laguerre.checkRoots(_tempRoots))
     {
       cout << "Roots off for img " << "\n";

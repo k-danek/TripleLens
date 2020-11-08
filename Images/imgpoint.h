@@ -67,6 +67,7 @@ class ImgPoint: public Lens
     bool _imgsAvailable = false;
     complex<double> _sourcePos;
     vector<complex<double>> _tempRoots;
+
 };
 
 #endif
