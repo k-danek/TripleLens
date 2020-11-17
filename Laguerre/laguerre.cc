@@ -59,7 +59,6 @@ bool Laguerre::laguerre(vector<complex<double> > poly, complex<double> &x)
     if (std::abs(b) <= error)
       return true;
 
-    //
     g = f/b;
     h = g*g-2.*s/b;
     gp = g+sqrt((md-1.)*(md*h-g*g));
@@ -76,39 +75,6 @@ bool Laguerre::laguerre(vector<complex<double> > poly, complex<double> &x)
     {
       // In the rare case that denominator would be zero
       dx = (1.+std::abs(x))*complex<double>(cos(1.*i), sin(1.*i));
-      if(std::abs(b) == 0 || m == 1)
-      {
-        std::cout << "\nPolynomial coeffs:\n";
-        complex<double> bSum(0.0,0.0);
-        for(auto coef: poly)
-        {
-          std::cout << "(" << coef.real() << "," << coef.imag() << "), ";
-          bSum += coef;
-        }
-        std::cout << "\nbSum = " << std::abs(bSum) << " \n";
-
-        std::cout << "Now more detailed analysis of b : \n";
-        s = complex<double>(0,0);
-        f = complex<double>(0,0);
-        complex<double> bb = poly[m];
-        for (int j=m-1; j>=0; j--)
-        {
-          s = x*s + f;//Second derivative
-          f = x*f + bb;//First derivative
-          bb = x*bb + poly[j];//Polynom evaluation
-          std::cout << "bb = (" << bb.real() << "," << bb.imag() << "), \n";
-        }
-        std::cout << "error = (" << error << ")\n";
-        std::cout << " abs(b) < error" << (std::abs(b) < error) << "\n";
-      }
-      std::cout << "WARNING: got zero denominator, choose next step in random\n";
-      std::cout << "md = " << md << ", h = (" << h.real() << "," << h.imag() 
-                << "), g = (" << g.real() << "," << g.imag() << "), b = ("
-                << b.real() << "," << b.imag() << "), b_type =" << typeid(b.real()).name() 
-                << ", s = (" << s.real() << ","
-                << s.imag() << "), f = (" << f.real() << "," << f.imag() << ")\n";
-      std::cout << "gp = (" << gp.real() << "," << gp.imag() << "), " << std::abs(gp) <<"\n";
-      std::cout << "dx = (" << dx.real() << "," << dx.imag() << "), " << std::abs(dx) <<"\n";
     }
 
     x1 = x - dx;
@@ -128,23 +94,38 @@ bool Laguerre::laguerre(vector<complex<double> > poly, complex<double> &x)
     }
   }
 
-  std::cout << "Laguerre: maximum number of iterations exceeded \n";
+  std::cout << "Laguerre: maximum number of iterations exceeded for pol. order " << poly.size()-1 << "\n";
   return false;
 }
 
 
-// Routine for the Laguerre method
-vector<complex<double> > Laguerre::solveRoots()
+// Find all the roots via Laguerre method
+vector<complex<double> > Laguerre::solveRoots(
+                                       const vector<complex<double>>& initRoots)
 {
   vector<complex<double>> tempPoly, roots;
   complex<double> x(0,0), b, c;
- 
+  int size = _polyCoeffs.size();
+
   tempPoly = _polyCoeffs;
- 
-  for (int j = _polyCoeffs.size()-1; j >= 1; j--)
+  const bool isInitialised = initRoots.size()+1 == size;
+  
+  // Unsing function assignemt of lambda fuctions in a ternary operator
+  std::function<complex<double>(int i)> getInit =
+    (isInitialised
+     ? std::function<complex<double>(int i)>( [&](int i)
+       {
+         return initRoots[i];
+       })
+     : std::function<complex<double>(int i)>( [&](int i)
+       {
+         return complex<double>(EPS,EPS); 
+       })  
+    );
+
+  for (int j = size-1; j >= 1; j--)
   {
-    
-    x=complex<double>(EPS,EPS);
+    x=getInit(j);
     
     if(laguerre(tempPoly, x))
     {
@@ -152,8 +133,13 @@ vector<complex<double> > Laguerre::solveRoots()
     }
     else
     {
+      // if it wasn't initialised, try again starting from zero
+      if(isInitialised)
+      { x = complex<double>(EPS,EPS);
+        if(!laguerre(tempPoly,x))
+          std::cout << "WARNING: deflating with unconverged root!!!";
+      }
       roots.push_back(x); 
-      std::cout << "WARNING: deflating with unconverged root!!!";
     }
 
     b = tempPoly[j];

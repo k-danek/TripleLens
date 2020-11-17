@@ -83,18 +83,18 @@ int main()
   //     << "s\n";
 
 
-  //begin = clock();  
-  for(unsigned int i = 0; i < 10; i++)
+  begin = clock();  
+  for(unsigned int i = 0; i < 10000; i++)
   {
     // A spiral souce trajectory
-    //complex<double> source = {(double)i/1000.0*cos((double)i/100.0), (double)i/1000.0*sin((double)i/100.0)};
-    cout << "Img step " << i << "\n";
-    complex<double> source = {(double)i*0.1, (double)i*0.0577};     
+    complex<double> source = {(double)i/10000.0*cos((double)i/100.0), (double)i/10000.0*sin((double)i/100.0)};
+    //cout << "Img step " << i << "\n";
+    //complex<double> source = {(double)i*0.1, (double)i*0.0577};     
     img.setPos(source);
     img.getImages();
   }
   end = clock();
-  cout << "1k Point image calculations (moving case):" 
+  cout << "10k Point image calculations (moving case):" 
        << double(end - begin) / CLOCKS_PER_SEC 
        << "s\n\n";
 

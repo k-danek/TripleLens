@@ -1,7 +1,7 @@
 CC=g++
 # Note flag -Ofast as it made execution cca 10 times faster than -O2 on CCC 
 # Flag -fPIC makes o files usable in the shared library
-CFLAGS= -Wl,--no-undefined -fPIC -Ofast -g -std=c++11
+CFLAGS= -Wl,--no-undefined -fPIC -Ofast -g -std=c++17
 CFLAGS_SHARED= -shared
 INC_CCC=./CCC
 INC_LENS=./LensCore
