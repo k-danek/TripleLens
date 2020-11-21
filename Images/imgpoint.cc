@@ -83,11 +83,12 @@ void ImgPoint::getRoots(bool forceNewRoots = false)
   if(_tempRoots.size() < 10 || forceNewRoots)
   {
     _tempRoots = laguerre.solveRoots();
-    cout << "Roots recalculated \n";
   }
   else
   {
-    _tempRoots = laguerre.polishRoots(_tempRoots);  
+    // Solve the roots with initial guess set to previous solution
+    _tempRoots = laguerre.solveRoots(_tempRoots);  
+
     if(!laguerre.checkRoots(_tempRoots))
     {
       cout << "Roots off for img " << "\n";

@@ -1,10 +1,12 @@
 # exclude everything except source code and makefiles
-*.dat
-*.png
-*.so
-*.swm
-*.swn
+*.swl
 *.swo
 *.swp
+*.swn
+*.swm
+*.so
+*.o
+*.dat
+*.png
 bin/*
 Examples/__pycache__/*

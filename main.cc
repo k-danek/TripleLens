@@ -58,8 +58,6 @@ int main()
   m2 = 1.0/3.0;
   m3 = 1.0/3.0;
  
-  //
-
   cout << "Testing the point images: \n";
   ImgPoint img(a,b,th,m2,m3,0.0,0.0);
   img.getImages();
@@ -70,34 +68,32 @@ int main()
   cout  << "\n\n";
 
   // Image Point Time benchmark
-  //cout << "Startnig image point calculation: \n";
-  //begin = clock();  
-  //for(unsigned int i = 0; i < 1000; i++)
-  //{
-  //  ImgPoint img(a,b,th,m2,m3,0.0,0.0);
-  //  img.getImages();
-  //}
-  //end = clock();
-  //cout << "1k Point image calculations:" 
-  //     << double(end - begin) / CLOCKS_PER_SEC 
-  //     << "s\n";
+  cout << "Startnig image point calculation: \n";
+  begin = clock();  
+  for(unsigned int i = 0; i < 1000; i++)
+  {
+    ImgPoint img(a,b,th,m2,m3,0.0,0.0);
+    img.getImages();
+  }
+  end = clock();
+  cout << "1k Point image calculations:" 
+       << double(end - begin) / CLOCKS_PER_SEC 
+       << "s\n";
 
-
-  //begin = clock();  
-  for(unsigned int i = 0; i < 10; i++)
+  begin = clock();  
+  for(unsigned int i = 0; i < 10000; i++)
   {
     // A spiral souce trajectory
-    //complex<double> source = {(double)i/1000.0*cos((double)i/100.0), (double)i/1000.0*sin((double)i/100.0)};
-    cout << "Img step " << i << "\n";
-    complex<double> source = {(double)i*0.1, (double)i*0.0577};     
+    complex<double> source = {(double)i/10000.0*cos((double)i/100.0), (double)i/10000.0*sin((double)i/100.0)};
+    //cout << "Img step " << i << "\n";
+    //complex<double> source = {(double)i*0.1, (double)i*0.0577};     
     img.setPos(source);
     img.getImages();
   }
   end = clock();
-  cout << "1k Point image calculations (moving case):" 
+  cout << "10k Point image calculations (moving case):" 
        << double(end - begin) / CLOCKS_PER_SEC 
        << "s\n\n";
-
 
     // Light Curve IRS test 
   cout << "Starting LC test BASE: \n";
@@ -131,23 +127,22 @@ int main()
        << "s\n\n";
 
   // Extended source IRS
-//  LightCurveIRS lcIRS(a,b,th,m2,m3, 0.01, 500, 10000);
-//
-//  begin = clock();  
-//  for(unsigned int i = 0; i < 100; i++)
-//  {
-//    angle = (double)i/200.0*3.14159;
-//    endPoint = {cos(angle), sin(angle)};  
-//    startPoint = -endPoint;
-//    lcIRS.getLCIRS(startPoint, endPoint);
-//    lightCurve = lcIRS.lcVec; 
-//  }
-//  end = clock();
-//  cout << "Img plane size was: " << lcIRS.amoebae.amoebae.size() << "\n";  
-//  cout << "100 positions IRS lightcurve:" 
-//       << double(end - begin) / CLOCKS_PER_SEC 
-//       << "s\n\n";
+  LightCurveIRS lcIRS(a,b,th,m2,m3, 0.01, 500, 10000);
 
+  begin = clock();  
+  for(unsigned int i = 0; i < 100; i++)
+  {
+    angle = (double)i/200.0*3.14159;
+    endPoint = {cos(angle), sin(angle)};  
+    startPoint = -endPoint;
+    lcIRS.getLCIRS(startPoint, endPoint);
+    lightCurve = lcIRS.lcVec; 
+  }
+  end = clock();
+  cout << "Img plane size was: " << lcIRS.amoebae.amoebae.size() << "\n";  
+  cout << "100 positions IRS lightcurve:" 
+       << double(end - begin) / CLOCKS_PER_SEC 
+       << "s\n\n";
 
   // Laguerre Test
   cout << "Laguerre's Method tests: \n";
@@ -198,12 +193,30 @@ int main()
   // x^4 - 10 x^3 + 35 x^2 - 50 x + 24
   // (x-1)*(x-2)*(x-3)*(x-4)
   vector<complex<double>> fou2Sol;
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(1.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(2.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(3.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(4.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(-1.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(4.000,0.0)));
+  complex<double> rootToPolish = {1.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);
+
+  rootToPolish = {2.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
+  rootToPolish = {3.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish); 
+
+  rootToPolish = {4.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
+  rootToPolish = {-1.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
+  rootToPolish = {4.00,0.0};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
   cout << "fourth order roots (1,2,3,4):" << "\n";
   for(auto sol: fou2Sol)
   {
