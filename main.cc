@@ -83,18 +83,18 @@ int main()
   //     << "s\n";
 
 
-  //begin = clock();  
-  for(unsigned int i = 0; i < 10; i++)
+  begin = clock();  
+  for(unsigned int i = 0; i < 10000; i++)
   {
     // A spiral souce trajectory
-    //complex<double> source = {(double)i/1000.0*cos((double)i/100.0), (double)i/1000.0*sin((double)i/100.0)};
-    cout << "Img step " << i << "\n";
-    complex<double> source = {(double)i*0.1, (double)i*0.0577};     
+    complex<double> source = {(double)i/10000.0*cos((double)i/100.0), (double)i/10000.0*sin((double)i/100.0)};
+    //cout << "Img step " << i << "\n";
+    //complex<double> source = {(double)i*0.1, (double)i*0.0577};     
     img.setPos(source);
     img.getImages();
   }
   end = clock();
-  cout << "1k Point image calculations (moving case):" 
+  cout << "10k Point image calculations (moving case):" 
        << double(end - begin) / CLOCKS_PER_SEC 
        << "s\n\n";
 
@@ -198,12 +198,30 @@ int main()
   // x^4 - 10 x^3 + 35 x^2 - 50 x + 24
   // (x-1)*(x-2)*(x-3)*(x-4)
   vector<complex<double>> fou2Sol;
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(1.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(2.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(3.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(4.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(-1.001,0.002)));
-  fou2Sol.push_back( fourth.laguerre(fouCoef, complex<double>(4.000,0.0)));
+  complex<double> rootToPolish = {1.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);
+
+  rootToPolish = {2.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
+  rootToPolish = {3.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish); 
+
+  rootToPolish = {4.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
+  rootToPolish = {-1.001,0.002};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
+  rootToPolish = {4.00,0.0};
+  fourth.laguerre(fouCoef, rootToPolish);
+  fou2Sol.push_back(rootToPolish);  
+
   cout << "fourth order roots (1,2,3,4):" << "\n";
   for(auto sol: fou2Sol)
   {

@@ -13,6 +13,9 @@
 * 
 * For explanation of the basic idea behind the algorithm, wikipedia page is sufficient:
 * https://en.wikipedia.org/wiki/Laguerre%27s_method
+*
+* Also see https://github.com/andresmmera/Laguerre-Root-Solver
+* for an alternative implementation.
 ****************************************************************************/
 
 
@@ -22,27 +25,43 @@
 #include <iostream>
 #include <complex>
 #include <vector>
+#include <limits>
+#include <typeinfo>
+#include <functional>
 
 using std::vector;
 
 template<class T>
 using complex = std::complex<T>;
 
-#define MAX_IT 100
+#define MAX_IT 300
 #define MT 8
-#define EPSS 1.0e-14
-#define EPS 1.0e-16
 
 class Laguerre
 {
 public:
   Laguerre(vector<complex<double>>);//Class constructor
-  vector<complex<double>> solveRoots();
+ 
+  // Solver with initial estimate on start of the iteration
+  vector<complex<double>> solveRoots(const vector<complex<double>>& roots = {}); 
+  // A simple root polisher - can in principle merge two roots into one
   vector<complex<double>> polishRoots(vector<complex<double>> roots);
 
-  bool checkRoots(const vector<complex<double>> roots);
+  // Checks each root individually by substituing it into original polynomial
+  bool checkRootsOneByOne(const vector<complex<double>>& roots);
 
-  complex<double> laguerre(vector<complex<double>>, complex<double>);
+  // Reconstructs polynomial coeffs using roots and checks agains their
+  // original values 
+  bool checkRootsAllAtOnce(const vector<complex<double>>& roots);
+
+  // Makes simplified check testing reconstructing zeroth and n-1 coeffitient
+  // of the polynomial using the found roots
+  bool checkRoots(const vector<complex<double>>& roots);
+
+  // The main routine setting x to a root of a polynomial
+  bool laguerre(const vector<complex<double>> poly, complex<double> &x);
+
+  constexpr static double EPS = std::numeric_limits<double>::epsilon();  
 
 private:
   vector<complex<double>> _polyCoeffs;// Polynomial coefficients

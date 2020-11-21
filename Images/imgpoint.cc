@@ -34,16 +34,10 @@ bool ImgPoint::imgCheck(complex<double> img, double sourceRadius)
 
    if(abs(testSourcePos-_sourcePos)<(sourceRadius))
    {
-     // Commenting out debugging output as the issue is not fully resolved
-     //cout << "Accepted: " << std::setw(5) << abs(testSourcePos-_sourcePos) << ", "
-     //                     << _sourcePos << ", " << img << "\n"; 
      return 1;
    } 
    else
    {
-     // Commenting out debugging output
-     //cout << "Rejected: " << std::setw(5) << abs(testSourcePos-_sourcePos) << ", "
-     //                     << _sourcePos << ", " << img << "\n"; 
      return 0;
    }  
 };
@@ -83,11 +77,12 @@ void ImgPoint::getRoots(bool forceNewRoots = false)
   if(_tempRoots.size() < 10 || forceNewRoots)
   {
     _tempRoots = laguerre.solveRoots();
-    cout << "Roots recalculated \n";
   }
   else
   {
-    _tempRoots = laguerre.polishRoots(_tempRoots);  
+    // Solve the roots with initial guess set to previous solution
+    _tempRoots = laguerre.solveRoots(_tempRoots);  
+
     if(!laguerre.checkRoots(_tempRoots))
     {
       cout << "Roots off for img " << "\n";
