@@ -281,22 +281,25 @@ double LightCurveIRS::sourceBrightness(double r)
 }
 
 
-void LightCurveIRS::lineFloodFill(long int nx, long int ny, complex<double> sPos) {
-    
-    if (ny <= 0 || ny >= _imgPlaneSize)
+void LightCurveIRS::lineFloodFill(long int nx,
+                                  long int ny,
+                                  complex<double> sPos,
+                                  bool checked)
+{
+    if(!checked)
     {
-      //cout << "Row outside image plane: " << ny << " \n";
-      return;
-    }
+      if (!amoebae.checkLine(ny, nx))
+      {
+        //cout << "Amoebae check failed: " << nx << " , " << ny << " \n";
+        return;
+      }
 
-    long int nL, nR, nn;
-
-    if (!amoebae.checkLine(ny, nx))
-    {
-      //cout << "Amoebae check failed: " << nx << " , " << ny << " \n";
-      return;
+      if (ny <= 0 || ny >= _imgPlaneSize)
+      {
+        //cout << "Row outside image plane: " << ny << " \n";
+        return;
+      }
     }
-    
     // need to get the y only once as the fill stays withing a line
     double y = nyToY(ny), amp = irs(nxToX(nx), y, sPos); 
 
@@ -306,6 +309,8 @@ void LightCurveIRS::lineFloodFill(long int nx, long int ny, complex<double> sPos
       _amplification += amp;
       _irsCount++;
     }
+
+    long int nL, nR, nn;
 
     // scan right
     for (nR = nx+1; nR < _imgPlaneSize; nR++) {
@@ -341,19 +346,56 @@ void LightCurveIRS::lineFloodFill(long int nx, long int ny, complex<double> sPos
     amoebae.addNode(nL, nR, ny);
 
     // trying a good position to move one row up/down
-    nn = nL;
-    while (nn <= nR) {
-      if (amoebae.checkLine(ny+1, nn))
-      {
-        lineFloodFill(nn, ny+1, sPos);
-      }    
+    //nn = nL;
 
-      if (amoebae.checkLine(ny-1, nn))
+    //vector<XRange> upRanges = amoebae.getUnfilled(nL, nR, ny+1);
+    //vector<XRange> downRanges = amoebae.getUnfilled(nL, nR, ny-1);
+
+    //for(auto xrange: upRanges)
+    //{
+    //  nn = xrange.xleft;
+    //  while(nn <= xrange.xright)
+    //  {
+    //    lineFloodFill(nn, ny+1, sPos, true);
+    //    nn++;
+    //  }
+    //}
+
+    //for(auto xrange: downRanges)
+    //{
+    //  nn = xrange.xleft;
+    //  while(nn <= xrange.xright)
+    //  {
+    //    lineFloodFill(nn, ny-1, sPos, true);
+    //    nn++;
+    //  }
+    //}
+
+    nn = nL;
+    // upper line
+    while (nn <= nR) {
+      if (amoebae.checkLineShift(ny+1, nn))
+      {  
+        lineFloodFill(nn, ny+1, sPos);
+        nn++;
+      }
+    }
+    nn = nL;
+    // lower line
+    while (nn <= nR) {
+      if (amoebae.checkLineShift(ny-1, nn))
       {
         lineFloodFill(nn, ny-1, sPos);
+        nn++;
       }
-      nn++;
     }
+
+    //nn = nL;
+    //while (nn <= nR) {
+    //  lineFloodFill(nn, ny+1, sPos);
+    //  lineFloodFill(nn, ny-1, sPos);
+    //  nn++;
+    //}
     return;
 }
 

@@ -2,6 +2,7 @@
 //#define AMOEBA_H
 
 #include <vector>
+#include <algorithm>
 
 using std::vector;
 
@@ -18,6 +19,13 @@ struct XRange
     xleft = xLeftMost;
     xright= xRightMost;
   }
+
+  // useful for sorting non-overlapping ranges
+  bool operator<(const XRange& xRange) const
+  {
+      return (xleft < xRange.xleft);
+  }
+
 };
 
 /* main data structure - amoebas as a vector of lists of XRanges */
@@ -35,6 +43,15 @@ class Amoeba
     bool checkLine(long int ny,
                    long int n 
                   );
+
+    bool checkLineShift(long int  ny,
+                        long int& n
+                       );    
+
+    vector<XRange> getUnfilled(long int  nxL,
+                               long int  nxR,
+                               long int  ny
+                              );
 
     void resize(long int size
                );

@@ -26,3 +26,9 @@ Contains python scripts that call shared library files to execute compiled c++ c
 ### main.cc
 As this is mostly meant as a shared library to be later used within a Python application, main.cc serves for regression testing. Plan is to move to unit testing as the library grows larger. 
 
+## Tools worth mentioning
+
+### GPROF
+
+A simple profiling tool that gives a good overview of time spent on each function. 
+Make an executable by running 'make profile', then run the resulting executable in the 'bin/' directory. Finally, run 'gprof ccc_profile gmon.out'. 

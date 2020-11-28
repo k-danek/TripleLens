@@ -65,7 +65,8 @@ class LightCurveIRS: public LightCurveBase
 
     void lineFloodFill(long int        nx,
                        long int        ny,
-                       complex<double> sPos);
+                       complex<double> sPos,
+                       bool            checked = false);
 
     bool intersectionCheck(complex<double>  pos,
                            complex<double>  pointA,

@@ -136,11 +136,13 @@ int main()
   LightCurveIRS lcIRS(a,b,th,m2,m3, 0.001, 100, 300);
   
   begin = clock();  
-  for(unsigned int i = 0; i < 10; i++)
+  for(unsigned int i = 0; i < 8; i++)
   {
+    cout << "running with step " << i << "\n";
     angle = (double)i/20.0*3.14159;
-    endPoint = {cos(angle), sin(angle)};  
-    startPoint = -endPoint;
+    endPoint = {1.01*cos(angle), 0.99*sin(angle)};  
+    //startPoint = -endPoint;
+    startPoint = {-0.99*cos(angle), -0.99*sin(angle)}; 
     lcIRS.getLCIRS(startPoint, endPoint);
     lightCurve = lcIRS.lcVec; 
   }

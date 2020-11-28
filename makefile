@@ -62,5 +62,6 @@ lens.o: $(INC_LENS)/lens.h
 -include $(INCLUDES)
 
 clean:
-	rm $(BUILD_TARGET)/*.o $(BUILD_TARGET)/*.so $(BUILD_TARGET)/*.a $(BUILD_TARGET)/ccc_test
+	rm $(BUILD_TARGET)/*.o $(BUILD_TARGET)/*.so $(BUILD_TARGET)/*.a $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/ccc_profile
+
 
