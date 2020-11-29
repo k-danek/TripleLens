@@ -90,10 +90,12 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
   complex<double> pos = startPoint;
 
   // Looping over source positions
-  for(unsigned int i = 0; i < _lcLength; i++)
+  for(unsigned int i = 0; i <= _lcLength; i++)
   {
-    cout << "started pos:" << i << "\n";
-    pos = (endPoint-startPoint)*(i/(_lcLength-1.0));
+    //pos = (endPoint-startPoint)*(i/(_lcLength-1.0));
+    pos = startPoint + (endPoint-startPoint)*(double(i)/double(_lcLength));
+    cout << "started pos:" << i << ", (" << pos.real()
+         << "," << pos.imag() <<")\n";
     vector<complex<double>> imgPos = _pointImages.getImages(pos);
     complex<double> trialPoint;
     bool pointTaken = false;
@@ -286,17 +288,19 @@ void LightCurveIRS::lineFloodFill(long int nx,
                                   complex<double> sPos,
                                   bool checked)
 {
+    //cout << "line floodfill run with nx " << nx << " ny " << ny << "\n";
+
     if(!checked)
     {
-      if (!amoebae.checkLine(ny, nx))
-      {
-        //cout << "Amoebae check failed: " << nx << " , " << ny << " \n";
-        return;
-      }
-
       if (ny <= 0 || ny >= _imgPlaneSize)
       {
         //cout << "Row outside image plane: " << ny << " \n";
+        return;
+      }
+
+      if (!amoebae.checkLine(ny, nx))
+      {
+        //cout << "Amoebae check failed: " << nx << " , " << ny << " \n";
         return;
       }
     }
@@ -313,34 +317,37 @@ void LightCurveIRS::lineFloodFill(long int nx,
     long int nL, nR, nn;
 
     // scan right
-    for (nR = nx+1; nR < _imgPlaneSize; nR++) {
-        amp = irs(nxToX(nR), y, sPos);
-        
-        if (amp <= 0.0) {
-          nR--;
-          break;
-        }
-        else
-        {
-          _amplification += amp;
-          _irsCount++;
-        }
+    for (nR = nx+1; nR < _imgPlaneSize; nR++)
+    {
+      amp = irs(nxToX(nR), y, sPos);
+      
+      if (amp <= 0.0)
+      {
+        nR--;
+        break;
+      }
+      else
+      {
+        _amplification += amp;
+        _irsCount++;
+      }
     }
 
     // scan left
-    for (nL = nx-1; nL > 0; nL--) {
-        amp = irs(nxToX(nL), y, sPos);
-       
-        if (amp <= 0.0) {
-          nL++;
-          break;
-        }
-        else
-        {
-          _amplification += amp;
-          _irsCount++;
-        }
-    
+    for (nL = nx-1; nL > 0; nL--)
+    {
+      amp = irs(nxToX(nL), y, sPos);
+      
+      if (amp <= 0.0)
+      {
+        nL++;
+        break;
+      }
+      else
+      {
+        _amplification += amp;
+        _irsCount++;
+      }
     }
 
     amoebae.addNode(nL, nR, ny);

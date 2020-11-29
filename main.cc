@@ -101,48 +101,50 @@ int main()
 //       << "s\n\n";
 
 
-    // Light Curve IRS test 
-  cout << "Starting LC test BASE: \n";
-  LightCurveBase lcBase(a,b,th,m2,m3,100);
+//    // Light Curve IRS test 
+//  cout << "Starting LC test BASE: \n";
+//  LightCurveBase lcBase(a,b,th,m2,m3,100);
   complex<double> startPoint;
   complex<double> endPoint;
   vector<double>  lightCurve;
   double angle = 0.0;
-
-  // Point source
-  begin = clock();  
-  for(unsigned int i = 0; i <= 2; i++)
-  {
-    angle = (double)i/20.0*3.14159;
-    endPoint = {cos(angle), sin(angle)};  
-    startPoint = -endPoint;
-    lcBase.getLC(startPoint, endPoint);
-    lightCurve = lcBase.lcVec;
-    cout << "\n Priting Light curve" << i << "\n";
-    //for(auto lcElem: lightCurve)
-    //{
-    //  cout << lcElem << "\n";
-    //}
-
-  }
-  cout << "\n Light Curve Printed. \n"; 
-  
-  end = clock();  
-  cout << "100 positions point-amp lightcurve:" 
-       << double(end - begin) / CLOCKS_PER_SEC 
-       << "s\n\n";
-
+//
+//  // Point source
+//  begin = clock();  
+//  for(unsigned int i = 0; i <= 2; i++)
+//  {
+//    angle = (double)i/20.0*3.14159;
+//    endPoint = {cos(angle), sin(angle)};  
+//    startPoint = -endPoint;
+//    lcBase.getLC(startPoint, endPoint);
+//    lightCurve = lcBase.lcVec;
+//    cout << "\n Priting Light curve" << i << "\n";
+//    //for(auto lcElem: lightCurve)
+//    //{
+//    //  cout << lcElem << "\n";
+//    //}
+//
+//  }
+//  cout << "\n Light Curve Printed. \n"; 
+//  
+//  end = clock();  
+//  cout << "100 positions point-amp lightcurve:" 
+//       << double(end - begin) / CLOCKS_PER_SEC 
+//       << "s\n\n";
+//
   // Extended source IRS
   LightCurveIRS lcIRS(a,b,th,m2,m3, 0.001, 100, 300);
   
   begin = clock();  
-  for(unsigned int i = 0; i < 8; i++)
+  for(unsigned int i = 0; i < 10; i++)
   {
     cout << "running with step " << i << "\n";
     angle = (double)i/20.0*3.14159;
-    endPoint = {1.01*cos(angle), 0.99*sin(angle)};  
+    endPoint = {1.0001*cos(angle), 0.9999*sin(angle)};  
     //startPoint = -endPoint;
-    startPoint = {-0.99*cos(angle), -0.99*sin(angle)}; 
+    startPoint = {-0.9999*cos(angle), -1.0001*sin(angle)}; 
+    //startPoint = {9.380824e-01,1.291157e+00}; 
+    //endPoint = {9.380826e-01,1.291159e+00};  
     lcIRS.getLCIRS(startPoint, endPoint);
     lightCurve = lcIRS.lcVec; 
   }

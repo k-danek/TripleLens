@@ -44,7 +44,13 @@ bool Amoeba::checkLineShift(long int ny, long int& nx)
 {
   vector<XRange>::const_iterator it;
    
-  if ((ny < 0) || (ny >= _size)) return 0;
+  if ((ny < 0) || (ny >= _size))
+  {  
+    // Got out of the range
+    // Make sure to get beyond the line
+    nx += _size;
+    return 0;
+  }
 
   for (it = amoebae[ny].begin(); it != amoebae[ny].end(); it++) {
       if ( ( nx <= (*it).xright) && ((*it).xleft <= nx)) {

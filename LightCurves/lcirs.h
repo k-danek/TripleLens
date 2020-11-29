@@ -74,7 +74,6 @@ class LightCurveIRS: public LightCurveBase
                            complex<double>& trialPoint
                           );
 
-
     CriticalCurveCaustic ccc;
     Amoeba amoebae;
 
