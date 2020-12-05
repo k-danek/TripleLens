@@ -44,14 +44,11 @@ class Amoeba
                    long int n 
                   );
 
+    // checks the line but with each already filled 
+    // segment jumps at its end
     bool checkLineShift(long int  ny,
                         long int& n
                        );    
-
-    vector<XRange> getUnfilled(long int  nxL,
-                               long int  nxR,
-                               long int  ny
-                              );
 
     void resize(long int size
                );

@@ -353,37 +353,13 @@ void LightCurveIRS::lineFloodFill(long int nx,
     amoebae.addNode(nL, nR, ny);
 
     // trying a good position to move one row up/down
-    //nn = nL;
-
-    //vector<XRange> upRanges = amoebae.getUnfilled(nL, nR, ny+1);
-    //vector<XRange> downRanges = amoebae.getUnfilled(nL, nR, ny-1);
-
-    //for(auto xrange: upRanges)
-    //{
-    //  nn = xrange.xleft;
-    //  while(nn <= xrange.xright)
-    //  {
-    //    lineFloodFill(nn, ny+1, sPos, true);
-    //    nn++;
-    //  }
-    //}
-
-    //for(auto xrange: downRanges)
-    //{
-    //  nn = xrange.xleft;
-    //  while(nn <= xrange.xright)
-    //  {
-    //    lineFloodFill(nn, ny-1, sPos, true);
-    //    nn++;
-    //  }
-    //}
-
+ 
     nn = nL;
     // upper line
     while (nn <= nR) {
       if (amoebae.checkLineShift(ny+1, nn))
       {  
-        lineFloodFill(nn, ny+1, sPos);
+        lineFloodFill(nn, ny+1, sPos, true);
         nn++;
       }
     }
@@ -392,17 +368,11 @@ void LightCurveIRS::lineFloodFill(long int nx,
     while (nn <= nR) {
       if (amoebae.checkLineShift(ny-1, nn))
       {
-        lineFloodFill(nn, ny-1, sPos);
+        lineFloodFill(nn, ny-1, sPos, true);
         nn++;
       }
     }
 
-    //nn = nL;
-    //while (nn <= nR) {
-    //  lineFloodFill(nn, ny+1, sPos);
-    //  lineFloodFill(nn, ny-1, sPos);
-    //  nn++;
-    //}
     return;
 }
 
