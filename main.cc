@@ -46,7 +46,7 @@ int main()
     ccc.getCC();
     ccc.getCa();
   }
-  clock_t end = clock();
+  end = clock();
   cout << "1k CCC computations:"
        << double(end - begin) / CLOCKS_PER_SEC
        << "s\n\n";
