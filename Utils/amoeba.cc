@@ -4,7 +4,6 @@
 Amoeba::Amoeba(long int size)
 {
   _size = size;
-  amoebae.resize(_size);
 }
 
 
@@ -15,7 +14,15 @@ Amoeba::Amoeba(long int size)
 // If not, adds another node
 void Amoeba::addNode (long int nL, long int nR, long int ny)
 {
-  vector<XRange>::iterator it;
+  list<XRange>::iterator it;
+  
+  // Insert a new line into the map
+  if (amoebae.find(ny) == amoebae.end())
+  {
+    amoebae.insert({ny,{XRange(nL,nR)}});
+    return; 
+  }
+
   for (it = amoebae[ny].begin(); it != amoebae[ny].end(); it++) {
       if ( (*it).xright == nR && (*it).xleft == nL ) return;
   }
@@ -26,12 +33,18 @@ void Amoeba::addNode (long int nL, long int nR, long int ny)
 // returns 1 if not in existing image 
 bool Amoeba::checkLine(long int ny, long int nx)
 {
-  vector<XRange>::const_iterator it;
-   
+  list<XRange>::const_iterator it;
+  if (amoebae.find(ny) == amoebae.end())
+  {
+    return 1;
+  }
+
   if ((ny < 0) || (ny >= _size)) return 0;
 
-  for (it = amoebae[ny].begin(); it != amoebae[ny].end(); it++) {
-      if ( ( nx <= (*it).xright) && ((*it).xleft <= nx)) {
+  for (it = amoebae[ny].begin(); it != amoebae[ny].end(); it++)
+  {
+      if ( ( nx <= (*it).xright) && ((*it).xleft <= nx))
+      {
            return 0;
       }
   }
@@ -42,14 +55,21 @@ bool Amoeba::checkLine(long int ny, long int nx)
 // returns 1 if not in existing image 
 bool Amoeba::checkLineShift(long int ny, long int& nx)
 {
-  vector<XRange>::const_iterator it;
-   
+  list<XRange>::const_iterator it;
+
+  //std::cout << "check line shift entered \n";
+
   if ((ny < 0) || (ny >= _size))
   {  
     // Got out of the range
     // Make sure to get beyond the line
     nx += _size;
     return 0;
+  }
+
+  if (amoebae.find(ny) == amoebae.end())
+  {
+    return 1;
   }
 
   for (it = amoebae[ny].begin(); it != amoebae[ny].end(); it++) {
@@ -63,7 +83,6 @@ bool Amoeba::checkLineShift(long int ny, long int& nx)
 
 void Amoeba::resize(long int size)
 {
-  amoebae.resize(size);
   _size = size;
 }
 

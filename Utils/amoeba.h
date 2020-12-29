@@ -2,9 +2,14 @@
 //#define AMOEBA_H
 
 #include <vector>
+#include <list>
 #include <algorithm>
+#include <unordered_map>
+#include <utility>
+#include <iostream>
 
 using std::vector;
+using std::list;
 
 /* xright - leftmost x coordinate occupied by the lensed image
    xleft - rightmost x coordinate occupied by the lensed image
@@ -54,7 +59,10 @@ class Amoeba
                );
 
     // Image plane grid filled with amoebae
-    vector< vector<XRange> > amoebae;   
+    //vector< list<XRange> > amoebae;   
+
+    // Unordered map is substantially more effective for extreme grid sizes
+    std::unordered_map<long int, list<XRange>> amoebae;
 
   private:
     long int _size;

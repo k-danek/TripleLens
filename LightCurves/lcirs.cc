@@ -351,6 +351,7 @@ void LightCurveIRS::lineFloodFill(long int nx,
     }
 
     amoebae.addNode(nL, nR, ny);
+    //cout << "got out of addNode \n";
 
     // trying a good position to move one row up/down
  
@@ -372,6 +373,8 @@ void LightCurveIRS::lineFloodFill(long int nx,
         nn++;
       }
     }
+
+    //cout << "finished one fill \n";
 
     return;
 }
