@@ -220,3 +220,30 @@ vector<complex<double>> ImgPoint::getCoeffsOpt()
   return vector<complex<double>>{a0,a1,a2,a3,a4,a5,a6,a7,a8,a9,a10};  
 }
 
+vector<complex<double>> ImgPoint::getCoeffsBinOpt()
+{
+  complex<double>         zeta = _sourcePos;
+  complex<double>         zetac= conj(zeta);
+  vector<complex<double>> coeffs(6);
+  double d = a;
+  double m = 1.0-m2;
+
+  complex<double> t1 = zetac*zetac;
+  complex<double> a5 = -t1+zetac*d;
+  complex<double> t6 = 2.0*t1*d;
+  complex<double> t7 = d*d;
+  complex<double> t11 = m*d;
+  complex<double> a4 = -a5*zeta+t6+(-1.0-2.0*t7)*zetac+d-t11;
+  complex<double> t17 = t1*t7;
+  complex<double> t18 = 2.0*t11;
+  complex<double> t19 = t7*d;
+  complex<double> t22 = m*t7;
+  complex<double> a3 = (-t6+(2.0*t7+2.0)*zetac-d)*zeta-t17+(t18+t19)*zetac-t7+t22;
+  complex<double> a2 = (t17+(-2.0*d-t19-t18)*zetac+t22+1.0+t7)*zeta+(-2.0*t22+t7)*zetac-d+t11;
+  complex<double> a1 = (2.0*t7*zetac*m+t11*(-2.0-t7))*zeta+t11*(d-t11);
+  complex<double> t40 = m*m;
+  complex<double> a0 = zeta*t40*t7;
+
+  return vector<complex<double>>{a0,a1,a2,a3,a4,a5};  
+}
+

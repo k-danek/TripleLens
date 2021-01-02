@@ -42,11 +42,8 @@ class CriticalCurveCaustic: public Lens
     // Critical curve and caustic caulculation
     void getCC(); 
     void getCa();
-    //void getBoundingBox(complex<double>* ccMin,
-    //                    complex<double>* ccMax,
-    //                    complex<double>* caMin,
-    //                    complex<double>* caMax
-    //                   );
+
+    void getCCBinary();
 
     void printCCC(std::string fileName);
 
@@ -55,6 +52,10 @@ class CriticalCurveCaustic: public Lens
     bool _ccAvailable = false;
     bool _caAvailable = false;
     vector<complex<double>> _tempRoots;
+    
+    // In order to include Binary/Double lens calculation
+    bool _binaryLens = false;
+    int  _polOrder   = 6;  
 };
 
 

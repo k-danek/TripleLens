@@ -17,6 +17,13 @@ CriticalCurveCaustic::CriticalCurveCaustic(
                            )
 {
   _length = cccLength;
+  
+  // if m3 equals zero, the lens is considered a Binary Lens
+  if (m3 == 0.0)
+  {
+    _binaryLens = true;
+    _polOrder = 4;
+  }
 };
 
 CriticalCurveCaustic::CriticalCurveCaustic(const LensPar &lensParam,
@@ -90,6 +97,66 @@ void CriticalCurveCaustic::getCC()
   _ccAvailable = true;
 };
 
+// Method to initialise vector with critical curve
+// specialised for Binary Lens
+void CriticalCurveCaustic::getCCBinary()
+{
+
+  complex<double> cc[5];
+  complex<double> eiphi;
+  double m = 1.0-m2-m3;
+
+  // Memory allocation as we know how many roots we will have
+  ccVec.resize(4);
+  for(auto vec: ccVec) vec.reserve(_length);
+
+  cc[4]=1.0;
+  cc[3]=0.0;
+  
+  for (unsigned int j=0; j< _length ;j++)
+  {
+    double phi=2.0*3.14159265359*j/_length;
+    
+    eiphi = complex<double>(cos(phi),sin(phi));
+
+    cc[2]=-eiphi - a * a / 0.2e1;
+    cc[1]=eiphi * a * (0.2e1 * m - 0.1e1);
+    cc[0]=a * a * (a * a - 0.4e1 * eiphi) / 0.16e2;
+
+    vector<complex<double>> ccCoef (cc, cc + sizeof(cc) / sizeof(complex<double>) );
+
+    //Beware! This is complex conjugate of the Critical Curve
+    Laguerre laguerre(ccCoef);
+
+    //This part decides whether to polish previous or calculate new roots.
+    //Doing just polishing should speed up the process cca twice.
+    //Also, it leaves the roots in the same order as in the previous step.
+    //<4 condition is there to check whether    
+    if(_tempRoots.size() < 4)
+    {
+      _tempRoots = laguerre.solveRoots(); 
+    }
+    else
+    {
+      _tempRoots = laguerre.polishRoots(_tempRoots);   
+      if(!laguerre.checkRoots(_tempRoots))
+      {
+        cout << "Roots off for j = " << j << "\n";
+        _tempRoots = laguerre.solveRoots(); 
+      }        
+    };   
+
+    for(unsigned int k=0; k<4; k++)
+    {
+      // shifting origin of coordinates to zA
+      ccVec[k].push_back(_tempRoots[k]+a/2.0);
+    }
+  }
+
+  // Calculation finished, the critical curve is now available.
+  _ccAvailable = true;
+};
+
 void CriticalCurveCaustic::getCa()
 {
   complex<double> ccSol; 
@@ -97,23 +164,38 @@ void CriticalCurveCaustic::getCa()
   // Caustic is obrained from Critical Curve, so make sure you have one.
   if(!_ccAvailable)
   {
-    getCC();
+    if (_binaryLens)
+    {
+      getCCBinary();
+    }
+    else
+    {
+      getCC();
+    }
   }
 
   // Memory allocation as we know how big our vectors are goint to be.
-  caVec.resize(6);
+  caVec.resize(_polOrder);
   for(auto vec: caVec) vec.reserve(_length);
 
-  // looping over 6 ccVec roots
-  for(unsigned int i = 0; i < 6; i++)
+  // looping over ccVec roots
+  for(unsigned int i = 0; i < _polOrder; i++)
   {
     // looping over length solutions for particular vec
     for(unsigned int j = 0; j < _length; j++)
     {
       ccSol = ccVec[i][j];
-      caVec[i].push_back(ccSol-m1/conj(ccSol-z1)
-                              -m2/conj(ccSol-z2)
-                              -m3/conj(ccSol-z3));
+      if (_binaryLens)
+      {
+        caVec[i].push_back(ccSol-(1.0-m2-m3)/conj(ccSol)
+                                - m2/conj(ccSol-a));
+      }
+      else
+      {  
+        caVec[i].push_back(ccSol-m1/conj(ccSol-z1)
+                                -m2/conj(ccSol-z2)
+                                -m3/conj(ccSol-z3));
+      }
     }
   }
   // Caustic is now available
@@ -125,7 +207,7 @@ void CriticalCurveCaustic::printCCC(std::string fileName)
   std::ofstream outFile;
   outFile.open(fileName);
 
-  outFile.precision(6);
+  outFile.precision(_polOrder);
   // Print Header
   outFile << "#Critical Curve and Caustic\n";
   outFile << "# (a,b,theta,m2,m3) = (" << a << ", " << b << ", " << th << ", "
@@ -134,7 +216,7 @@ void CriticalCurveCaustic::printCCC(std::string fileName)
   // Print Critical Curve
   for(unsigned int i = 0; i < _length; i++)
   {
-    for(unsigned int j = 0; j < 6; j++)
+    for(unsigned int j = 0; j < _polOrder; j++)
     {
       outFile << ccVec[j][i].real() << " ";
       outFile << ccVec[j][i].imag() << " ";
@@ -146,7 +228,7 @@ void CriticalCurveCaustic::printCCC(std::string fileName)
   outFile << "\n###########\n";
   for(unsigned int i = 0; i < _length; i++)
   {
-    for(unsigned int j = 0; j < 6; j++)
+    for(unsigned int j = 0; j < _polOrder; j++)
     {
       outFile << caVec[j][i].real() << " ";
       outFile << caVec[j][i].imag() << " ";
@@ -202,7 +284,7 @@ extern "C"
     unsigned int length = ccc->ccVec[0].size();
     unsigned int idx = 0;
 
-    for(unsigned int root = 0; root < 6; root++)
+    for(unsigned int root = 0; root < ccc->ccVec.size(); root++)
       for(unsigned int step = 0; step < length; step++)
       {
         idx = root * length + step;

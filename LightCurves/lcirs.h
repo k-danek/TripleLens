@@ -99,7 +99,6 @@ class LightCurveIRS: public LightCurveBase
     // to the light curve.
     double _ampScale = 1.0;
 
-
     vector<pair<complex<double>>> caBoxes;
 
     // constants to control surface brightness
@@ -110,7 +109,6 @@ class LightCurveIRS: public LightCurveBase
  
     // sets Image plane to be square enveloping all the Critical Curve
     void _getImgPlanePars(); 
-
 };
 
 #endif                

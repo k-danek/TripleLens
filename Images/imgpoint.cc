@@ -25,7 +25,6 @@ ImgPoint::ImgPoint(const LensPar &lensParam): Lens(lensParam.a,
   setPos(0.0, 0.0);
 };
 
-
 // Normal check if an image falls within a source radius. 
 // In context of the point source, that source radius is just an error term.
 bool ImgPoint::imgCheck(complex<double> img, double sourceRadius)
@@ -62,19 +61,27 @@ void ImgPoint::setPos(complex<double> pos)
   _imgsAvailable  = false;
 };
 
-// Main method to initialise vector with critical curve
-void ImgPoint::getRoots(bool forceNewRoots = false)
+// Main method to initialise vector with images
+void ImgPoint::getRoots(bool forceNewRoots = false,
+                        bool isBinaryLens  = false)
 {
-  vector<complex<double>> imgCoef = getCoeffs();
 
-  //Beware! This is complex conjugate of the Critical Curve
+  // zero m3 is always taken to be Binary Lens
+  if(m3==0.0)
+  {
+    isBinaryLens = true;
+  }  
+
+  vector<complex<double>> imgCoef = isBinaryLens ? getCoeffsBinOpt():
+                                                   getCoeffs();
+
   Laguerre laguerre(imgCoef);
 
   //This part decides whether to polish previous or calculate new roots.
   //Doing just polishing should speed up the process cca twice.
   //Also, it leaves the roots in the same order as in the previous step.
   //<10 condition is there to check whether tempRoots holds all 10 roots    
-  if(_tempRoots.size() < 10 || forceNewRoots)
+  if(_tempRoots.size() < (imgCoef.size()-1) || forceNewRoots)
   {
     _tempRoots = laguerre.solveRoots();
   }
@@ -108,6 +115,7 @@ void ImgPoint::getImages()
 
   if(!_rootsAvailable)
   {
+    // for m3 == 0.0 this is a Binary Lens
     getRoots();
   }
 
@@ -122,10 +130,13 @@ void ImgPoint::getImages()
       isImg.push_back(false);
   }  
 
+  bool isBinaryLens = (m3 == 0.0);
+
   // This is an important check for correct number of images
   // Unfortunatelly, this fails a way too often!
-  // Come back to this after full testing of other functionality. 
-  if(imgs.size() % 2 != 0 || imgs.size() < 4)
+  // Come back to this after full testing of other functionality.
+  if(((imgs.size() % 2 != 0 || imgs.size() < 4) && !isBinaryLens) ||
+     ((imgs.size() % 2 != 1 || imgs.size() < 3) &&  isBinaryLens))
   { 
     
     getRoots(true);
@@ -143,8 +154,9 @@ void ImgPoint::getImages()
       else
         isImg.push_back(false);
     }    
-    
-    if(imgs.size() % 2 != 0 || imgs.size() < 4)
+
+    if(((imgs.size() % 2 != 0 || imgs.size() < 4) && !isBinaryLens) ||
+       ((imgs.size() % 2 != 1 || imgs.size() < 3) &&  isBinaryLens))
     { 
       vector<complex<double>>  coeffs = getCoeffsOpt();
       cout << "Wrong number of images after the check: " << imgs.size() << "\n";
@@ -157,8 +169,8 @@ void ImgPoint::getImages()
       cout << "\n"; 
     }
   }
-  _imgsAvailable = true;
 
+  _imgsAvailable = true;
 };
 
 vector<complex<double>> ImgPoint::getImages(complex<double> pos)

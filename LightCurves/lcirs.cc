@@ -443,8 +443,5 @@ extern "C"
       lcArray[i] = lc->lcVec[i];
     }
   }
-
 }
-
-
 

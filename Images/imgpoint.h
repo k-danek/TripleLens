@@ -41,6 +41,7 @@ class ImgPoint: public Lens
 
     vector<complex<double>> getCoeffs();
     vector<complex<double>> getCoeffsOpt();
+    vector<complex<double>> getCoeffsBinOpt();
 
     // checks if an roos is an image
     bool imgCheck(complex<double> img,
@@ -48,7 +49,9 @@ class ImgPoint: public Lens
                  );
 
     // Image position caulculation
-    void getRoots(bool forceNewRoots); 
+    void getRoots(bool forceNewRoots,
+                  bool isBinaryLens); 
+
     void getImages();
     
     // update and return images in one functional call
