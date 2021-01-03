@@ -6,62 +6,14 @@ import time
 import numpy as np
 from numpy.ctypeslib import ndpointer
 import matplotlib.pyplot as plt
-from run_ccclib import CCC
-
-# load the C++ shared library as lib
-lib_lc = ctypes.cdll.LoadLibrary('../bin/lcirs.so')
+from ctypes_classes import CCC
+from ctypes_classes import LC_irs
 
 # Create a structure for complex numbers
 class Complex(ctypes.Structure):
    _fields_ = [("real", ctypes.c_double),
                ("imag", ctypes.c_double)
               ]
-
-# Represent functional ctypes version of C++ LightCurveIRS class as Python Class
-class LC_irs(object):
-    def __init__(self, a, b, th, m2, m3, source_size, lc_len, img_plane_size):
-        lib_lc.lcirs_new.argtypes = [ctypes.c_double,
-                                     ctypes.c_double,
-                                     ctypes.c_double,
-                                     ctypes.c_double,
-                                     ctypes.c_double,
-                                     ctypes.c_double,
-                                     ctypes.c_uint,
-                                     ctypes.c_long
-                                    ]
-        lib_lc.lcirs_new.restype = ctypes.c_void_p
-
-        lib_lc.get_lc.argtypes = [ctypes.c_void_p,
-                                  ctypes.c_double,
-                                  ctypes.c_double,
-                                  ctypes.c_double,
-                                  ctypes.c_double
-                                 ] 
-        lib_lc.get_lc.restypes = ctypes.c_void_p
-
-        lib_lc.get_lc_irs.argtypes = [ctypes.c_void_p,
-                                      ctypes.c_double,
-                                      ctypes.c_double,
-                                      ctypes.c_double,
-                                      ctypes.c_double
-                                     ] 
-        lib_lc.get_lc_irs.restypes = ctypes.c_void_p
-
-        lib_lc.copy_lc.argtypes = [ctypes.c_void_p,
-                                   ndpointer(dtype=np.double,flags="C_CONTIGUOUS")
-                                  ]
-        lib_lc.copy_lc.restypes = ctypes.c_void_p
-
-        self.obj = lib_lc.lcirs_new(a, b, th, m2, m3, source_size, lc_len, img_plane_size)
-
-    def get_lc(self, iniX, iniY, finX, finY):
-        lib_lc.get_lc(self.obj, iniX, iniY, finX, finY)
-
-    def get_lc_irs(self, iniX, iniY, finX, finY):
-        lib_lc.get_lc_irs(self.obj, iniX, iniY, finX, finY)
-
-    def copy_lc(self,lc_vec):
-        lib_lc.copy_lc(self.obj, lc_vec)
 
 # Define lens parameters.
 a = 1.0
