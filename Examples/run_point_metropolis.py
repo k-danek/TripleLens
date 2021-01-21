@@ -15,7 +15,7 @@ class Obs:
          self.err = err
 
 class Param:
-    def __init__(self, name, value, vary = False, max_value = 1.0, min_value = 0.0):
+    def __init__(self, name, value, vary = False, min_value = 0.0, max_value = 1.0):
         self.name = name
         self.value = value
         self.vary = vary
@@ -180,31 +180,7 @@ for mag in lc_point_array:
     chi_sq += (mag-mag_obs)**2/(err*mag_obs)**2
 
 
-# Metropolis magic
-
-# How is Param defined
-# __init__(self, name, value, vary = False, max_value = 1.0, min_value = 0.0):
-
-model = {
-            "a": Param("a", 0.7, True, 1.5, 0.2),
-            "b": Param("b", 1.0),
-            "theta": Param("theta", 1.047197551),
-            "m2": Param("m2", 0.2),
-            "m3": Param("m3", 0.0),
-            "pos_ini_x": Param("pos_ini_x", pos_ini_x),
-            "pos_ini_y": Param("pos_ini_y", pos_ini_y),
-            "pos_fin_x": Param("pos_fin_x", pos_fin_x),
-            "pos_fin_y": Param("pos_fin_y", pos_fin_y)
-        }
-
-metropolis_obj = Metropolis(lc_obs_array, lc_err_array, model)
-metropolis_obj.iterate(100)
-print(metropolis_obj.a_sequence)
-print(metropolis_obj.chi_sequence)
-print("The chi_sq under metropolis equals = " + str(metropolis_obj.get_chi_sq(lc_point_array)))
-print("The final value of a = " + str(metropolis_obj.a))
-
-# Plotting
+# Plotting original model
 #fig, (ax1, (ax2, ax3)) = plt.subplots(3, 2)
 
 fig = plt.figure()
@@ -236,5 +212,71 @@ legend = ax3.legend(loc='upper left', fontsize='x-small')
 
 plt.tight_layout()
 fig.savefig("LightCurveFitting.png", dpi=200)
+
+
+# Metropolis magic
+
+model = {
+            "a": Param("a", 0.7, True, 0.2, 1.7),
+            "b": Param("b", 1.0),
+            "theta": Param("theta", 1.047197551),
+            "m2": Param("m2", 0.2),
+            "m3": Param("m3", 0.0),
+            "pos_ini_x": Param("pos_ini_x", pos_ini_x),
+            "pos_ini_y": Param("pos_ini_y", pos_ini_y),
+            "pos_fin_x": Param("pos_fin_x", pos_fin_x),
+            "pos_fin_y": Param("pos_fin_y", pos_fin_y)
+        }
+
+metropolis_obj = Metropolis(lc_obs_array, lc_err_array, model)
+metropolis_obj.iterate(10000)
+print(metropolis_obj.a_sequence)
+print(metropolis_obj.chi_sequence)
+print("The chi_sq under metropolis equals = " + str(metropolis_obj.get_chi_sq(lc_point_array)))
+print("The final value of a = " + str(metropolis_obj.a))
+
+# Plotting a result of fit
+
+ccc = CCC(metropolis_obj.a,b,theta,m2,m3,length)
+ccc.get_ca()
+
+ccc.copy_cc_ca(cc_array, ca_array)
+
+cc_real = []
+cc_imag = []
+ca_real = []
+ca_imag = []
+
+for cc in cc_array:
+  cc_real.append(cc.real)
+  cc_imag.append(cc.imag)
+
+for ca in ca_array:
+  ca_real.append(ca.real)
+  ca_imag.append(ca.imag)
+
+# copy lens positions
+ccc.copy_lenses(lens_pos)
+lenses_real = []
+lenses_imag = []
+for lens in lens_pos:
+  lenses_real.append(lens.real)
+  lenses_imag.append(lens.imag)
+
+# copy the bounding box
+cc_min = np.zeros(1, np.cdouble)
+cc_max = np.zeros(1, np.cdouble)
+ca_min = np.zeros(1, np.cdouble)
+ca_max = np.zeros(1, np.cdouble)
+ccc.get_bounding_box(cc_min, cc_max, ca_min, ca_max, 1.5)
+
+lc_point_array = np.zeros(lc_steps, np.double)
+lc_irs_array   = np.zeros(lc_steps, np.double)
+
+lc_irs = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
+
+lc_irs.get_lc(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
+lc_irs.copy_lc(lc_point_array)
+
 
 

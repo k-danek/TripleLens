@@ -70,13 +70,13 @@ void LightCurveIRS::_getImgPlanePars()
   // integration (for source of radius 1).
   _ampScale = 1.0/M_PI/pow(_pointsPerRadius,2.0)/(1.0-_vFactor/3.0);
 
-  cout << "Image plane parameters:\n";
-  cout << "_imgPlaneSize:" << _imgPlaneSize << "\n";
-  cout << "_imgPlaneSizeDouble:" << _imgPlaneSizeDouble << "\n";
-  cout << "topRightCornerImg:(" << _topRightCornerImg.real() << ","
-       << _topRightCornerImg.imag() << ")\n"; 
-  cout << "bottomLeftCornerImg:(" << _bottomLeftCornerImg.real() << ","
-       << _bottomLeftCornerImg.imag() << ")\n"; 
+  //cout << "Image plane parameters:\n";
+  //cout << "_imgPlaneSize:" << _imgPlaneSize << "\n";
+  //cout << "_imgPlaneSizeDouble:" << _imgPlaneSizeDouble << "\n";
+  //cout << "topRightCornerImg:(" << _topRightCornerImg.real() << ","
+  //     << _topRightCornerImg.imag() << ")\n"; 
+  //cout << "bottomLeftCornerImg:(" << _bottomLeftCornerImg.real() << ","
+  //     << _bottomLeftCornerImg.imag() << ")\n"; 
 
 };
 
