@@ -22,6 +22,7 @@ class Param:
         self.max_value = max_value
         self.min_value = min_value
 
+
 # simplified metropolis algorithm
 class Metropolis:
     def __init__(self, obs, errs, model):
@@ -30,7 +31,17 @@ class Metropolis:
         self.model = model
         self.chi_sequence = []
         self.a_sequence = []
-    
+        self.m2_sequence = []
+        self.a = model["a"].value
+        self.b = model["b"].value
+        self.theta = model["theta"].value
+        self.m2 = model["m2"].value
+        self.m3 = model["m3"].value
+        self.pos_ini_x = model["pos_ini_x"].value
+        self.pos_ini_y = model["pos_ini_y"].value
+        self.pos_fin_x = model["pos_fin_x"].value
+        self.pos_fin_y = model["pos_fin_y"].value
+
     def get_chi_sq(self, ests):
         chi = 0.0
         for ob, err, est in zip(self.obs, self.errs, ests):
@@ -38,63 +49,67 @@ class Metropolis:
         return chi
 
     def iterate(self, iters):
-        a = model["a"].value
-        b = model["b"].value
-        theta = model["theta"].value
-        m2 = model["m2"].value
-        m3 = model["m3"].value
-        pos_ini_x = model["pos_ini_x"].value
-        pos_ini_y = model["pos_ini_y"].value
-        pos_fin_x = model["pos_fin_x"].value
-        pos_fin_y = model["pos_fin_y"].value
-
-        a_sigma = 0.2
+        sigma = 0.2
 
         lc_list       = np.zeros(len(self.obs), np.double)
         lc_list_trial = np.zeros(len(self.obs), np.double)
 
-        lc_obj = LC_irs(a,b,theta, m2, m3, source_size, len(self.obs), 5)
-        lc_obj.get_lc(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
+        lc_obj = LC_irs(self.a,
+                        self.b,
+                        self.theta,
+                        self.m2,
+                        self.m3,
+                        source_size,
+                        len(self.obs),
+                        5)
+        lc_obj.get_lc(pos_ini_x, pos_ini_y, pos_fin_x, pos_fin_y)
         lc_obj.copy_lc(lc_list)
 
         chi_sq = self.get_chi_sq(lc_list)
         number_of_accepted = 0
 
-        for ite in range(0,iters):
-            a_trial = a + np.random.normal(0.0, a_sigma, None)
-            if a_trial > model["a"].max_value or a_trial < model["a"].min_value:
-                continue
-            lc_obj = LC_irs(a_trial,b,theta, m2, m3, source_size, len(self.obs), 5)
-            lc_obj.get_lc(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
+        for ite in range(0, iters):
+            a_trial = self.a
+            m2_trial = self.m2
+            if model["a"].vary:
+                a_sigma = sigma*abs(model["a"].max_value - model["a"].min_value)
+                a_trial += np.random.normal(0.0, a_sigma, None)
+                if a_trial > model["a"].max_value or a_trial < model["a"].min_value:
+                    continue
+            if model["m2"].vary:
+                m2_sigma = sigma * abs(model["m2"].max_value - model["m2"].min_value)
+                m2_trial += np.random.normal(0.0, m2_sigma, None)
+                if m2_trial > model["m2"].max_value or m2_trial < model["m2"].min_value:
+                    continue
+            lc_obj = LC_irs(a_trial, b, theta, m2_trial, m3, source_size, len(self.obs), 5)
+            lc_obj.get_lc(pos_ini_x, pos_ini_y, pos_fin_x, pos_fin_y)
             lc_obj.copy_lc(lc_list_trial)
             chi_sq_trial = self.get_chi_sq(lc_list_trial)
             if chi_sq_trial < chi_sq:
                 # accept the jump
-                a = a_trial
+                self.a = a_trial
+                self.m2 = m2_trial
                 # ad-hoc of tuning of sigma
-                a_sigma *= max(math.exp((chi_sq_trial-chi_sq)), 0.85)
+                sigma *= max(math.exp((chi_sq_trial-chi_sq)), 0.85)
                 chi_sq = chi_sq_trial
                 lc_list = lc_list_trial
                 self.chi_sequence.append(chi_sq)
-                self.a_sequence.append(a)
+                self.a_sequence.append(self.a)
+                self.m2_sequence.append(self.m2)
                 number_of_accepted += 1
             else:
                 # conditionally accept the jump with probability equal to ratio
                 # trial likelyhood over current-step likelyhood
                 if np.random.uniform() < math.exp(chi_sq-chi_sq_trial):
-                    a = a_trial
+                    self.a = a_trial
+                    self.m2 = m2_trial
                     chi_sq = chi_sq_trial
                     lc_list = lc_list_trial
                     self.chi_sequence.append(chi_sq)
-                    self.a_sequence.append(a)
+                    self.a_sequence.append(self.a)
+                    self.m2_sequence.append(self.m2)
                     number_of_accepted += 1
-                else:
-                    print("not accepted a_trial "+str(a_trial))
-                    print("chi_sq = "+str("{:.2e}".format(chi_sq)))
-                    print("chi_sq_trial = "+str("{:.2e}".format(chi_sq_trial)))
-                    print("number of accepted is "+str(number_of_accepted))
 
-        self.a = a
 
 # Define lens parameters.
 a = 1.0
@@ -151,19 +166,17 @@ pos_ini_y = -0.51
 pos_fin_x = 1.0
 pos_fin_y = 0.577
 
-
-
 # number of steps
 lc_steps = 100
 source_size = 1e-5
 points_per_radius = 300
 
 lc_point_array = np.zeros(lc_steps, np.double)
-lc_irs_array   = np.zeros(lc_steps, np.double)
+lc_irs_array = np.zeros(lc_steps, np.double)
 
-lc_irs = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
+lc_irs = LC_irs(a, b, theta, m2, m3, source_size, lc_steps, points_per_radius)
 
-lc_irs.get_lc(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
+lc_irs.get_lc(pos_ini_x, pos_ini_y, pos_fin_x, pos_fin_y)
 lc_irs.copy_lc(lc_point_array)
 
 print("Copied LC")
@@ -189,7 +202,6 @@ ax1 = plt.subplot(122)
 ax2 = plt.subplot(221)
 ax3 = plt.subplot(223)
 
-
 ax1.set_title("Source Trajectory")
 
 ax1.axis(xmin=cc_min.real, xmax=cc_max.real, ymin=cc_min.imag, ymax=cc_max.imag)
@@ -203,16 +215,14 @@ ax2.errorbar(x = np.linspace(0.0, 1.0, 100) , y = lc_obs_array, yerr = lc_err_ar
 
 chi_label = r'$\chi ^2$'+"="+str("{:.2e}".format(chi_sq)) 
 
-#ax3.legend('test label')
 ax3.scatter(np.linspace(0.0, 1.0, 100), lc_obs_array-lc_point_array, label = chi_label)
 
 legend = ax3.legend(loc='upper left', fontsize='x-small')
 
-
-
 plt.tight_layout()
-fig.savefig("LightCurveFitting.png", dpi=200)
+fig.savefig("LightCurveGenerated.png", dpi=200)
 
+plt.close('all')
 
 # Metropolis magic
 
@@ -220,7 +230,7 @@ model = {
             "a": Param("a", 0.7, True, 0.2, 1.7),
             "b": Param("b", 1.0),
             "theta": Param("theta", 1.047197551),
-            "m2": Param("m2", 0.2),
+            "m2": Param("m2", 0.1, True, 0.001, 0.5),
             "m3": Param("m3", 0.0),
             "pos_ini_x": Param("pos_ini_x", pos_ini_x),
             "pos_ini_y": Param("pos_ini_y", pos_ini_y),
@@ -229,17 +239,16 @@ model = {
         }
 
 metropolis_obj = Metropolis(lc_obs_array, lc_err_array, model)
-metropolis_obj.iterate(10000)
+metropolis_obj.iterate(1000)
 print(metropolis_obj.a_sequence)
 print(metropolis_obj.chi_sequence)
 print("The chi_sq under metropolis equals = " + str(metropolis_obj.get_chi_sq(lc_point_array)))
 print("The final value of a = " + str(metropolis_obj.a))
-
+print("The final value of a = " + str(metropolis_obj.m2))
 # Plotting a result of fit
 
 ccc = CCC(metropolis_obj.a,b,theta,m2,m3,length)
 ccc.get_ca()
-
 ccc.copy_cc_ca(cc_array, ca_array)
 
 cc_real = []
@@ -273,10 +282,40 @@ ccc.get_bounding_box(cc_min, cc_max, ca_min, ca_max, 1.5)
 lc_point_array = np.zeros(lc_steps, np.double)
 lc_irs_array   = np.zeros(lc_steps, np.double)
 
-lc_irs = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
+lc_irs = LC_irs(a, b, theta, m2, m3, source_size, lc_steps, points_per_radius)
 
 lc_irs.get_lc(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
 lc_irs.copy_lc(lc_point_array)
 
+# Plotting fitted model
+
+fig = plt.figure()
+
+ax1 = plt.subplot(122)
+ax2 = plt.subplot(321)
+ax3 = plt.subplot(323)
+ax4 = plt.subplot(325)
+
+ax1.set_title("Source Trajectory")
+
+ax1.axis(xmin=cc_min.real, xmax=cc_max.real, ymin=cc_min.imag, ymax=cc_max.imag)
+ax1.scatter(ca_real, ca_imag, s = 0.1)
+ax1.scatter(lenses_real, lenses_imag, s=200.0, marker = 'o')
+ax1.plot([pos_ini_x,pos_fin_x],[pos_ini_y, pos_fin_y])
+
+ax2.set_title("Observed Light Curve")
+ax2.errorbar(x = np.linspace(0.0, 1.0, 100), y=lc_obs_array, yerr=lc_err_array)
+ax2.plot(np.linspace(0.0, 1.0, 100), lc_point_array)
 
 
+chi_label = r'$\chi ^2$'+"="+str("{:.2e}".format(chi_sq))
+ax3.scatter(np.linspace(0.0, 1.0, 100), lc_obs_array-lc_point_array, label=chi_label)
+legend = ax3.legend(loc='upper left', fontsize='x-small')
+
+ax4.set_title(r'$\chi ^2$')
+ax4.scatter(np.linspace(1, len(metropolis_obj.chi_sequence), num=len(metropolis_obj.chi_sequence)), metropolis_obj.chi_sequence)
+
+plt.tight_layout()
+fig.savefig("LightCurveFitted.png", dpi=200)
+
+plt.close('')
