@@ -11,3 +11,4 @@
 *.pyc
 bin/*
 Examples/__pycache__/*
+Examples/.idea/*
