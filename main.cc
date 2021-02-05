@@ -24,6 +24,8 @@ int main()
   double m2 = 0.25;
   double m3 = 0.25;
   double th = 3.14159;
+  clock_t begin; 
+  clock_t end; 
 
   // Critical Curves and Caustic test
   cout << "Testing Critical Curve and Caustic generation: \n";
@@ -37,14 +39,14 @@ int main()
   ccc.printCCC("./bin/CCC.dat");
 
   // Critical Curves and Caustic Time benchmark
-  clock_t begin = clock();  
+  begin = clock();  
   for(unsigned int i = 0; i < 1000; i++)
   {
     CriticalCurveCaustic ccc(a,b,th,m2,m3,500);
     ccc.getCC();
     ccc.getCa();
   }
-  clock_t end = clock();
+  end = clock();
   cout << "1k CCC computations:"
        << double(end - begin) / CLOCKS_PER_SEC
        << "s\n\n";
@@ -70,7 +72,7 @@ int main()
   // Image Point Time benchmark
   cout << "Startnig image point calculation: \n";
   begin = clock();  
-  for(unsigned int i = 0; i < 1000; i++)
+  for(unsigned int i = 0; i < 100; i++)
   {
     ImgPoint img(a,b,th,m2,m3,0.0,0.0);
     img.getImages();
@@ -81,7 +83,7 @@ int main()
        << "s\n";
 
   begin = clock();  
-  for(unsigned int i = 0; i < 10000; i++)
+  for(unsigned int i = 0; i < 100; i++)
   {
     // A spiral souce trajectory
     complex<double> source = {(double)i/10000.0*cos((double)i/100.0), (double)i/10000.0*sin((double)i/100.0)};
@@ -91,43 +93,28 @@ int main()
     img.getImages();
   }
   end = clock();
-  cout << "10k Point image calculations (moving case):" 
-       << double(end - begin) / CLOCKS_PER_SEC 
-       << "s\n\n";
-
-    // Light Curve IRS test 
-  cout << "Starting LC test BASE: \n";
-  LightCurveBase lcBase(a,b,th,m2,m3,100);
-  complex<double> startPoint;
-  complex<double> endPoint;
-  vector<double>  lightCurve;
-  double angle = 0.0;
-
-  // Point source
-  begin = clock();  
-  for(unsigned int i = 0; i <= 2; i++)
-  {
-    angle = (double)i/20.0*3.14159;
-    endPoint = {cos(angle), sin(angle)};  
-    startPoint = -endPoint;
-    lcBase.getLC(startPoint, endPoint);
-    lightCurve = lcBase.lcVec;
-    cout << "\n Priting Light curve" << i << "\n";
-    for(auto lcElem: lightCurve)
-    {
-      cout << lcElem << "\n";
-    }
-
-  }
-  cout << "\n Light Curve Printed. \n"; 
-  
-  end = clock();  
-  cout << "100 positions point-amp lightcurve:" 
+  cout << "100 Point image calculations (moving case):" 
        << double(end - begin) / CLOCKS_PER_SEC 
        << "s\n\n";
 
   // Extended source IRS
-  LightCurveIRS lcIRS(a,b,th,m2,m3, 0.01, 500, 10000);
+  LightCurveIRS lcIRS(a,b,th,m2,m3, 0.001, 100, 300);
+  
+  begin = clock();  
+  for(unsigned int i = 0; i < 5; i++)
+  {
+    cout << "running with step " << i << "\n";
+    angle = (double)i/20.0*3.14159;
+    endPoint = {1.0001*cos(angle), 0.9999*sin(angle)};  
+    startPoint = {-0.9999*cos(angle), -1.0001*sin(angle)}; 
+    lcIRS.getLCIRS(startPoint, endPoint);
+    lightCurve = lcIRS.lcVec; 
+  }
+  end = clock();
+  cout << "Img plane size was: " << lcIRS.amoebae.amoebae.size() << "\n";  
+  cout << "100 positions IRS lightcurve:" 
+       << double(end - begin) / CLOCKS_PER_SEC 
+       << "s\n\n";
 
   begin = clock();  
   for(unsigned int i = 0; i < 100; i++)

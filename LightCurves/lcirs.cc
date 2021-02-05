@@ -70,13 +70,13 @@ void LightCurveIRS::_getImgPlanePars()
   // integration (for source of radius 1).
   _ampScale = 1.0/M_PI/pow(_pointsPerRadius,2.0)/(1.0-_vFactor/3.0);
 
-  cout << "Image plane parameters:\n";
-  cout << "_imgPlaneSize:" << _imgPlaneSize << "\n";
-  cout << "_imgPlaneSizeDouble:" << _imgPlaneSizeDouble << "\n";
-  cout << "topRightCornerImg:(" << _topRightCornerImg.real() << ","
-       << _topRightCornerImg.imag() << ")\n"; 
-  cout << "bottomLeftCornerImg:(" << _bottomLeftCornerImg.real() << ","
-       << _bottomLeftCornerImg.imag() << ")\n"; 
+  //cout << "Image plane parameters:\n";
+  //cout << "_imgPlaneSize:" << _imgPlaneSize << "\n";
+  //cout << "_imgPlaneSizeDouble:" << _imgPlaneSizeDouble << "\n";
+  //cout << "topRightCornerImg:(" << _topRightCornerImg.real() << ","
+  //     << _topRightCornerImg.imag() << ")\n"; 
+  //cout << "bottomLeftCornerImg:(" << _bottomLeftCornerImg.real() << ","
+  //     << _bottomLeftCornerImg.imag() << ")\n"; 
 
 };
 
@@ -90,10 +90,12 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
   complex<double> pos = startPoint;
 
   // Looping over source positions
-  for(unsigned int i = 0; i < _lcLength; i++)
+  for(unsigned int i = 0; i <= _lcLength; i++)
   {
-    cout << "started pos:" << i << "\n";
-    pos = (endPoint-startPoint)*(i/(_lcLength-1.0));
+    //pos = (endPoint-startPoint)*(i/(_lcLength-1.0));
+    pos = startPoint + (endPoint-startPoint)*(double(i)/double(_lcLength));
+    cout << "started pos:" << i << ", (" << pos.real()
+         << "," << pos.imag() <<")\n";
     vector<complex<double>> imgPos = _pointImages.getImages(pos);
     complex<double> trialPoint;
     bool pointTaken = false;
@@ -281,22 +283,27 @@ double LightCurveIRS::sourceBrightness(double r)
 }
 
 
-void LightCurveIRS::lineFloodFill(long int nx, long int ny, complex<double> sPos) {
-    
-    if (ny <= 0 || ny >= _imgPlaneSize)
-    {
-      //cout << "Row outside image plane: " << ny << " \n";
-      return;
-    }
+void LightCurveIRS::lineFloodFill(long int nx,
+                                  long int ny,
+                                  complex<double> sPos,
+                                  bool checked)
+{
+    //cout << "line floodfill run with nx " << nx << " ny " << ny << "\n";
 
-    long int nL, nR, nn;
-
-    if (!amoebae.checkLine(ny, nx))
+    if(!checked)
     {
-      //cout << "Amoebae check failed: " << nx << " , " << ny << " \n";
-      return;
+      if (ny <= 0 || ny >= _imgPlaneSize)
+      {
+        //cout << "Row outside image plane: " << ny << " \n";
+        return;
+      }
+
+      if (!amoebae.checkLine(ny, nx))
+      {
+        //cout << "Amoebae check failed: " << nx << " , " << ny << " \n";
+        return;
+      }
     }
-    
     // need to get the y only once as the fill stays withing a line
     double y = nyToY(ny), amp = irs(nxToX(nx), y, sPos); 
 
@@ -307,53 +314,68 @@ void LightCurveIRS::lineFloodFill(long int nx, long int ny, complex<double> sPos
       _irsCount++;
     }
 
+    long int nL, nR, nn;
+
     // scan right
-    for (nR = nx+1; nR < _imgPlaneSize; nR++) {
-        amp = irs(nxToX(nR), y, sPos);
-        
-        if (amp <= 0.0) {
-          nR--;
-          break;
-        }
-        else
-        {
-          _amplification += amp;
-          _irsCount++;
-        }
+    for (nR = nx+1; nR < _imgPlaneSize; nR++)
+    {
+      amp = irs(nxToX(nR), y, sPos);
+      
+      if (amp <= 0.0)
+      {
+        nR--;
+        break;
+      }
+      else
+      {
+        _amplification += amp;
+        _irsCount++;
+      }
     }
 
     // scan left
-    for (nL = nx-1; nL > 0; nL--) {
-        amp = irs(nxToX(nL), y, sPos);
-       
-        if (amp <= 0.0) {
-          nL++;
-          break;
-        }
-        else
-        {
-          _amplification += amp;
-          _irsCount++;
-        }
-    
+    for (nL = nx-1; nL > 0; nL--)
+    {
+      amp = irs(nxToX(nL), y, sPos);
+      
+      if (amp <= 0.0)
+      {
+        nL++;
+        break;
+      }
+      else
+      {
+        _amplification += amp;
+        _irsCount++;
+      }
     }
 
     amoebae.addNode(nL, nR, ny);
+    //cout << "got out of addNode \n";
 
     // trying a good position to move one row up/down
+ 
     nn = nL;
+    // upper line
     while (nn <= nR) {
-      if (amoebae.checkLine(ny+1, nn))
-      {
-        lineFloodFill(nn, ny+1, sPos);
-      }    
-
-      if (amoebae.checkLine(ny-1, nn))
-      {
-        lineFloodFill(nn, ny-1, sPos);
+      if (amoebae.checkLineShift(ny+1, nn))
+      {  
+        lineFloodFill(nn, ny+1, sPos, true);
+        nn++;
       }
-      nn++;
     }
+    nn = nL;
+    // lower line
+    while (nn <= nR) {
+      if (amoebae.checkLineShift(ny-1, nn))
+      {
+        lineFloodFill(nn, ny-1, sPos, true);
+        nn++;
+      }
+    }
+
+    //cout << "finished one fill \n";
+
     return;
 }
 
@@ -421,8 +443,5 @@ extern "C"
       lcArray[i] = lc->lcVec[i];
     }
   }
-
 }
-
-
 

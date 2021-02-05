@@ -8,5 +8,6 @@
 *.o
 *.dat
 *.png
+*.pyc
 bin/*
 Examples/__pycache__/*

@@ -65,14 +65,14 @@ class LightCurveIRS: public LightCurveBase
 
     void lineFloodFill(long int        nx,
                        long int        ny,
-                       complex<double> sPos);
+                       complex<double> sPos,
+                       bool            checked = false);
 
     bool intersectionCheck(complex<double>  pos,
                            complex<double>  pointA,
                            complex<double>  pointB,
                            complex<double>& trialPoint
                           );
-
 
     CriticalCurveCaustic ccc;
     Amoeba amoebae;
@@ -99,7 +99,6 @@ class LightCurveIRS: public LightCurveBase
     // to the light curve.
     double _ampScale = 1.0;
 
-
     vector<pair<complex<double>>> caBoxes;
 
     // constants to control surface brightness
@@ -110,7 +109,6 @@ class LightCurveIRS: public LightCurveBase
  
     // sets Image plane to be square enveloping all the Critical Curve
     void _getImgPlanePars(); 
-
 };
 
 #endif                

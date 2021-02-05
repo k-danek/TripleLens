@@ -6,76 +6,13 @@ import time
 import numpy as np
 from numpy.ctypeslib import ndpointer
 import matplotlib.pyplot as plt
-
-# load the C++ shared library as lib
-lib = ctypes.cdll.LoadLibrary('../bin/ccc.so')
+from ctypes_classes import CCC
 
 # Create a structure for complex numbers
 class Complex(ctypes.Structure):
    _fields_ = [("real", ctypes.c_double),
                ("imag", ctypes.c_double)
               ]
-
-# Represent functional ctypes version of C++ CCC class as Python Class
-class CCC(object):
-    def __init__(self, a, b, th, m2, m3, length):
-        lib.ccc_new.argtypes = [ctypes.c_double,
-                                ctypes.c_double,
-                                ctypes.c_double,
-                                ctypes.c_double,
-                                ctypes.c_double,
-                                ctypes.c_int
-                               ]
-        lib.ccc_new.restype = ctypes.c_void_p
-
-        lib.get_cc.argtypes = [ctypes.c_void_p] 
-        lib.get_cc.restypes = ctypes.c_void_p
-
-        lib.get_ca.argtypes = [ctypes.c_void_p]
-        lib.get_ca.restypes = ctypes.c_void_p
-
-        lib.print_ccc.argtypes = [ctypes.c_void_p,ctypes.c_char_p]
-        lib.print_ccc.restypes = ctypes.c_void_p
-
-        lib.copy_cc_ca.argtypes = [ctypes.c_void_p,
-                                   ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
-                                   ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS")]
-        lib.copy_cc_ca.restypes = ctypes.c_void_p
-
-        lib.copy_lenses.argtypes = [ctypes.c_void_p,
-                                    ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS")
-                                   ]
-        lib.copy_lenses.restypes = ctypes.c_void_p
-
-        lib.get_bounding_box.argtypes = [ctypes.c_void_p,
-                                         ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
-                                         ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
-                                         ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
-                                         ndpointer(dtype=np.cdouble,flags="C_CONTIGUOUS"),
-                                         ctypes.c_double
-                                        ]
-        lib.get_bounding_box.restypes = ctypes.c_void_p
-
-        self.obj = lib.ccc_new(a, b, th, m2, m3, length)
-
-    def get_cc(self):
-        lib.get_cc(self.obj)
-
-    def get_ca(self):
-        lib.get_ca(self.obj)
-
-    def print_ccc(self, file_name):
-        lib.print_ccc(self.obj, file_name)
-
-    def copy_cc_ca(self,ccp, cap):
-        lib.copy_cc_ca(self.obj, ccp, cap)
-
-    def copy_lenses(self, lens_pos):
-        lib.copy_lenses(self.obj, lens_pos)
-
-    def get_bounding_box(self, cc_min, cc_max, ca_min, ca_max, scale):
-        lib.get_bounding_box(self.obj, cc_min, cc_max, ca_min, ca_max, scale)
-
 
 # Define lens parameters.
 a = 1.5

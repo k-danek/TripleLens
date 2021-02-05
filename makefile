@@ -2,6 +2,7 @@ CC=g++
 # Note flag -Ofast as it made execution cca 10 times faster than -O2 on CCC 
 # Flag -fPIC makes o files usable in the shared library
 CFLAGS= -Wl,--no-undefined -fPIC -Ofast -g -std=c++17
+CPROFFLAGS= -pg -no-pie -fno-builtin
 CFLAGS_SHARED= -shared
 INC_CCC=./CCC
 INC_LENS=./LensCore
@@ -14,9 +15,14 @@ INCLUDES= -I. -I$(INC_CCC) -I$(INC_LENS) -I$(INC_LAGUERRE) -I$(INC_IMG) -I$(INC_
 
 all: imgpoint.so ccc.so lcirs.so ccc_test
 
+profile: imgpoint.so ccc.so lcirs.so ccc_profile
+
 # Executables
 ccc_test: main.o ccc.so imgpoint.so lcirs.so laguerre.o 
 	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o
+
+ccc_profile: main.o ccc.so imgpoint.so lcirs.so laguerre.o 
+	$(CC) $(CFLAGS) $(CPROFFLAGS) -o $(BUILD_TARGET)/ccc_profile $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o
 
 # Shared libraries
 lcirs.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o laguerre.o 
@@ -50,11 +56,15 @@ ccc.o: $(INC_CCC)/ccc.h
 laguerre.o: $(INC_LAGUERRE)/laguerre.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/laguerre.o $(INC_LAGUERRE)/laguerre.cc
 
-lens.o: $(INC_LENS)/lens.h
+lens.o: $(INC_LENS)/lens.h out_dir
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lens.o $(INC_LENS)/lens.cc
+
+out_dir:
+	if ! [ -d bin/ ]; then mkdir bin/; fi
 
 -include $(INCLUDES)
 
 clean:
-	rm $(BUILD_TARGET)/*.o $(BUILD_TARGET)/*.so $(BUILD_TARGET)/*.a $(BUILD_TARGET)/ccc_test
+	rm $(BUILD_TARGET)/*.o $(BUILD_TARGET)/*.so $(BUILD_TARGET)/*.a $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/ccc_profile
+
 
