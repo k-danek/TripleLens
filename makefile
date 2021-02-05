@@ -56,8 +56,11 @@ ccc.o: $(INC_CCC)/ccc.h
 laguerre.o: $(INC_LAGUERRE)/laguerre.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/laguerre.o $(INC_LAGUERRE)/laguerre.cc
 
-lens.o: $(INC_LENS)/lens.h
+lens.o: $(INC_LENS)/lens.h out_dir
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lens.o $(INC_LENS)/lens.cc
+
+out_dir:
+	if ! [ -d bin/ ]; then mkdir bin/; fi
 
 -include $(INCLUDES)
 
