@@ -78,7 +78,7 @@ class CCC(object):
 class Img(object):
     def __init__(self, a, b, th, m2, m3, pos_x, pos_y):
         # load the C++ shared library as lib
-        self.lib_img = ctypes.cdll.LoadLibrary('../bin/libimgpoint.so')
+        self.lib_img = ctypes.cdll.LoadLibrary('../bin/libimg.so')
 
         self.lib_img.img_new.argtypes = [ctypes.c_double,
                                 ctypes.c_double,
@@ -108,7 +108,7 @@ class Img(object):
                                             ]
         self.lib_img.copy_images.restypes = ctypes.c_void_p
 
-        self.obj = lib_img.img_new(a, b, th, m2, m3, pos_x, pos_y)
+        self.obj = self.lib_img.img_new(a, b, th, m2, m3, pos_x, pos_y)
 
     def get_roots(self):
         self.lib_img.get_roots(self.obj)
@@ -161,7 +161,7 @@ class LC_irs(object):
                                        ]
         self.lib_lc.copy_lc.restypes = ctypes.c_void_p
 
-        self.obj = lib_lc.lcirs_new(a, b, th, m2, m3, source_size, lc_len, img_plane_size)
+        self.obj = self.lib_lc.lcirs_new(a, b, th, m2, m3, source_size, lc_len, img_plane_size)
 
     def get_lc(self, iniX, iniY, finX, finY):
         self.lib_lc.get_lc(self.obj, iniX, iniY, finX, finY)

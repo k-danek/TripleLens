@@ -7,14 +7,58 @@ set (CCC src/CCC)
 set (IMAGES src/Images)
 set (LENS src/LensCore)
 set (LAGUERRE src/Laguerre)
-set (LIGHTCURVE src/LightCurve)
+set (LIGHTCURVE src/LightCurves)
 set (UTILS src/Utils)
+
+
+###################################
+# liblcirs
+###################################
+
+set(DIRECTORIES ${LENS} ${UTILS} ${CCC} ${LAGUERRE} ${LIGHTCURVE})
+
+set(SOURCE_FILES "")
+
+foreach(DIR ${DIRECTORIES})
+  file(GLOB SOURCE_FILES_DIR ${DIR}/*.cc ${DIR}/*.h)
+  list(APPEND SOURCE_FILES ${SOURCE_FILES_DIR})
+endforeach()
+
+# Images directory is added separately to avoid building object
+# for imgpointcoeff.cc
+add_library(lcirs SHARED ${SOURCE_FILES} ${IMAGES}/imgpoint.cc
+                                         ${IMAGES}/imgpoint.h)
+                                         
+
+target_include_directories(lcirs PUBLIC ${DIRECTORIES} ${IMAGES})
+
+###################################
+# libimg
+###################################
+
+set(DIRECTORIES ${LENS} ${LAGUERRE})
+
+set(SOURCE_FILES "")
+
+foreach(DIR ${DIRECTORIES})
+  file(GLOB SOURCE_FILES_DIR ${DIR}/*.cc ${DIR}/*.h)
+  list(APPEND SOURCE_FILES ${SOURCE_FILES_DIR})
+endforeach()
+
+# Images directory is added separately to avoid building object
+# for imgpointcoeff.cc
+add_library(img SHARED ${SOURCE_FILES} ${IMAGES}/imgpoint.cc
+                                       ${IMAGES}/imgpoint.h)
+
+target_include_directories(img PUBLIC ${DIRECTORIES} ${IMAGES})
 
 ###################################
 # libccc
 ###################################
 
 set(DIRECTORIES ${LENS} ${LAGUERRE} ${CCC})
+
+set(SOURCE_FILES "")
 
 foreach(DIR ${DIRECTORIES})
   file(GLOB SOURCE_FILES_DIR ${DIR}/*.cc ${DIR}/*.h)
