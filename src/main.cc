@@ -153,38 +153,6 @@ int main()
 
 
   // Laguerre Test
-  cout << "Laguerre's Method tests: \n";
-  vector<complex<double>> secCoef = {{1.0,0.0},{2.0,0.0},{1.0,0.0}};
-  vector<complex<double>> secSol;
-  Laguerre second(secCoef);
-  secSol = second.solveRoots();
-  cout << "second order roots:" << "\n";
-  for(auto sol: secSol)
-  {
-    cout << sol << "\n";  
-  }
-
-  vector<complex<double>> thiCoef = {{0.0,1.0},{0.0,0.0},{0.0,0.0},{1.0,0.0}};
-  vector<complex<double>> thiSol;
-  Laguerre third(thiCoef);
-  thiSol = third.solveRoots();
-  cout << "third order roots:" << "\n";
-  for(auto sol: thiSol)
-  {
-    cout << sol << "\n";  
-  }
-
-  // (x-1)*(x-2)*(x-3)
-  // x^3 - 6 x^2 + 11 x - 6
-  vector<complex<double>> thi2Coef = {{-6.0,0.0},{11.0,0.0},{-6.0,0.0},{1.0,0.0}};
-  vector<complex<double>> thi2Sol;
-  Laguerre third2(thi2Coef);
-  thi2Sol = third2.solveRoots();
-  cout << "third order roots (1,2,3) :" << "\n";
-  for(auto sol: thi2Sol)
-  {
-    cout << sol << "\n";  
-  }
   
   // x^4 - 10 x^3 + 35 x^2 - 50 x + 24
   // (x-1)*(x-2)*(x-3)*(x-4)

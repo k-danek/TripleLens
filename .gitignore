@@ -10,6 +10,6 @@
 *.png
 *.pyc
 bin/*
-tests/googletests/*
+tests/googletest/*
 Examples/__pycache__/*
 Examples/.idea/*
