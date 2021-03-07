@@ -2,7 +2,7 @@
 This repository holds a library consisting of various modelling tools for gravitational microlensing[gravitational microlensing](https://en.wikipedia.org/wiki/Gravitational_microlensing). Most of the ideas included are products of my PhD research and this project aims to both put the algorithms involved to one place and transcribe them into tidy readable/maintainable object-oriented c++ code. 
 
 ## Installation Notes
-Running 'make' in the root directory should compile the source code a produce binary 'ccc_test' and shared library 'ccc.so'. The compilation was tested on Fedora 29 distribution.
+Running 'make' in the root directory should compile the source code a produce binary 'ccc\_test' and shared library 'ccc.so'. The compilation was tested on Fedora 29 distribution.
 
 ## Main Components of the library
 
@@ -21,14 +21,23 @@ The derived class, LightCurveIRS, where IRS stands for 'inverse ray shooting' si
 LightCurveIRS has a python wrapper.  
 
 ### Examples
-Contains python scripts that call shared library files to execute compiled c++ code. Script 'run_cpplib.py' to call critical-curve functionality, 'run_imglib.py' to call ImgPoint, 'run_lclib.py' to call LightCurves.
+Contains python scripts that call shared library files to execute compiled c++ code. Script 'run\_cpplib.py' to call critical-curve functionality, 'run\_imglib.py' to call ImgPoint, 'run\_lclib.py' to call LightCurves.
 
 ### main.cc
 As this is mostly meant as a shared library to be later used within a Python application, main.cc serves for regression testing. Plan is to move to unit testing as the library grows larger. 
+
+## Unit tests
+The project utilizes [Google Tests](https://github.com/google/googletest/) for unit testing.
+To produce the test binaries, download the content of the [test repository](https://github.com/google/googletest/) into '/test' directory and run CMake, e.g., by running 'cmake .. -DCMAKE\_BUILD\_TYPE=Release -G \"Unix Makefiles\"' in the '/bin' directory.
+
+If you don't have CMake installed run, e.g., 'sudo yum cmake'.
+
+CMake will produce Makefile in the bin directory. Resulting test binary will be made in 'bin/test' directory.
+
 
 ## Tools worth mentioning
 
 ### GPROF
 
 A simple profiling tool that gives a good overview of time spent on each function. 
-Make an executable by running 'make profile', then run the resulting executable in the 'bin/' directory. Finally, run 'gprof ccc_profile gmon.out'. 
+Make an executable by running 'make profile', then run the resulting executable in the 'bin/' directory. Finally, run 'gprof ccc\_profile gmon.out'. 
