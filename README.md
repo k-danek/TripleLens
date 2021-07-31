@@ -28,12 +28,9 @@ As this is mostly meant as a shared library to be later used within a Python app
 
 ## Unit tests
 The project utilizes [Google Tests](https://github.com/google/googletest/) for unit testing.
-To produce the test binaries, download the content of the [test repository](https://github.com/google/googletest/) into '/test' directory and run CMake, e.g., by running 'cmake .. -DCMAKE\_BUILD\_TYPE=Release -G \"Unix Makefiles\"' in the '/bin' directory.
+To produce the test binaries, download the content of the [test repository](https://github.com/google/googletest/) into '/test/googletest' directory and run CMake, e.g., by running 'cmake .. -DCMAKE\_BUILD\_TYPE=Release -G \"Unix Makefiles\"' in the '/bin' directory. This will produce a Makefile, to produce a binaries run 'make' in the '/bin' directory. Resulting test binary will be made in 'bin/test' directory.
 
-If you don't have CMake installed run, e.g., 'sudo yum cmake'.
-
-CMake will produce Makefile in the bin directory. Resulting test binary will be made in 'bin/test' directory.
-
+If you don't have CMake installed run, e.g., 'sudo yum cmake' (Fedora), 'sudo apt-get install cmake' (Ubuntu).
 
 ## Tools worth mentioning
 
