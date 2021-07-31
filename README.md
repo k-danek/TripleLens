@@ -1,5 +1,5 @@
 # Triple Gravitational Microlens Library
-This repository holds a library consisting of various modelling tools for gravitational microlensing[gravitational microlensing](https://en.wikipedia.org/wiki/Gravitational_microlensing). Most of the ideas included are products of my PhD research and this project aims to both put the algorithms involved to one place and transcribe them into tidy readable/maintainable object-oriented c++ code. 
+This repository holds a library consisting of various modelling tools for [gravitational microlensing](https://en.wikipedia.org/wiki/Gravitational_microlensing). Most of the ideas included are products of my PhD research and this project aims to both put the algorithms involved to one place and transcribe them into tidy readable/maintainable object-oriented c++ code. 
 
 ## Installation Notes
 Running 'make' in the root directory should compile the source code a produce binary 'ccc\_test' and shared library 'ccc.so'. The compilation was tested on Fedora 29 distribution.
