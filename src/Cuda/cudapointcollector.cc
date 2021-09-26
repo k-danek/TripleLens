@@ -48,6 +48,7 @@ bool CudaPointCollector::addPoint(double seedX,
     int ind = 2*_numberOfPoints;
     _collectedPoints[ind] = seedX;
     _collectedPoints[ind] = seedY;
+    _numberOfPoints++;
     return true;
   }
   else
@@ -70,7 +71,7 @@ void CudaPointCollector::reset()
 // this is called then I collect enough points
 double CudaPointCollector::getAmp()
 {
-  std::cout << "getAmp called with " << _numberOfPoints << "points"; 
+  //std::cout << "getAmp called with " << _numberOfPoints << "points"; 
   return 0.0;
 }
 

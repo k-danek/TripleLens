@@ -152,7 +152,7 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
 
     for(auto imgSeed: imgPos)
     {
-      lineFloodFill(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
+      lineFloodFillCUDA(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
     cout << "amplification: " << _amplification*_ampScale << " and the count " << _irsCount << "\n";
 
@@ -412,7 +412,7 @@ void LightCurveIRS::lineFloodFillCUDA(long int nx,
 
     if (!_cudaPointCollector.addPoint(x,y))
     {
-      std::cout << "finished the point collection";
+      //std::cout << "finished the point collection";
       _cudaPointCollector.getAmp();
     };
 
@@ -443,7 +443,7 @@ void LightCurveIRS::lineFloodFillCUDA(long int nx,
         if (!_cudaPointCollector.addPoint(x,y))
         {
           
-          std::cout << "finished the point collection";
+          //std::cout << "finished the point collection";
           _cudaPointCollector.getAmp();
         };
       }
@@ -452,7 +452,7 @@ void LightCurveIRS::lineFloodFillCUDA(long int nx,
     // scan left
     for (nL = nx-1; nL > 0; nL--)
     {
-      x = nxToX(nR); 
+      x = nxToX(nL); 
       amp = irs(x, y, sPos);
       
       if (amp <= 0.0)
@@ -466,7 +466,7 @@ void LightCurveIRS::lineFloodFillCUDA(long int nx,
         _irsCount++;
         if (!_cudaPointCollector.addPoint(x,y))
         {
-          std::cout << "finished the point collection";
+          //std::cout << "finished the point collection";
           _cudaPointCollector.getAmp();
         };
       }
