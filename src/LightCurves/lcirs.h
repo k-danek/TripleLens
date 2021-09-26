@@ -23,8 +23,7 @@
 #include<imgpoint.h>
 #include<lens.h>
 #include<amoeba.h>
-
-
+#include<cudapointcollector.h>
 
 template<class T>
 using pair = std::pair<T, T>;
@@ -68,6 +67,11 @@ class LightCurveIRS: public LightCurveBase
                        complex<double> sPos,
                        bool            checked = false);
 
+    void lineFloodFillCUDA(long int        nx,
+                           long int        ny,
+                           complex<double> sPos,
+                           bool            checked = false);
+
     bool intersectionCheck(complex<double>  pos,
                            complex<double>  pointA,
                            complex<double>  pointB,
@@ -98,6 +102,8 @@ class LightCurveIRS: public LightCurveBase
     // Amplification is multiplied by this factor before it is added
     // to the light curve.
     double _ampScale = 1.0;
+
+    CudaPointCollector _cudaPointCollector;
 
     vector<pair<complex<double>>> caBoxes;
 

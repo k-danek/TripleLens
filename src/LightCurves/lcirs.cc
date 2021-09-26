@@ -11,7 +11,8 @@ LightCurveIRS::LightCurveIRS(
                              long int     pointsPerRadius = 300
                             ): LightCurveBase(a, b, th, m2, m3, lcLength),
                                ccc(lensPar, 500),
-                               amoebae(pointsPerRadius)
+                               amoebae(pointsPerRadius),
+                               _cudaPointCollector(a, b, th, m2, m3, sourceSize, 384)
 {
   _lcLength = lcLength;
   _sourceRadius = sourceSize;
@@ -145,6 +146,10 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
     // Add up amplification from all the images/seeds
     _amplification = 0.0;
     _irsCount = 0;
+
+    // Updating point collector for CUDA with new source position
+    _cudaPointCollector.setSourcePos(pos.real(), pos.imag());
+
     for(auto imgSeed: imgPos)
     {
       lineFloodFill(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
@@ -378,6 +383,124 @@ void LightCurveIRS::lineFloodFill(long int nx,
 
     return;
 }
+
+void LightCurveIRS::lineFloodFillCUDA(long int nx,
+                                      long int ny,
+                                      complex<double> sPos,
+                                      bool checked)
+{
+    //cout << "line floodfill run with nx " << nx << " ny " << ny << "\n";
+
+    if(!checked)
+    {
+      if (ny <= 0 || ny >= _imgPlaneSize)
+      {
+        //cout << "Row outside image plane: " << ny << " \n";
+        return;
+      }
+
+      if (!amoebae.checkLine(ny, nx))
+      {
+        //cout << "Amoebae check failed: " << nx << " , " << ny << " \n";
+        return;
+      }
+    }
+    // need to get the y only once as the fill stays withing a line
+    double x = nxToX(nx);
+    double y = nyToY(ny);
+    double amp = irs(x, y, sPos); 
+
+    if (!_cudaPointCollector.addPoint(x,y))
+    {
+      std::cout << "finished the point collection";
+      _cudaPointCollector.getAmp();
+    };
+
+    if (amp <= 0.0) return;
+    else
+    {
+      _amplification += amp;
+      _irsCount++;
+    }
+
+    long int nL, nR, nn;
+
+    // scan right
+    for (nR = nx+1; nR < _imgPlaneSize; nR++)
+    {
+      x = nxToX(nR); 
+      amp = irs(x, y, sPos);
+      
+      if (amp <= 0.0)
+      {
+        nR--;
+        break;
+      }
+      else
+      {
+        _amplification += amp;
+        _irsCount++;
+        if (!_cudaPointCollector.addPoint(x,y))
+        {
+          
+          std::cout << "finished the point collection";
+          _cudaPointCollector.getAmp();
+        };
+      }
+    }
+
+    // scan left
+    for (nL = nx-1; nL > 0; nL--)
+    {
+      x = nxToX(nR); 
+      amp = irs(x, y, sPos);
+      
+      if (amp <= 0.0)
+      {
+        nL++;
+        break;
+      }
+      else
+      {
+        _amplification += amp;
+        _irsCount++;
+        if (!_cudaPointCollector.addPoint(x,y))
+        {
+          std::cout << "finished the point collection";
+          _cudaPointCollector.getAmp();
+        };
+      }
+    }
+
+    amoebae.addNode(nL, nR, ny);
+    //cout << "got out of addNode \n";
+
+    // trying a good position to move one row up/down
+ 
+    nn = nL;
+    // upper line
+    while (nn <= nR) {
+      if (amoebae.checkLineShift(ny+1, nn))
+      {  
+        lineFloodFillCUDA(nn, ny+1, sPos, true);
+        nn++;
+      }
+    }
+    nn = nL;
+    // lower line
+    while (nn <= nR) {
+      if (amoebae.checkLineShift(ny-1, nn))
+      {
+        lineFloodFillCUDA(nn, ny-1, sPos, true);
+        nn++;
+      }
+    }
+
+    //cout << "finished one fill \n";
+
+    return;
+}
+
 
 
 // Python Wrapper for ctypes module

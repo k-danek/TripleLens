@@ -10,24 +10,25 @@ INC_LENS=$(SOURCE_DIR)/LensCore
 INC_LAGUERRE=$(SOURCE_DIR)/Laguerre
 INC_LC=$(SOURCE_DIR)/LightCurves
 INC_IMG=$(SOURCE_DIR)/Images
+INC_CUDA=$(SOURCE_DIR)/Cuda
 INC_UTILS=$(SOURCE_DIR)/Utils
 BUILD_TARGET=./bin
-INCLUDES= -I. -I$(INC_CCC) -I$(INC_LENS) -I$(INC_LAGUERRE) -I$(INC_IMG) -I$(INC_UTILS) -I$(INC_LC) -I$(BUILD_TARGET)
+INCLUDES= -I. -I$(INC_CCC) -I$(INC_LENS) -I$(INC_LAGUERRE) -I$(INC_IMG) -I$(INC_UTILS) -I$(INC_CUDA) -I$(INC_LC) -I$(BUILD_TARGET)
 
 all: libimgpoint.so libccc.so liblcirs.so ccc_test
 
 profile: libimgpoint.so libccc.so liblcirs.so ccc_profile
 
 # Executables
-ccc_test: main.o libccc.so libimgpoint.so liblcirs.so laguerre.o 
-	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o
+ccc_test: main.o libccc.so libimgpoint.so liblcirs.so laguerre.o cudapointcollector.o
+	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/cudapointcollector.o
 
-ccc_profile: main.o ccc.so libimgpoint.so liblcirs.so laguerre.o 
+ccc_profile: main.o ccc.so libimgpoint.so liblcirs.so laguerre.o cudapointcollector.o
 	$(CC) $(CFLAGS) $(CPROFFLAGS) -o $(BUILD_TARGET)/ccc_profile $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o
 
 # Shared libraries
-liblcirs.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o laguerre.o 
-	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/liblcirs.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o 
+liblcirs.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o laguerre.o cudapointcollector.o
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/liblcirs.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/cudapointcollector.o 
 
 libimgpoint.so: lens.o imgpoint.o laguerre.o  
 	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/libimgpoint.so $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o
@@ -44,6 +45,9 @@ lcirs.o: $(INC_LC)/lcirs.h
 
 amoeba.o: $(INC_UTILS)/amoeba.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/amoeba.o $(INC_UTILS)/amoeba.cc 
+
+cudapointcollector.o: $(INC_CUDA)/cudapointcollector.h
+	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/cudapointcollector.o $(INC_CUDA)/cudapointcollector.cc
 
 lcbase.o: $(INC_LC)/lcbase.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lcbase.o $(INC_LC)/lcbase.cc 
