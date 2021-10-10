@@ -9,7 +9,8 @@ CudaPointCollector::CudaPointCollector(double          a,
                                        double          pixelSize,
                                        int             collectionSize
                                       ): LensPar(a, b, th, m2, m3),
-                                         _collectionSize(collectionSize)
+                                         _collectionSize(collectionSize),
+                                         _pixelSize(pixelSize)
 {
 
   _sSize = float(sourceSize);
@@ -75,7 +76,7 @@ double CudaPointCollector::getAmp()
 
   std::cout << "getAmp called with " << _numberOfPoints << "points"; 
   
-  double amp = getAmpKernel(_collectedPoints, a, b, th, m2, m3, _sSize, _sX, _sY);
+  double amp = getAmpKernel(_collectedPoints, a, b, th, m2, m3, _sSize, _pixelSize, _sX, _sY);
   reset();
   return amp;
 }

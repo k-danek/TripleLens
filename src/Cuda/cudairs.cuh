@@ -14,7 +14,8 @@ float getAmpKernel(float* collectedPoints,
                    double m3,
                    double sourceSize,
                    double sourcePosX,
-                   double sourcePosY);
+                   double sourcePosY,
+                   double imgPixSize);
 
 __global__
 void arrangeShooting(float* collectionPoints,

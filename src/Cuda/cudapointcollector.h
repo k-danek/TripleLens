@@ -49,6 +49,9 @@ class CudaPointCollector: public LensPar
 
     // total number of points to be collected
     const int _collectionSize;
+
+    // size of an pixel in image plane
+    const double _pixelSize;
 };
 
 #endif
