@@ -12,7 +12,14 @@ LightCurveIRS::LightCurveIRS(
                             ): LightCurveBase(a, b, th, m2, m3, lcLength),
                                ccc(lensPar, 500),
                                amoebae(pointsPerRadius),
-                               _cudaPointCollector(a, b, th, m2, m3, sourceSize, 384)
+                               _cudaPointCollector(a,
+                                                   b,
+                                                   th,
+                                                   m2,
+                                                   m3,
+                                                   sourceSize,
+                                                   sourceSize/double(pointsPerRadius),
+                                                   384)
 {
   _lcLength = lcLength;
   _sourceRadius = sourceSize;

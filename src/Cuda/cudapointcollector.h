@@ -2,6 +2,7 @@
 #define POINTCOLLECTOR_H
 
 #include<lens.h>
+#include "cudairs.cuh"
 
 class CudaPointCollector: public LensPar 
 {
@@ -12,6 +13,7 @@ class CudaPointCollector: public LensPar
                        double          m2,
                        double          m3,
                        double          sourceSize,
+                       double          pixelSize,
                        int             collectionSize
                       );
 
