@@ -155,6 +155,7 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
     _irsCount = 0;
 
     // Updating point collector for CUDA with new source position
+    _cudaPointCollector.reset();
     _cudaPointCollector.setSourcePos(pos.real(), pos.imag());
 
     for(auto imgSeed: imgPos)
@@ -420,13 +421,13 @@ void LightCurveIRS::lineFloodFillCUDA(long int nx,
     if (!_cudaPointCollector.addPoint(x,y))
     {
       //std::cout << "finished the point collection";
-      _cudaPointCollector.getAmp();
+      _amplification += _cudaPointCollector.getAmp();
     };
 
     if (amp <= 0.0) return;
     else
     {
-      _amplification += amp;
+      //_amplification += amp;
       _irsCount++;
     }
 
@@ -445,13 +446,13 @@ void LightCurveIRS::lineFloodFillCUDA(long int nx,
       }
       else
       {
-        _amplification += amp;
+        //_amplification += amp;
         _irsCount++;
         if (!_cudaPointCollector.addPoint(x,y))
         {
           
           //std::cout << "finished the point collection";
-          _cudaPointCollector.getAmp();
+          _amplification = _cudaPointCollector.getAmp();
         };
       }
     }
@@ -469,12 +470,12 @@ void LightCurveIRS::lineFloodFillCUDA(long int nx,
       }
       else
       {
-        _amplification += amp;
+        //_amplification += amp;
         _irsCount++;
         if (!_cudaPointCollector.addPoint(x,y))
         {
           //std::cout << "finished the point collection";
-          _cudaPointCollector.getAmp();
+          _amplification += _cudaPointCollector.getAmp();
         };
       }
     }

@@ -154,5 +154,7 @@ float irs(const float*                  params,
     {
         return 0.0;
     }
+
+  //  return 1.0/(1.0+r*r);
 };
 

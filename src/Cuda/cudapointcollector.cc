@@ -74,7 +74,7 @@ void CudaPointCollector::reset()
 double CudaPointCollector::getAmp()
 {
 
-  std::cout << "getAmp called with " << _numberOfPoints << "points"; 
+  //std::cout << "getAmp called with " << _numberOfPoints << "points"; 
   
   double amp = getAmpKernel(_collectedPoints, a, b, th, m2, m3, _sSize, _pixelSize, _sX, _sY);
   reset();
