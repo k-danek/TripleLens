@@ -67,11 +67,6 @@ class LightCurveIRS: public LightCurveBase
                        complex<double> sPos,
                        bool            checked = false);
 
-    void lineFloodFillCUDA(long int        nx,
-                           long int        ny,
-                           complex<double> sPos,
-                           bool            checked = false);
-
     bool intersectionCheck(complex<double>  pos,
                            complex<double>  pointA,
                            complex<double>  pointB,
@@ -81,7 +76,7 @@ class LightCurveIRS: public LightCurveBase
     CriticalCurveCaustic ccc;
     Amoeba amoebae;
 
-  private:
+  protected:
     unsigned int _lcLength;
     double _sourceRadius;
     double _amplification;

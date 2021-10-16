@@ -159,7 +159,7 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
 
     for(auto imgSeed: imgPos)
     {
-      lineFloodFillCUDA(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
+      lineFloodFill(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
     
     _amplification += _cudaPointCollector.getAmp();
@@ -392,112 +392,6 @@ void LightCurveIRS::lineFloodFill(long int nx,
 
     return;
 }
-
-void LightCurveIRS::lineFloodFillCUDA(long int nx,
-                                      long int ny,
-                                      complex<double> sPos,
-                                      bool checked)
-{
-    //cout << "line floodfill run with nx " << nx << " ny " << ny << "\n";
-
-    if(!checked)
-    {
-      if (ny <= 0 || ny >= _imgPlaneSize)
-      {
-        //cout << "Row outside image plane: " << ny << " \n";
-        return;
-      }
-
-      if (!amoebae.checkLine(ny, nx))
-      {
-        //cout << "Amoebae check failed: " << nx << " , " << ny << " \n";
-        return;
-      }
-    }
-    // need to get the y only once as the fill stays withing a line
-    double x = nxToX(nx);
-    double y = nyToY(ny);
-    double amp = irs(x, y, sPos); 
-
-    if (amp <= 0.0) {
-      return;
-    }
-    else
-    {
-      //_amplification += amp;
-      _irsCount++;
-      _cudaPointCollector.addPoint(x,y);
-    }
-
-    long int nL, nR, nn;
-
-    // scan right
-    for (nR = nx+1; nR < _imgPlaneSize; nR++)
-    {
-      x = nxToX(nR); 
-      amp = irs(x, y, sPos);
-      
-      if (amp <= 0.0)
-      {
-        nR--;
-        break;
-      }
-      else
-      {
-        //_amplification += amp;
-        _irsCount++;
-        _cudaPointCollector.addPoint(x,y);
-      }
-    }
-
-    // scan left
-    for (nL = nx-1; nL > 0; nL--)
-    {
-      x = nxToX(nL); 
-      amp = irs(x, y, sPos);
-      
-      if (amp <= 0.0)
-      {
-        nL++;
-        break;
-      }
-      else
-      {
-        //_amplification += amp;
-        _irsCount++;
-        _cudaPointCollector.addPoint(x,y);
-      }
-
-    }
-
-    amoebae.addNode(nL, nR, ny);
-    //cout << "got out of addNode \n";
-
-    // trying a good position to move one row up/down
- 
-    nn = nL;
-    // upper line
-    while (nn <= nR) {
-      if (amoebae.checkLineShift(ny+1, nn))
-      {  
-        lineFloodFillCUDA(nn, ny+1, sPos, true);
-        nn++;
-      }
-    }
-    nn = nL;
-    // lower line
-    while (nn <= nR) {
-      if (amoebae.checkLineShift(ny-1, nn))
-      {
-        lineFloodFillCUDA(nn, ny-1, sPos, true);
-        nn++;
-      }
-    }
-    //cout << "finished one fill \n";
-
-    return;
-}
-
 
 
 // Python Wrapper for ctypes module
