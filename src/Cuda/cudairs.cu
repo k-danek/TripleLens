@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iomanip>
+#include <vector>
 #include <cuda_profiler_api.h>
 
 #include "cudairs.cuh"
@@ -20,19 +21,19 @@
 //sourcePosY = params[8] 
 //imgPixSize = params[9]
 // Kernel
-float getAmpKernel(float* collectedPoints,
-                   double a,
-                   double b,
-                   double th,
-                   double m2,
-                   double m3,
-                   double sourceSize,
-                   double sourcePosX,
-                   double sourcePosY,
-                   double imgPixSize)
+float getAmpKernel(const std::vector<float>& collectedPoints,
+                   double                    a,
+                   double                    b,
+                   double                    th,
+                   double                    m2,
+                   double                    m3,
+                   double                    sourceSize,
+                   double                    sourcePosX,
+                   double                    sourcePosY,
+                   double                    imgPixSize)
 {
 
-  int size = 384; 
+  int size = collectedPoints.size(); 
   float* amps;
   float* params;
   float* collectedPointsShared;

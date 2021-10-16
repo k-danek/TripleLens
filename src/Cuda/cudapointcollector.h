@@ -13,8 +13,7 @@ class CudaPointCollector: public LensPar
                        double          m2,
                        double          m3,
                        double          sourceSize,
-                       double          pixelSize,
-                       int             collectionSize
+                       double          pixelSize
                       );
 
     // Explicitly defining destructor
@@ -25,8 +24,7 @@ class CudaPointCollector: public LensPar
                       double sourceY
                      );
 
-    // adds a point to _collectedPoints and checks if the array is not full
-    bool addPoint(double seedX,
+    void addPoint(double seedX,
                   double seedY 
                  );
 
@@ -37,8 +35,8 @@ class CudaPointCollector: public LensPar
 
   private:
 
-    // array to hold the points
-    float*    _collectedPoints;
+    // vector to hold the points
+    std::vector<float> _collectedPoints;
 
     float     _sSize;
     float     _sX;
@@ -46,9 +44,6 @@ class CudaPointCollector: public LensPar
 
     // number of points already collected
     int       _numberOfPoints;
-
-    // total number of points to be collected
-    const int _collectionSize;
 
     // size of an pixel in image plane
     const double _pixelSize;

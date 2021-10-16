@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vector>
 #include <math.h>
 //#include <nvfunctional>
 
@@ -6,21 +7,21 @@
 #include <thrust/device_reference.h>
 
 // Kernel
-float getAmpKernel(float* collectedPoints,
-                   double a,
-                   double b,
-                   double th,
-                   double m2,
-                   double m3,
-                   double sourceSize,
-                   double sourcePosX,
-                   double sourcePosY,
-                   double imgPixSize);
+float getAmpKernel(const std::vector<float>& collectedPoints,
+                   double                    a,
+                   double                    b,
+                   double                    th,
+                   double                    m2,
+                   double                    m3,
+                   double                    sourceSize,
+                   double                    sourcePosX,
+                   double                    sourcePosY,
+                   double                    imgPixSize);
 
 __global__
 void arrangeShooting(float* collectionPoints,
-                      float* params,
-                      float* amps);
+                     float* params,
+                     float* amps);
 
 __device__
 float irs(const float*                  params,

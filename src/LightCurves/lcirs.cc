@@ -18,8 +18,7 @@ LightCurveIRS::LightCurveIRS(
                                                    m2,
                                                    m3,
                                                    sourceSize,
-                                                   sourceSize/double(pointsPerRadius),
-                                                   384)
+                                                   sourceSize/double(pointsPerRadius))
 {
   _lcLength = lcLength;
   _sourceRadius = sourceSize;
@@ -162,6 +161,8 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
     {
       lineFloodFillCUDA(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
+    
+    _amplification += _cudaPointCollector.getAmp();
     cout << "amplification: " << _amplification*_ampScale << " and the count " << _irsCount << "\n";
 
     // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
@@ -418,17 +419,14 @@ void LightCurveIRS::lineFloodFillCUDA(long int nx,
     double y = nyToY(ny);
     double amp = irs(x, y, sPos); 
 
-    if (!_cudaPointCollector.addPoint(x,y))
-    {
-      //std::cout << "finished the point collection";
-      _amplification += _cudaPointCollector.getAmp();
-    };
-
-    if (amp <= 0.0) return;
+    if (amp <= 0.0) {
+      return;
+    }
     else
     {
       //_amplification += amp;
       _irsCount++;
+      _cudaPointCollector.addPoint(x,y);
     }
 
     long int nL, nR, nn;
@@ -448,12 +446,7 @@ void LightCurveIRS::lineFloodFillCUDA(long int nx,
       {
         //_amplification += amp;
         _irsCount++;
-        if (!_cudaPointCollector.addPoint(x,y))
-        {
-          
-          //std::cout << "finished the point collection";
-          _amplification = _cudaPointCollector.getAmp();
-        };
+        _cudaPointCollector.addPoint(x,y);
       }
     }
 
@@ -472,12 +465,9 @@ void LightCurveIRS::lineFloodFillCUDA(long int nx,
       {
         //_amplification += amp;
         _irsCount++;
-        if (!_cudaPointCollector.addPoint(x,y))
-        {
-          //std::cout << "finished the point collection";
-          _amplification += _cudaPointCollector.getAmp();
-        };
+        _cudaPointCollector.addPoint(x,y);
       }
+
     }
 
     amoebae.addNode(nL, nR, ny);
@@ -503,7 +493,6 @@ void LightCurveIRS::lineFloodFillCUDA(long int nx,
         nn++;
       }
     }
-
     //cout << "finished one fill \n";
 
     return;
