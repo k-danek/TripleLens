@@ -11,14 +11,7 @@ LightCurveIRS::LightCurveIRS(
                              long int     pointsPerRadius = 300
                             ): LightCurveBase(a, b, th, m2, m3, lcLength),
                                ccc(lensPar, 500),
-                               amoebae(pointsPerRadius),
-                               _cudaPointCollector(a,
-                                                   b,
-                                                   th,
-                                                   m2,
-                                                   m3,
-                                                   sourceSize,
-                                                   sourceSize/double(pointsPerRadius))
+                               amoebae(pointsPerRadius)
 {
   _lcLength = lcLength;
   _sourceRadius = sourceSize;
@@ -153,16 +146,11 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
     _amplification = 0.0;
     _irsCount = 0;
 
-    // Updating point collector for CUDA with new source position
-    _cudaPointCollector.reset();
-    _cudaPointCollector.setSourcePos(pos.real(), pos.imag());
-
     for(auto imgSeed: imgPos)
     {
       lineFloodFill(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
     
-    _amplification += _cudaPointCollector.getAmp();
     cout << "amplification: " << _amplification*_ampScale << " and the count " << _irsCount << "\n";
 
     // As the size of the lcVec is determined at the initialisation of LightCurveIRS class

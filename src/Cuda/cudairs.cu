@@ -34,14 +34,26 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 {
 
   int size = collectedPoints.size(); 
+  int numOfPoints;
+  if( size % 2 != 0)
+  {
+    std::cout << "getAmpKernel: Odd size of points in collectedPoints.\n";
+    numOfPoints = 0;
+    abort();
+  }
+  else
+  {
+    numOfPoints = size / 2;
+  }
+  
   float* amps;
   float* params;
   float* collectedPointsShared;
 
   // Allocate Unified Memory – accessible from CPU or GPU
-  cudaMallocManaged(&collectedPointsShared, 2*size*sizeof(float));
+  cudaMallocManaged(&collectedPointsShared, size*sizeof(float));
   cudaMallocManaged(&params, 10*sizeof(float));
-  cudaMallocManaged(&amps, size*sizeof(float));
+  cudaMallocManaged(&amps, numOfPoints*sizeof(float));
 
   params[0]  = float(a);          // a
   params[1]  = float(b);          // b
@@ -49,13 +61,13 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
   params[3]  = float(1.0-m2-m3);  // m1
   params[4]  = float(m2);         // m2
   params[5]  = float(m3);         // m3
-  params[6]  = float(sourceSize); // img origin X
-  params[7]  = float(sourcePosX); // img origin Y
-  params[8]  = float(sourcePosY); // img range
+  params[6]  = float(sourceSize); // sourceSize
+  params[7]  = float(sourcePosX); // source position X
+  params[8]  = float(sourcePosY); // source position Y
   params[9]  = float(imgPixSize); // size of pixel
 
   // initialize x and y arrays on the host
-  for (int i = 0; i < 2*size; i++)
+  for (int i = 0; i < size; i++)
   {
     collectedPointsShared[i] = collectedPoints[i];
   }
@@ -63,7 +75,7 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 
   // Run kernel on 1M elements on the GPU
   int threadsPerBlock = 1<<5;
-  int numBlocks = (size + threadsPerBlock - 1) / threadsPerBlock;
+  int numBlocks = (numOfPoints + threadsPerBlock - 1) / threadsPerBlock;
 
   cudaProfilerStart(); 
 
@@ -74,10 +86,29 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
   cudaDeviceSynchronize();
 
   double totalAmp = 0.0;
-  for(int i = 0; i < size; i++)
+  for(int i = 0; i < numOfPoints; i++)
   {
     totalAmp += amps[i];
   }
+
+  //// Some debugging stuff
+  //const std::complex<float> z2 = std::complex<float>(params[0],0.0);
+  //const std::complex<float> z3 = std::complex<float>(params[1]*cos(params[2]),
+  //                                                         params[1]*sin(params[2]));
+ 
+  //// increment in image plane iteration
+  ////const float inc = params[9]/8.0;
+
+  //std::complex<float> sourcePos = std::complex<float>(params[7], params[8]);
+  //std::complex<float> imgPos = std::complex<float>(collectedPoints[0],
+  //                                                 collectedPoints[1]);
+
+  //float irsAmp = irsCPU(params,z2,z3,imgPos,sourcePos);
+
+  //std::cout << "Testing one IRS: " << irsAmp << "\n";
+  //std::cout << "Used points were: " << collectedPoints[0] << " " << collectedPoints[1] << "\n";
+  //std::cout << "Source pos: " << sourcePos.real() << " " << sourcePos.imag() << "\n";
+  //std::cout << "Source size and img plane par: " << params[6] << " " << params[9] << "\n";
 
   // Free memory
   cudaFree(amps);
@@ -95,9 +126,9 @@ void arrangeShooting(float* collectedPoints,
 {
   // Each pixel will be subdivided into finer grid.
   // subgridSize determines how fine the subgrid should be.
-  const int subgridSize = 8;
+  const int subgridSize = 32;
   
-  const thrust::complex<float> z1 = thrust::complex<float>(0.0,0.0);
+  //const thrust::complex<float> z1 = thrust::complex<float>(0.0,0.0);
   const thrust::complex<float> z2 = thrust::complex<float>(params[0],0.0);
   const thrust::complex<float> z3 = thrust::complex<float>(params[1]*cos(params[2]),
                                                            params[1]*sin(params[2]));
@@ -116,7 +147,7 @@ void arrangeShooting(float* collectedPoints,
                                                      collectedPoints[2*index]-params[9]/2,
                                                      collectedPoints[2*index+1]-params[9]/2);
   
-  for (int i = index; i < subgridSize; i++)
+  for (int i = 0; i < subgridSize; i++)
   { 
     imgPos.real(imgPos.real() + inc);
     //float imgY = __int2float_rn(i) * inc;    
@@ -124,7 +155,9 @@ void arrangeShooting(float* collectedPoints,
     {
       imgPos.imag(imgPos.imag() + inc);
       
-      amps[index] = irs(params, z2, z3, imgPos, sourcePos); 
+      amps[index] += irs(params, z2, z3, imgPos, sourcePos); 
+
+      //amps[index] += 1.0; 
 
     }
   }
@@ -156,6 +189,31 @@ float irs(const float*                  params,
         return 0.0;
     }
 
-  //  return 1.0/(1.0+r*r);
+    //return 1.0/(1.0+r*r);
 };
 
+float irsCPU(const float*                  params,
+          //const thrust::complex<float>& z1,
+          const thrust::complex<float>& z2,
+          const thrust::complex<float>& z3,
+          const thrust::complex<float>& img,
+          const thrust::complex<float>& sourcePos)
+{
+
+    thrust::complex<float> impact = img-params[3]/conj(img)
+                                    -params[4]/conj(img-z2)
+                                    -params[5]/conj(img-z3);
+
+    float r = thrust::abs(impact-sourcePos)/params[6];
+
+    if(r <= 1.0)
+    {
+        return 0.6+0.4*sqrt(1.0-r*r); 
+    }
+    else
+    {
+        return 0.0;
+    }
+
+  //  return 1.0/(1.0+r*r);
+};

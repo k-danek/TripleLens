@@ -134,26 +134,26 @@ int main()
 //       << "s\n\n";
 
 
-  int numberOfAngles = 10;
+  int numberOfAngles = 5;
   int lcLength = 100;
-  int pointsPerRadius = 300;
+  int pointsPerRadius = 50;
 
   // Extended source IRS
-  LightCurveIRS  lcIRS(a,b,th,m2,m3, 0.001, lcLength, pointsPerRadius);
-  LightCurveCUDA lcCUDA(a,b,th,m2,m3, 0.001, lcLength, pointsPerRadius);
+  //LightCurveIRS  lcIRS(a,b,th,m2,m3, 0.001, lcLength, pointsPerRadius);
+  LightCurveCUDA lcCUDA(a,b,th,m2,m3, 0.00001, lcLength, pointsPerRadius);
   
 
-  begin = clock();  
-  for(unsigned int i = 0; i < numberOfAngles; i++)
-  {
-    cout << "running with step " << i << "\n";
-    angle = (double)i/2.0/float(numberOfAngles)*3.14159;
-    endPoint = {1.0001*cos(angle), 0.9999*sin(angle)};  
-    startPoint = {-0.9999*cos(angle), -1.0001*sin(angle)}; 
-    lcIRS.getLCIRS(startPoint, endPoint);
-    lightCurve = lcIRS.lcVec; 
-  }
-  end = clock();
+ // begin = clock();  
+ // for(unsigned int i = 0; i < numberOfAngles; i++)
+ // {
+ //   cout << "running with step " << i << "\n";
+ //   angle = (double)i/2.0/float(numberOfAngles)*3.14159;
+ //   endPoint = {1.0001*cos(angle), 0.9999*sin(angle)};  
+ //   startPoint = {-0.9999*cos(angle), -1.0001*sin(angle)}; 
+ //   lcIRS.getLCIRS(startPoint, endPoint);
+ //   lightCurve = lcIRS.lcVec; 
+ // }
+ // end = clock();
 
   clock_t beginCUDA = clock();  
   for(unsigned int i = 0; i < numberOfAngles; i++)
@@ -162,16 +162,16 @@ int main()
     angle = (double)i/2.0/float(numberOfAngles)*3.14159;
     endPoint = {1.0001*cos(angle), 0.9999*sin(angle)};  
     startPoint = {-0.9999*cos(angle), -1.0001*sin(angle)}; 
-    lcIRS.getLCIRS(startPoint, endPoint);
-    lightCurve = lcIRS.lcVec; 
+    lcCUDA.getLCCUDA(startPoint, endPoint);
   }
   clock_t endCUDA = clock();
 
-  cout << "Img plane size was: " << lcIRS.amoebae.amoebae.size() << "\n";  
-  cout << numberOfAngles*lcLength << " positions IRS lightcurve:" 
-       << double(end - begin) / CLOCKS_PER_SEC 
-       << "s\n\n";
+  //cout << "Img plane size was: " << lcIRS.amoebae.amoebae.size() << "\n";  
+  //cout << numberOfAngles*lcLength << " positions IRS lightcurve:" 
+  //     << double(end - begin) / CLOCKS_PER_SEC 
+  //     << "s\n\n";
 
+  cout << "Img plane size was: " << lcCUDA.amoebae.amoebae.size() << "\n";  
   cout << numberOfAngles*lcLength << " positions CUDA-IRS lightcurve:" 
        << double(endCUDA - beginCUDA) / CLOCKS_PER_SEC 
        << "s\n\n";

@@ -23,7 +23,6 @@
 #include<imgpoint.h>
 #include<lens.h>
 #include<amoeba.h>
-#include<cudapointcollector.h>
 
 template<class T>
 using pair = std::pair<T, T>;
@@ -97,8 +96,6 @@ class LightCurveIRS: public LightCurveBase
     // Amplification is multiplied by this factor before it is added
     // to the light curve.
     double _ampScale = 1.0;
-
-    CudaPointCollector _cudaPointCollector;
 
     vector<pair<complex<double>>> caBoxes;
 

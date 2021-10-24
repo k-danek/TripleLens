@@ -27,6 +27,8 @@ class CudaPointCollector: public LensPar
     void addPoint(double seedX,
                   double seedY 
                  );
+    
+    int getNumberOfPoints();
 
     void reset();
 

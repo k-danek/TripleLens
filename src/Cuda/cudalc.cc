@@ -9,7 +9,7 @@ LightCurveCUDA::LightCurveCUDA(
                              double       sourceSize,
                              unsigned int lcLength = 100,
                              long int     pointsPerRadius = 300
-                              ): LightCurveIRS(a, b, th, m2, m3, lcLength, sourceSize, pointsPerRadius),
+                              ): LightCurveIRS(a, b, th, m2, m3, sourceSize, lcLength, pointsPerRadius),
                                  ccc(lensPar, 500),
                                  amoebae(pointsPerRadius),
                                  _cudaPointCollector(a,
@@ -19,7 +19,14 @@ LightCurveCUDA::LightCurveCUDA(
                                                      m3,
                                                      sourceSize,
                                                      sourceSize/double(pointsPerRadius))
-{};
+{
+  _lcLength = lcLength;
+  _sourceRadius = sourceSize;
+  _pointsPerRadius = pointsPerRadius;
+  ccc.getCa();
+  _getCaBoxes();
+  _getImgPlanePars();
+};
 
 
 void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
@@ -28,6 +35,10 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
 {
   
   cout << "IRS called with imgPlaneSize:" << _imgPlaneSize << "\n";
+  cout << "IRS called with sourceRadius:" << _sourceRadius << "\n";
+  cout << "IRS called with _imgPlaneSizeDouble:" << _imgPlaneSizeDouble << "\n";
+  cout << "IRS called with _ampScale:" << _ampScale << "\n";
+  
   complex<double> pos = startPoint;
 
   // Looping over source positions
@@ -91,14 +102,22 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
     _cudaPointCollector.reset();
     _cudaPointCollector.setSourcePos(pos.real(), pos.imag());
 
+    //std::cout << "Just before the floodfill for " << imgPos.size() << " seeds\n";
+
     for(auto imgSeed: imgPos)
     {
+      //std::cout << "Started filling for a seed with "
+      //          << _cudaPointCollector.getNumberOfPoints()
+      //          << " points in the collector and "
+      //          << _irsCount << " in count \n";
       lineFloodFillCUDA(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
-    
-    _amplification += _cudaPointCollector.getAmp();
-    cout << "amplification: " << _amplification*_ampScale << " and the count " << _irsCount << "\n";
 
+    //std::cout << "Finished filling for the seeds\n";
+
+    _amplification += _cudaPointCollector.getAmp();
+    cout << "cuda amplification: " << _amplification*_ampScale << " and the count " << _irsCount << "\n";
+    cout << "Size of data: collected points " << 2*_irsCount*sizeof(float) << " and amoeba " << sizeof(amoebae.amoebae) << "\n";
     // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
     // we use looping over the indices rather than push_back.
     lcVec[i] = _amplification*_ampScale;
@@ -128,9 +147,9 @@ bool LightCurveCUDA::irsCheck(double imgX,
 };
 
 void LightCurveCUDA::lineFloodFillCUDA(long int nx,
-                                      long int ny,
-                                      complex<double> sPos,
-                                      bool checked)
+                                       long int ny,
+                                       complex<double> sPos,
+                                       bool checked)
 {
     //cout << "line floodfill run with nx " << nx << " ny " << ny << "\n";
 
@@ -169,7 +188,7 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
     {
       x = nxToX(nR); 
       
-      if (irsCheck(x,y,sPos))
+      if (!irsCheck(x,y,sPos))
       {
         nR--;
         break;
@@ -187,7 +206,7 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
     {
       x = nxToX(nL); 
       
-      if (irsCheck(x,y,sPos))
+      if (!irsCheck(x,y,sPos))
       {
         nL++;
         break;

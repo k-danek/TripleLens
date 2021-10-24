@@ -44,9 +44,14 @@ void CudaPointCollector::setSourcePos(double sourceX,
 void CudaPointCollector::addPoint(double seedX,
                                   double seedY)
 {
-  _collectedPoints.push_back(seedX);
-  _collectedPoints.push_back(seedY);
+  _collectedPoints.push_back(float(seedX));
+  _collectedPoints.push_back(float(seedY));
   _numberOfPoints++;
+}
+
+int CudaPointCollector::getNumberOfPoints()
+{
+  return _numberOfPoints;
 }
 
 void CudaPointCollector::reset()
@@ -61,7 +66,7 @@ double CudaPointCollector::getAmp()
 
   //std::cout << "getAmp called with " << _numberOfPoints << "points"; 
   
-  double amp = getAmpKernel(_collectedPoints, a, b, th, m2, m3, _sSize, _pixelSize, _sX, _sY);
+  double amp = getAmpKernel(_collectedPoints, a, b, th, m2, m3, _sSize, _sX, _sY, _pixelSize);
   reset();
   return amp;
 }
