@@ -172,3 +172,44 @@ class LC_irs(object):
     def copy_lc(self,lc_vec):
         self.lib_lc.copy_lc(self.obj, lc_vec)
 
+
+# Represent functional ctypes version of C++ LightCurveCUDA class as Python Class
+class LC_cuda(object):
+    def __init__(self, a, b, th, m2, m3, source_size, lc_len, img_plane_size):
+        # load the C++ shared library as lib
+        self.lib_cuda = ctypes.cdll.LoadLibrary('../bin/liblccuda.so')
+
+        self.lib_cuda.lccuda_new.argtypes = [ctypes.c_double,
+                                             ctypes.c_double,
+                                             ctypes.c_double,
+                                             ctypes.c_double,
+                                             ctypes.c_double,
+                                             ctypes.c_double,
+                                             ctypes.c_uint,
+                                             ctypes.c_long
+                                            ]
+        self.lib_cuda.lccuda_new.restype = ctypes.c_void_p
+
+        self.lib_cuda.get_lc_cuda.argtypes = [ctypes.c_void_p,
+                                              ctypes.c_double,
+                                              ctypes.c_double,
+                                              ctypes.c_double,
+                                              ctypes.c_double
+                                             ] 
+        self.lib_cuda.get_lc_cuda.restypes = ctypes.c_void_p
+
+        self.lib_cuda.copy_lc.argtypes = [ctypes.c_void_p,
+                                          ndpointer(dtype=np.double,flags="C_CONTIGUOUS")
+                                         ]
+        self.lib_cuda.copy_lc.restypes = ctypes.c_void_p
+
+        self.obj = self.lib_cuda.lccuda_new(a, b, th, m2, m3, source_size, lc_len, img_plane_size)
+
+    def get_lc(self, iniX, iniY, finX, finY):
+        self.lib_cuda.get_lc(self.obj, iniX, iniY, finX, finY)
+
+    def get_lc_cuda(self, iniX, iniY, finX, finY):
+        self.lib_cuda.get_lc_cuda(self.obj, iniX, iniY, finX, finY)
+
+    def copy_lc(self,lc_vec):
+        self.lib_cuda.copy_lc(self.obj, lc_vec)

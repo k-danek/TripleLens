@@ -247,3 +247,56 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
 
     return;
 }
+
+
+// Python Wrapper for ctypes module
+extern "C"
+{
+  LightCurveCUDA* lccuda_new(double       a,
+                             double       b,
+                             double       th,
+                             double       m2,
+                             double       m3,
+                             double       sourceSize,
+                             unsigned int lcLength,
+                             long int     pointsPerRadius 
+                            )
+  {
+    return new LightCurveCUDA(a,
+                              b,
+                              th,
+                              m2,
+                              m3,
+                              sourceSize,
+                              lcLength,
+                              pointsPerRadius
+                             );
+  }
+
+  // Extedned source calculation with cuda
+  void get_lc_cuda(LightCurveCUDA* lccuda,
+                  double          iniX,
+                  double          iniY,
+                  double          finX,
+                  double          finY
+                  )
+  {
+    lccuda->getLCCUDA(complex<double>{iniX,iniY},
+                      complex<double>{finX,finY}
+                     );
+  }
+
+  // In order to access the data in python, 
+  // we copy them to array of complex<double>
+  void copycuda_lc(LightCurveCUDA* lc,
+                   double*         lcArray        
+                  )
+  {
+    unsigned int length = lc->lcVec.size();
+
+    for(unsigned int i = 0; i < length; i++)
+    {
+      lcArray[i] = lc->lcVec[i];
+    }
+  }
+}
