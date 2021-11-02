@@ -80,7 +80,7 @@ pos_ini_y = 0.0
 
 # number of steps
 lc_steps = 100
-source_size = 1e-5
+source_size = 1e-3
 points_per_radius = 50
 
 lc_point_array = np.zeros(lc_steps, np.double)
@@ -115,7 +115,7 @@ ax2.set_title("Light Curve")
 
 ax2.plot(lc_point_array, color='red', label='point')
 ax2.plot(lc_irs_array, color='blue', label='irs')
-ax2.plot(lc_cuda_array/1024, color='green', label='cuda')
+ax2.plot(lc_cuda_array, color='green', label='cuda')
 
 fig.savefig("LightCurvePointCuda.png", dpi=200)
 
