@@ -1,6 +1,8 @@
 #include <fstream>
 #include <iomanip>
 #include <vector>
+#include <algorithm>
+
 #include <cuda_profiler_api.h>
 
 #include "cudairs.cuh"
@@ -20,7 +22,7 @@
 //sourcePosX = params[7] 
 //sourcePosY = params[8] 
 //imgPixSize = params[9]
-// Kernel
+// This actually triggers a kernel run
 float getAmpKernel(const std::vector<float>& collectedPoints,
                    double                    a,
                    double                    b,
@@ -35,6 +37,11 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 
   int size = collectedPoints.size(); 
   int numOfPoints;
+
+  // Each pixel will be subdivided into finer grid.
+  // subgridSize determines how fine the subgrid should be.
+  const int subgridSize = 32;
+  
   if( size % 2 != 0)
   {
     std::cout << "getAmpKernel: Odd size of points in collectedPoints.\n";
@@ -75,11 +82,22 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 
   // Run kernel on 1M elements on the GPU
   int threadsPerBlock = 1<<5;
-  int numBlocks = (numOfPoints + threadsPerBlock - 1) / threadsPerBlock;
+
+  // I might easily run out of available blocks per grid.
+  // Supposed size of the number of blocks is 65535.
+  // https://en.wikipedia.org/wiki/Thread_block_(CUDA_programming)#Dimensions
+  // Please note that Device query claims following:
+  // Max dimension size of a grid size    (x,y,z): (2147483647, 65535, 65535)  
+  int numBlocks = std::min(65535,(numOfPoints + threadsPerBlock - 1) / threadsPerBlock);
+ 
 
   cudaProfilerStart(); 
 
-  arrangeShooting<<<numBlocks, threadsPerBlock>>>(collectedPointsShared, params, amps);
+  arrangeShooting<<<numBlocks, threadsPerBlock>>>(collectedPointsShared,
+                                                  params,
+                                                  amps,
+                                                  subgridSize,
+                                                  numOfPoints);
 
   cudaProfilerStop();
 
@@ -115,19 +133,17 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
   cudaFree(params);
   cudaFree(collectedPointsShared);
 
-  return totalAmp;
+  return totalAmp/float(subgridSize*subgridSize);
 };
 
 
 __global__
-void arrangeShooting(float* collectedPoints,
-                     float* params,
-                     float* amps)
+void arrangeShooting(float*    collectedPoints,
+                     float*    params,
+                     float*    amps,
+                     const int subgridSize,
+                     const int numOfPoints)
 {
-  // Each pixel will be subdivided into finer grid.
-  // subgridSize determines how fine the subgrid should be.
-  const int subgridSize = 32;
-  
   //const thrust::complex<float> z1 = thrust::complex<float>(0.0,0.0);
   const thrust::complex<float> z2 = thrust::complex<float>(params[0],0.0);
   const thrust::complex<float> z3 = thrust::complex<float>(params[1]*cos(params[2]),
@@ -136,30 +152,28 @@ void arrangeShooting(float* collectedPoints,
   // increment in image plane iteration
   const float inc = params[9]/__int2float_rn(subgridSize);
 
-  //const int maxMapInd = subgridSize*subgridSize - 1;
-
   // actual index of a thread
   int index = blockIdx.x * blockDim.x + threadIdx.x;
-  //int stride = blockDim.x * gridDim.x;
-
-  thrust::complex<float> sourcePos = thrust::complex<float>(params[7], params[8]);
-  thrust::complex<float> imgPos = thrust::complex<float>(
-                                                     collectedPoints[2*index]-params[9]/2,
-                                                     collectedPoints[2*index+1]-params[9]/2);
+  while(index < numOfPoints) // in the case too many threads are launched
+  {
+    thrust::complex<float> sourcePos = thrust::complex<float>(params[7], params[8]);
+    thrust::complex<float> imgPos = thrust::complex<float>(
+                                                       collectedPoints[2*index]-params[9]/2,
+                                                       collectedPoints[2*index+1]-params[9]/2);
   
-  for (int i = 0; i < subgridSize; i++)
-  { 
-    imgPos.real(imgPos.real() + inc);
-    //float imgY = __int2float_rn(i) * inc;    
-    for (int j = 0; j < subgridSize; j++)
-    {
-      imgPos.imag(imgPos.imag() + inc);
-      
-      amps[index] += irs(params, z2, z3, imgPos, sourcePos); 
-
-      //amps[index] += 1.0; 
-
+    for (int i = 0; i < subgridSize; i++)
+    { 
+      imgPos.real(imgPos.real() + inc);
+      for (int j = 0; j < subgridSize; j++)
+      {
+        imgPos.imag(imgPos.imag() + inc);
+        
+        amps[index] += irs(params, z2, z3, imgPos, sourcePos); 
+      }
     }
+
+    index += blockDim.x * gridDim.x;
+
   }
 
 };

@@ -23,7 +23,6 @@
 #include<lcirs.h>
 #include<imgpoint.h>
 #include<lens.h>
-//#include<amoeba.h>
 #include<cudapointcollector.h>
 
 
@@ -59,12 +58,6 @@ class LightCurveCUDA: public LightCurveIRS
     Amoeba amoebae;
 
   private:
-    // scaling that give amplification per ray shoot
-    // it takes into the account surface brightness of the source.
-    // Amplification is multiplied by this factor before it is added
-    // to the light curve.
-    double _ampScale = 1.0;
-
     CudaPointCollector _cudaPointCollector;
 };
 

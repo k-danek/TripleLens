@@ -60,7 +60,7 @@ void LightCurveIRS::_getImgPlanePars()
   _bottomLeftCornerImg.imag(centre.imag() - halfEdge);
 
 
-  _imgPlaneSize = static_cast<long int>(halfEdge/_sourceRadius*_pointsPerRadius);
+  _imgPlaneSize = static_cast<long int>(2*halfEdge/_sourceRadius*_pointsPerRadius);
   amoebae.resize(_imgPlaneSize);
 
   _imgPlaneSizeDouble = 2*halfEdge;
@@ -151,7 +151,8 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
       lineFloodFill(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
     
-    cout << "amplification: " << _amplification*_ampScale << " and the count " << _irsCount << "\n";
+    cout << "irs amplification: " << _amplification*_ampScale << " and the count " << _irsCount
+         << " and amp scale " << _ampScale << "\n";
 
     // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
     // we use looping over the indices rather than push_back.

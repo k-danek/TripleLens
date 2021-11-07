@@ -116,8 +116,8 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
     //std::cout << "Finished filling for the seeds\n";
 
     _amplification += _cudaPointCollector.getAmp();
-    cout << "cuda amplification: " << _amplification*_ampScale << " and the count " << _irsCount << "\n";
-    cout << "Size of data: collected points " << 2*_irsCount*sizeof(float) << " and amoeba " << sizeof(amoebae.amoebae) << "\n";
+    cout << "cuda amplification: " << _amplification*_ampScale << " and the count "
+         << _irsCount << " and scale " << _ampScale << "\n";
     // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
     // we use looping over the indices rather than push_back.
     lcVec[i] = _amplification*_ampScale;
