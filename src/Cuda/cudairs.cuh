@@ -20,14 +20,12 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 
 __global__
 void arrangeShooting(float*    collectionPoints,
-                     float*    params,
                      float*    amps,
                      const int subGridSize,
                      const int numOfPoint);
 
 __device__
-float irs(const float*                  params,
-          //const thrust::complex<float>& z1,
+float irs(//const thrust::complex<float>& z1,
           const thrust::complex<float>& z2,
           const thrust::complex<float>& z3,
           const thrust::complex<float>& img,

@@ -7,6 +7,10 @@
 
 #include "cudairs.cuh"
 
+
+__constant__ float params[15];
+
+
 // Check whether source position is hit 
 // In context of the point source, that source radius is just an error term.
 //z1 = {0.0,0.0};
@@ -54,24 +58,33 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
   }
   
   float* amps;
-  float* params;
   float* collectedPointsShared;
 
   // Allocate Unified Memory – accessible from CPU or GPU
   cudaMallocManaged(&collectedPointsShared, size*sizeof(float));
-  cudaMallocManaged(&params, 10*sizeof(float));
+  //cudaMallocManaged(&params, 10*sizeof(float));
   cudaMallocManaged(&amps, numOfPoints*sizeof(float));
 
-  params[0]  = float(a);          // a
-  params[1]  = float(b);          // b
-  params[2]  = float(th);         // th
-  params[3]  = float(1.0-m2-m3);  // m1
-  params[4]  = float(m2);         // m2
-  params[5]  = float(m3);         // m3
-  params[6]  = float(sourceSize); // sourceSize
-  params[7]  = float(sourcePosX); // source position X
-  params[8]  = float(sourcePosY); // source position Y
-  params[9]  = float(imgPixSize); // size of pixel
+  float* tempParams = (float*)malloc(sizeof(float)*15);
+
+  tempParams[0]  = float(a);          // a
+  tempParams[1]  = float(b);          // b
+  tempParams[2]  = float(th);         // th
+  tempParams[3]  = float(1.0-m2-m3);  // m1
+  tempParams[4]  = float(m2);         // m2
+  tempParams[5]  = float(m3);         // m3
+  tempParams[6]  = float(sourceSize); // sourceSize
+  tempParams[7]  = float(sourcePosX); // source position X
+  tempParams[8]  = float(sourcePosY); // source position Y
+  tempParams[9]  = float(imgPixSize); // size of pixel
+  tempParams[10] = float(a);          // z2x
+  tempParams[11] = float(0.0);        // z2y
+  tempParams[12] = float(b*cos(th));  // z3x
+  tempParams[13] = float(b*sin(th));  // z3y
+  tempParams[14] = float(imgPixSize/float(subgridSize)); // subgrid increment
+
+  cudaMemcpyToSymbol(params, tempParams, sizeof(float)*15);
+  free(tempParams);
 
   // initialize x and y arrays on the host
   for (int i = 0; i < size; i++)
@@ -94,7 +107,6 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
   cudaProfilerStart(); 
 
   arrangeShooting<<<numBlocks, threadsPerBlock>>>(collectedPointsShared,
-                                                  params,
                                                   amps,
                                                   subgridSize,
                                                   numOfPoints);
@@ -130,7 +142,7 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 
   // Free memory
   cudaFree(amps);
-  cudaFree(params);
+  //cudaFree(params);
   cudaFree(collectedPointsShared);
 
   return totalAmp/float(subgridSize*subgridSize);
@@ -139,18 +151,16 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 
 __global__
 void arrangeShooting(float*    collectedPoints,
-                     float*    params,
                      float*    amps,
                      const int subgridSize,
                      const int numOfPoints)
 {
   //const thrust::complex<float> z1 = thrust::complex<float>(0.0,0.0);
-  const thrust::complex<float> z2 = thrust::complex<float>(params[0],0.0);
-  const thrust::complex<float> z3 = thrust::complex<float>(params[1]*cos(params[2]),
-                                                           params[1]*sin(params[2]));
+  const thrust::complex<float> z2 = thrust::complex<float>(params[10],params[11]);
+  const thrust::complex<float> z3 = thrust::complex<float>(params[12],params[13]);
  
   // increment in image plane iteration
-  const float inc = params[9]/__int2float_rn(subgridSize);
+  //const float inc = params[9]/__int2float_rn(subgridSize);
 
   // actual index of a thread
   int index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -163,26 +173,23 @@ void arrangeShooting(float*    collectedPoints,
   
     for (int i = 0; i < subgridSize; i++)
     { 
-      imgPos.real(imgPos.real() + inc);
+      imgPos.real(imgPos.real() + params[14]);
       for (int j = 0; j < subgridSize; j++)
       {
-        imgPos.imag(imgPos.imag() + inc);
+        imgPos.imag(imgPos.imag() + params[14]);
         
-        amps[index] += irs(params, z2, z3, imgPos, sourcePos); 
+        amps[index] += irs(z2, z3, imgPos, sourcePos); 
       }
     }
 
     index += blockDim.x * gridDim.x;
-
   }
 
 };
 
 
 __device__
-float irs(const float*                  params,
-          //const thrust::complex<float>& z1,
-          const thrust::complex<float>& z2,
+float irs(const thrust::complex<float>& z2,
           const thrust::complex<float>& z3,
           const thrust::complex<float>& img,
           const thrust::complex<float>& sourcePos)
@@ -207,11 +214,11 @@ float irs(const float*                  params,
 };
 
 float irsCPU(const float*                  params,
-          //const thrust::complex<float>& z1,
-          const thrust::complex<float>& z2,
-          const thrust::complex<float>& z3,
-          const thrust::complex<float>& img,
-          const thrust::complex<float>& sourcePos)
+             //const thrust::complex<float>& z1,
+             const thrust::complex<float>& z2,
+             const thrust::complex<float>& z3,
+             const thrust::complex<float>& img,
+             const thrust::complex<float>& sourcePos)
 {
 
     thrust::complex<float> impact = img-params[3]/conj(img)
@@ -229,5 +236,5 @@ float irsCPU(const float*                  params,
         return 0.0;
     }
 
-  //  return 1.0/(1.0+r*r);
+    //return 1.0/(1.0+r*r);
 };

@@ -71,7 +71,7 @@ pos_ini_y = 0.0
 
 # number of steps
 lc_steps = 100
-source_size = 1e-7
+source_size = 1e-3
 points_per_radius = 50
 
 lc_point_array  = np.zeros(lc_steps, np.double)
