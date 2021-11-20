@@ -44,7 +44,7 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 
   // Each pixel will be subdivided into finer grid.
   // subgridSize determines how fine the subgrid should be.
-  const int subgridSize = 32;
+  const int subgridSize = 16;
   
   if( size % 2 != 0)
   {
@@ -58,10 +58,13 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
   }
   
   float* amps;
-  float* collectedPointsShared;
+  //float* collectedPointsShared;
+  float* collectedPointsDevice;
+
+  cudaMalloc( (void**)&collectedPointsDevice, size*sizeof(float));
 
   // Allocate Unified Memory – accessible from CPU or GPU
-  cudaMallocManaged(&collectedPointsShared, size*sizeof(float));
+  //cudaMallocManaged(&collectedPointsShared, size*sizeof(float));
   //cudaMallocManaged(&params, 10*sizeof(float));
   cudaMallocManaged(&amps, numOfPoints*sizeof(float));
 
@@ -87,11 +90,15 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
   free(tempParams);
 
   // initialize x and y arrays on the host
-  for (int i = 0; i < size; i++)
-  {
-    collectedPointsShared[i] = collectedPoints[i];
-  }
+  //for (int i = 0; i < size; i++)
+  //{
+  //  collectedPointsShared[i] = collectedPoints[i];
+  //}
 
+  cudaMemcpy(collectedPointsDevice,
+             &collectedPoints[0],
+             sizeof(float)*size,
+             cudaMemcpyHostToDevice);
 
   // Run kernel on 1M elements on the GPU
   int threadsPerBlock = 1<<5;
@@ -106,7 +113,7 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 
   cudaProfilerStart(); 
 
-  arrangeShooting<<<numBlocks, threadsPerBlock>>>(collectedPointsShared,
+  arrangeShooting<<<numBlocks, threadsPerBlock>>>(collectedPointsDevice,
                                                   amps,
                                                   subgridSize,
                                                   numOfPoints);
@@ -121,29 +128,11 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
     totalAmp += amps[i];
   }
 
-  //// Some debugging stuff
-  //const std::complex<float> z2 = std::complex<float>(params[0],0.0);
-  //const std::complex<float> z3 = std::complex<float>(params[1]*cos(params[2]),
-  //                                                         params[1]*sin(params[2]));
- 
-  //// increment in image plane iteration
-  ////const float inc = params[9]/8.0;
-
-  //std::complex<float> sourcePos = std::complex<float>(params[7], params[8]);
-  //std::complex<float> imgPos = std::complex<float>(collectedPoints[0],
-  //                                                 collectedPoints[1]);
-
-  //float irsAmp = irsCPU(params,z2,z3,imgPos,sourcePos);
-
-  //std::cout << "Testing one IRS: " << irsAmp << "\n";
-  //std::cout << "Used points were: " << collectedPoints[0] << " " << collectedPoints[1] << "\n";
-  //std::cout << "Source pos: " << sourcePos.real() << " " << sourcePos.imag() << "\n";
-  //std::cout << "Source size and img plane par: " << params[6] << " " << params[9] << "\n";
-
   // Free memory
   cudaFree(amps);
   //cudaFree(params);
-  cudaFree(collectedPointsShared);
+  //cudaFree(collectedPointsShared);
+  cudaFree(collectedPointsDevice);
 
   return totalAmp/float(subgridSize*subgridSize);
 };

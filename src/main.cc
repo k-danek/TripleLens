@@ -134,13 +134,13 @@ int main()
 //       << "s\n\n";
 
 
-  int numberOfAngles = 5;
+  int numberOfAngles = 1;
   int lcLength = 100;
   int pointsPerRadius = 50;
 
   // Extended source IRS
   //LightCurveIRS  lcIRS(a,b,th,m2,m3, 0.001, lcLength, pointsPerRadius);
-  LightCurveCUDA lcCUDA(a,b,th,m2,m3, 0.00001, lcLength, pointsPerRadius);
+  LightCurveCUDA lcCUDA(a,b,th,m2,m3, 0.0001, lcLength, pointsPerRadius);
   
 
  // begin = clock();  
