@@ -9,7 +9,7 @@
 
 
 __constant__ float params[15];
-
+texture<float,cudaTextureType1D,cudaReadModeElementType> collectedPointsTexture;
 
 // Check whether source position is hit 
 // In context of the point source, that source radius is just an error term.
@@ -63,6 +63,8 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 
   cudaMalloc( (void**)&collectedPointsDevice, size*sizeof(float));
 
+  //collectedPointsDevice = &collectedPoints[0];
+
   // Allocate Unified Memory – accessible from CPU or GPU
   //cudaMallocManaged(&collectedPointsShared, size*sizeof(float));
   //cudaMallocManaged(&params, 10*sizeof(float));
@@ -100,6 +102,11 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
              sizeof(float)*size,
              cudaMemcpyHostToDevice);
 
+  cudaBindTexture(NULL,
+                  collectedPointsTexture,
+                  collectedPointsDevice,
+                  size*sizeof(float));
+
   // Run kernel on 1M elements on the GPU
   int threadsPerBlock = 1<<5;
 
@@ -109,11 +116,10 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
   // Please note that Device query claims following:
   // Max dimension size of a grid size    (x,y,z): (2147483647, 65535, 65535)  
   int numBlocks = std::min(65535,(numOfPoints + threadsPerBlock - 1) / threadsPerBlock);
- 
 
   cudaProfilerStart(); 
 
-  arrangeShooting<<<numBlocks, threadsPerBlock>>>(collectedPointsDevice,
+  arrangeShooting<<<numBlocks, threadsPerBlock>>>(//collectedPointsTexture,
                                                   amps,
                                                   subgridSize,
                                                   numOfPoints);
@@ -128,6 +134,8 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
     totalAmp += amps[i];
   }
 
+  cudaUnbindTexture(collectedPointsTexture);
+
   // Free memory
   cudaFree(amps);
   //cudaFree(params);
@@ -139,7 +147,7 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 
 
 __global__
-void arrangeShooting(float*    collectedPoints,
+void arrangeShooting(//float*    collectedPoints,
                      float*    amps,
                      const int subgridSize,
                      const int numOfPoints)
@@ -157,8 +165,17 @@ void arrangeShooting(float*    collectedPoints,
   {
     thrust::complex<float> sourcePos = thrust::complex<float>(params[7], params[8]);
     thrust::complex<float> imgPos = thrust::complex<float>(
-                                                       collectedPoints[2*index]-params[9]/2,
-                                                       collectedPoints[2*index+1]-params[9]/2);
+                                                  //tex1Dfetch<float,
+                                                  //           cudaTextureType1D,
+                                                  //           cudaReadModeNormalizedFloat>
+                                                  //           (collectedPointsTexture,2*index)-params[9]/2,
+                                                  //tex1Dfetch<float,
+                                                  //           cudaTextureType1D,
+                                                  //           cudaReadModeNormalizedFloat>
+                                                  //           (collectedPointsTexture,2*index+1)-params[9]/2
+                                                  tex1Dfetch(collectedPointsTexture,2*index)-params[9]/2,
+                                                  tex1Dfetch(collectedPointsTexture,2*index+1)-params[9]/2
+                                                          );
   
     for (int i = 0; i < subgridSize; i++)
     { 

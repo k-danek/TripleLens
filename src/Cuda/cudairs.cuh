@@ -19,7 +19,7 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
                    double                    imgPixSize);
 
 __global__
-void arrangeShooting(float*    collectionPoints,
+void arrangeShooting(//float*    collectionPoints,
                      float*    amps,
                      const int subGridSize,
                      const int numOfPoint);
