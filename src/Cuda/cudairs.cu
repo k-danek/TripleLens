@@ -11,7 +11,7 @@
 __constant__ float params[15];
 texture<float,cudaTextureType1D,cudaReadModeElementType> collectedPointsTexture;
 
-const int numberOfCores = 384; 
+//const int numberOfCores = 384; 
 
 // Check whether source position is hit 
 // In context of the point source, that source radius is just an error term.
@@ -46,10 +46,13 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
 
   // Each pixel will be subdivided into finer grid.
   // subgridSize determines how fine the subgrid should be.
-  const int subgridSize = 16;
+  const int subgridSize = 8;
 
   // Each thread can have multiple points to it. 
-  const int pointsPerThread = 10;
+  //const int pointsPerThread = 1;
+
+  // Each thread can have multiple points to it. 
+  const int threadsPerPoint = 64;
 
   if( size % 2 != 0)
   {
@@ -120,18 +123,23 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
   // https://en.wikipedia.org/wiki/Thread_block_(CUDA_programming)#Dimensions
   // Please note that Device query claims following:
   // Max dimension size of a grid size    (x,y,z): (2147483647, 65535, 65535)  
-  int numBlocks = std::min(65535,
-                           ((numOfPoints + pointsPerThread -1) / pointsPerThread
-                             + threadsPerBlock
-                             - 1) / threadsPerBlock
-                          );
+  //int numBlocks = std::min(65535,
+  //                         ((numOfPoints + pointsPerThread -1) / pointsPerThread
+  //                           + threadsPerBlock
+  //                           - 1) / threadsPerBlock
+  //                        );
+
+  int numBlocks = std::min(65535, 
+                           (numOfPoints * threadsPerPoint + threadsPerBlock) / threadsPerBlock);
+
+ 
 
   cudaProfilerStart(); 
 
   arrangeShooting<<<numBlocks, threadsPerBlock>>>(amps,
                                                   subgridSize,
                                                   numOfPoints,
-                                                  pointsPerThread);
+                                                  threadsPerPoint);
 
   cudaProfilerStop();
 
@@ -159,47 +167,96 @@ __global__
 void arrangeShooting(float*    amps,
                      const int subgridSize,
                      const int numOfPoints,
-                     const int pointsPerThread)
+                     const int threadsPerPoint)
 {
   //const thrust::complex<float> z1 = thrust::complex<float>(0.0,0.0);
   const thrust::complex<float> z2 = thrust::complex<float>(params[10],params[11]);
   const thrust::complex<float> z3 = thrust::complex<float>(params[12],params[13]);
  
-  // increment in image plane iteration
-  //const float inc = params[9]/__int2float_rn(subgridSize);
-
   // actual index of a thread
   int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
-  for(int pointIndex = threadIndex * pointsPerThread;
-      pointIndex <  (threadIndex + 1) * pointsPerThread;
-      pointIndex++)
-  {
-    int index = pointIndex;
-    while(index < numOfPoints) // in the case too many threads are launched
-    {
-      thrust::complex<float> sourcePos = thrust::complex<float>(params[7], params[8]);
-      thrust::complex<float> imgPos = thrust::complex<float>(
-                                   tex1Dfetch(collectedPointsTexture,2*index)-params[9]/2,
-                                   tex1Dfetch(collectedPointsTexture,2*index+1)-params[9]/2
-                                                            );
-  
-      for (int i = 0; i < subgridSize; i++)
-      { 
-        imgPos.real(imgPos.real() + params[14]);
-        for (int j = 0; j < subgridSize; j++)
-        {
-          imgPos.imag(imgPos.imag() + params[14]);
-          
-          amps[index] += irs(z2, z3, imgPos, sourcePos); 
-        }
-      }
 
-      index += (blockDim.x * gridDim.x) * pointsPerThread;
+  // sppt are subgrid points per thread
+  const int sppt = subgridSize*subgridSize/threadsPerPoint;
+
+  int pointIndex = (threadIndex + threadsPerPoint -1) / threadsPerPoint;
+  const int subBoxIndex = (threadIndex + threadsPerPoint -1) % threadsPerPoint; 
+
+  // does this always work?
+  const int gridPointShift = (blockDim.x * gridDim.x) / threadsPerPoint;
+
+  while (pointIndex < numOfPoints)
+  {
+    thrust::complex<float> sourcePos = thrust::complex<float>(params[7], params[8]);
+    thrust::complex<float> imgPos = thrust::complex<float>(
+                                 tex1Dfetch(collectedPointsTexture,2*pointIndex)-params[9]/2,
+                                 tex1Dfetch(collectedPointsTexture,2*pointIndex+1)-params[9]/2
+                                                          );
+
+    float tempAmp = 0;
+    thrust::complex<float> tempImgPos; 
+
+    // sgi for subgrid index
+    for(int sgi = subBoxIndex * sppt; sgi < (subBoxIndex + 1) * sppt; sgi++)
+    {
+      tempImgPos.real(imgPos.real() + (sgi % subgridSize) * params[14]);
+      tempImgPos.imag(imgPos.imag() + (sgi / subgridSize) * params[14]);
+      tempAmp += irs(z2, z3, tempImgPos, sourcePos); 
     }
+
+    atomicAdd(&amps[pointIndex], tempAmp);
+
+    pointIndex += gridPointShift;
   }
 
-
 };
+
+
+//__global__
+//void arrangeShooting(float*    amps,
+//                     const int subgridSize,
+//                     const int numOfPoints,
+//                     const int pointsPerThread)
+//{
+//  //const thrust::complex<float> z1 = thrust::complex<float>(0.0,0.0);
+//  const thrust::complex<float> z2 = thrust::complex<float>(params[10],params[11]);
+//  const thrust::complex<float> z3 = thrust::complex<float>(params[12],params[13]);
+// 
+//  // increment in image plane iteration
+//  //const float inc = params[9]/__int2float_rn(subgridSize);
+//
+//  // actual index of a thread
+//  int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+//  for(int pointIndex = threadIndex * pointsPerThread;
+//      pointIndex <  (threadIndex + 1) * pointsPerThread;
+//      pointIndex++)
+//  {
+//    int index = pointIndex;
+//    while(index < numOfPoints) // in the case too many threads are launched
+//    {
+//      thrust::complex<float> sourcePos = thrust::complex<float>(params[7], params[8]);
+//      thrust::complex<float> imgPos = thrust::complex<float>(
+//                                   tex1Dfetch(collectedPointsTexture,2*index)-params[9]/2,
+//                                   tex1Dfetch(collectedPointsTexture,2*index+1)-params[9]/2
+//                                                            );
+//  
+//      for (int i = 0; i < subgridSize; i++)
+//      { 
+//        imgPos.real(imgPos.real() + params[14]);
+//        for (int j = 0; j < subgridSize; j++)
+//        {
+//          imgPos.imag(imgPos.imag() + params[14]);
+//          
+//          amps[index] += irs(z2, z3, imgPos, sourcePos); 
+//        }
+//      }
+//
+//      index += (blockDim.x * gridDim.x) * pointsPerThread;
+//    }
+//  }
+//
+//
+//};
 
 
 __device__
