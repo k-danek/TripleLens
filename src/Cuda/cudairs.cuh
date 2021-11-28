@@ -22,7 +22,8 @@ __global__
 void arrangeShooting(//float*    collectionPoints,
                      float*    amps,
                      const int subGridSize,
-                     const int numOfPoint);
+                     const int numOfPoint,
+                     const int pointsPerThread);
 
 __device__
 float irs(//const thrust::complex<float>& z1,
