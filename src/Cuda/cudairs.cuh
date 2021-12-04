@@ -19,11 +19,18 @@ float getAmpKernel(const std::vector<float>& collectedPoints,
                    double                    imgPixSize);
 
 __global__
-void arrangeShooting(//float*    collectionPoints,
-                     float*    amps,
+void arrangeShooting(float*    amps,
                      const int subGridSize,
                      const int numOfPoint,
                      const int pointsPerThread);
+
+__global__
+void arrangeShootingThreadPerSubgrid(
+                     float*    amps,
+                     const int subGridSize,
+                     const int numOfPoint);
+
+
 
 __device__
 float irs(//const thrust::complex<float>& z1,
