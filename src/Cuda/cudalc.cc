@@ -1,5 +1,7 @@
 #include<cudalc.h>
 
+#define floodFillStep 10
+
 LightCurveCUDA::LightCurveCUDA(
                              double       a,
                              double       b,
@@ -184,38 +186,76 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
     long int nL, nR, nn;
 
     // scan right
-    for (nR = nx+1; nR < _imgPlaneSize; nR++)
+    for (nR = nx+1; nR < _imgPlaneSize; nR+=floodFillStep)
     {
       x = nxToX(nR); 
       
       if (!irsCheck(x,y,sPos))
       {
-        nR--;
+        nR-=floodFillStep;
+        for (int nRFine = nR+1; nRFine < _imgPlaneSize; nRFine++)
+        {
+          x = nxToX(nRFine);
+          if (!irsCheck(x,y,sPos))
+          {
+            nR = nRFine-1;
+            break;
+          }          
+          else
+          {
+            _irsCount++;
+            nR = nRFine;
+            _cudaPointCollector.addPoint(x,y);           
+          }
+        }
         break;
       }
       else
       {
         //_amplification += amp;
-        _irsCount++;
-        _cudaPointCollector.addPoint(x,y);
+        _irsCount+=floodFillStep;
+        for(int nRFine = nR-floodFillStep; nRFine < nR; nRFine++)
+        {
+          x = nxToX(nRFine);
+          _cudaPointCollector.addPoint(x,y);
+        }
       }
     }
 
     // scan left
-    for (nL = nx-1; nL > 0; nL--)
+    for (nL = nx-1; nL > 0; nL-=floodFillStep)
     {
       x = nxToX(nL); 
       
       if (!irsCheck(x,y,sPos))
       {
-        nL++;
+        nL+=floodFillStep;
+        for (int nLFine = nL-1; nLFine >0 ; nLFine--)
+        {
+          x = nxToX(nLFine);
+          if (!irsCheck(x,y,sPos))
+          {
+            nL = nLFine+1;
+            break;
+          }          
+          else
+          {
+            _irsCount++;
+            nL = nLFine;
+            _cudaPointCollector.addPoint(x,y);           
+          }
+        }
         break;
       }
       else
       {
         //_amplification += amp;
-        _irsCount++;
-        _cudaPointCollector.addPoint(x,y);
+        _irsCount+=floodFillStep;
+        for(int nLFine = nL+floodFillStep; nLFine < nL; nLFine--)
+        {
+          x = nxToX(nLFine);
+          _cudaPointCollector.addPoint(x,y);
+        }
       }
 
     }
