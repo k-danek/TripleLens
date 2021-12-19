@@ -26,6 +26,7 @@ LightCurveCUDA::LightCurveCUDA(
   ccc.getCa();
   _getCaBoxes();
   _getImgPlanePars();
+  _cudaPointCollector.updateOrigin(_bottomLeftCornerImg);
 };
 
 
@@ -115,7 +116,7 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
 
     //std::cout << "Finished filling for the seeds\n";
 
-    _amplification += _cudaPointCollector.getAmp();
+    _amplification += _cudaPointCollector.getAmp(amoebae.amoebae);
     cout << "cuda amplification: " << _amplification*_ampScale << " and the count "
          << _irsCount << " and scale " << _ampScale << "\n";
     // As the size of the lcVec is determined at the initialisation of LightCurveIRS class

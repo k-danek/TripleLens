@@ -1,12 +1,12 @@
 #include<cudapointcollector.h>
 
-CudaPointCollector::CudaPointCollector(double          a,
-                                       double          b,
-                                       double          th,
-                                       double          m2,
-                                       double          m3,
-                                       double          sourceSize,
-                                       double          pixelSize
+CudaPointCollector::CudaPointCollector(double               a,
+                                       double               b,
+                                       double               th,
+                                       double               m2,
+                                       double               m3,
+                                       double               sourceSize,
+                                       double               pixelSize
                                       ): LensPar(a, b, th, m2, m3),
                                          _pixelSize(pixelSize)
 {
@@ -60,17 +60,30 @@ void CudaPointCollector::reset()
   _collectedPoints.clear();
 }
 
+//// this is called then I collect enough points
+//double CudaPointCollector::getAmp()
+//{
+//
+//  //std::cout << "getAmp called with " << _numberOfPoints << "points"; 
+//  
+//  double amp = getAmpKernel(_collectedPoints, a, b, th, m2, m3, _sSize, _sX, _sY, _pixelSize);
+//  reset();
+//  return amp;
+//}
+
 // this is called then I collect enough points
-double CudaPointCollector::getAmp()
+double CudaPointCollector::getAmp(amoebae_t& amoebae)
 {
 
   //std::cout << "getAmp called with " << _numberOfPoints << "points"; 
   
-  double amp = getAmpKernel(_collectedPoints, a, b, th, m2, m3, _sSize, _sX, _sY, _pixelSize);
+  double amp = getAmpKernel(amoebae, a, b, th, m2, m3, _sSize, _sX, _sY, _pixelSize, _imgPlaneOrigin);
   reset();
   return amp;
 }
 
 
-
-
+void CudaPointCollector::updateOrigin(std::complex<double> origin)
+{
+  _imgPlaneOrigin = origin;
+}

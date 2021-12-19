@@ -7,13 +7,13 @@
 class CudaPointCollector: public LensPar 
 {
   public:
-    CudaPointCollector(double          a,
-                       double          b,
-                       double          th,
-                       double          m2,
-                       double          m3,
-                       double          sourceSize,
-                       double          pixelSize
+    CudaPointCollector(double                a,
+                       double                b,
+                       double                th,
+                       double                m2,
+                       double                m3,
+                       double                sourceSize,
+                       double                pixelSize
                       );
 
     // Explicitly defining destructor
@@ -30,10 +30,13 @@ class CudaPointCollector: public LensPar
     
     int getNumberOfPoints();
 
+    void updateOrigin(std::complex<double> origin);
+
     void reset();
 
     // calls cuda, synchronises the Cuda, deletes the collected points;
-    double getAmp();
+    //double getAmp();
+    double getAmp(amoebae_t& amoebae);
 
   private:
 
@@ -49,6 +52,8 @@ class CudaPointCollector: public LensPar
 
     // size of an pixel in image plane
     const double _pixelSize;
+
+    std::complex<double> _imgPlaneOrigin;
 };
 
 #endif
