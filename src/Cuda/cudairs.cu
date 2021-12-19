@@ -57,24 +57,53 @@ float getAmpKernel(amoebae_t&                amoeba,
     }
   }
 
+  std::cout << "CUDAIRS:: started preparation with " << numOfNodes << " nodes\n";
+
   // Each pixel will be subdivided into finer grid.
   // subgridSize determines how fine the subgrid should be.
   const int subgridSize = 8;
   
-  float* amps;
   //float* collectedPointsShared;
   //float* collectedPointsDevice;
 
   Node* nodesDevice;
 
   cudaMalloc( (void**)&nodesDevice, numOfNodes*sizeof(Node));
+  cudaMemcpy(nodesDevice,
+             &nodes[0],
+             sizeof(Node)*numOfNodes,
+             cudaMemcpyHostToDevice);
+
 
   //collectedPointsDevice = &collectedPoints[0];
 
   // Allocate Unified Memory – accessible from CPU or GPU
   //cudaMallocManaged(&collectedPointsShared, size*sizeof(float));
   //cudaMallocManaged(&params, 10*sizeof(float));
-  cudaMallocManaged(&amps, numOfNodes*sizeof(float));
+ 
+  float* amps;
+  float* ampsOut;
+  ampsOut = (float*) malloc(sizeof(float)*numOfNodes);
+
+
+
+  std::cout << "amp size = " << sizeof(amps)/sizeof(float) << "\n";
+
+  //float* ampsDevice;
+  cudaMalloc((void**)&amps, numOfNodes*sizeof(float));
+  //cudaMalloc((void**)&ampsDevice, numOfNodes*sizeof(float));
+  // initialize amps
+  for(int i = 0; i < numOfNodes; i++)
+  {
+    ampsOut[i] = 0.0;
+  }
+  cudaMemcpy(amps,
+             ampsOut,
+             sizeof(Node)*numOfNodes,
+             cudaMemcpyHostToDevice);
+
+
+  std::cout << "amp size = " << sizeof(amps)/sizeof(float) << "\n";
 
   float* tempParams = (float*)malloc(sizeof(float)*15);
 
@@ -102,11 +131,6 @@ float getAmpKernel(amoebae_t&                amoeba,
   //           sizeof(float)*size,
   //           cudaMemcpyHostToDevice);
 
-  cudaMemcpy(nodesDevice,
-             &nodes[0],
-             sizeof(Node)*numOfNodes,
-             cudaMemcpyHostToDevice);
-
   // Shifted by half-pixel to safe myself some GPU time
   ImgPlane imgPlane(imgPixSize,
                     real(imgPlaneOrigin)-imgPixSize/2.0,
@@ -132,6 +156,8 @@ float getAmpKernel(amoebae_t&                amoeba,
   // Number of blocks correspons to number of nodes.
   int numBlocks = std::min(65535, numOfNodes);
 
+  std::cout << "Got all the way to kernel call!\n";
+
   cudaProfilerStart(); 
 
   arrangeShootingAmoeba<<<numBlocks, threadsPerBlock>>>(nodesDevice,
@@ -144,20 +170,32 @@ float getAmpKernel(amoebae_t&                amoeba,
 
   cudaDeviceSynchronize();
 
-  double totalAmp = 0.0;
+  cudaMemcpy(ampsOut,amps,numOfNodes*sizeof(float),cudaMemcpyDeviceToHost);
+
+  std::cout << "Have made it beyond the kernel!\n";
+
+  float totalAmp = 0.0;
   for(int i = 0; i < numOfNodes; i++)
   {
-    totalAmp += amps[i];
+    totalAmp += ampsOut[i];
   }
 
+
+  std::cout << "Assigned the amps!\n";
+  std::cout << "amp size = " << sizeof(amps)/sizeof(float) << "\n";
+  
   //cudaUnbindTexture(collectedPointsTexture);
 
   // Free memory
   cudaFree(amps);
+  free(ampsOut);
   //cudaFree(params);
   //cudaFree(collectedPointsShared);
   //cudaFree(collectedPointsDevice);
   cudaFree(nodesDevice);
+
+
+  std::cout << "Freed the memory!\n";
 
   return totalAmp/float(subgridSize*subgridSize);
 };
