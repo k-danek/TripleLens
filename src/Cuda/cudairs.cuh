@@ -91,7 +91,6 @@ float getAmpKernel(amoebae_t&                 amoebae,
 
 __global__
 void arrangeShootingAmoeba(Node*     nodes,
-                           ImgPlane& plane,
                            float*    amps,
                            const int subGridSize,
                            const int numOfNodes);

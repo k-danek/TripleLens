@@ -8,7 +8,7 @@
 #include "cudairs.cuh"
 
 
-__constant__ float params[15];
+__constant__ float params[17];
 //texture<float,cudaTextureType1D,cudaReadModeElementType> collectedPointsTexture;
 
 //const int numberOfCores = 384; 
@@ -57,14 +57,9 @@ float getAmpKernel(amoebae_t&                amoeba,
     }
   }
 
-  std::cout << "CUDAIRS:: started preparation with " << numOfNodes << " nodes\n";
-
   // Each pixel will be subdivided into finer grid.
   // subgridSize determines how fine the subgrid should be.
   const int subgridSize = 8;
-  
-  //float* collectedPointsShared;
-  //float* collectedPointsDevice;
 
   Node* nodesDevice;
 
@@ -73,25 +68,13 @@ float getAmpKernel(amoebae_t&                amoeba,
              &nodes[0],
              sizeof(Node)*numOfNodes,
              cudaMemcpyHostToDevice);
-
-
-  //collectedPointsDevice = &collectedPoints[0];
-
-  // Allocate Unified Memory – accessible from CPU or GPU
-  //cudaMallocManaged(&collectedPointsShared, size*sizeof(float));
-  //cudaMallocManaged(&params, 10*sizeof(float));
  
   float* amps;
   float* ampsOut;
   ampsOut = (float*) malloc(sizeof(float)*numOfNodes);
 
-
-
-  std::cout << "amp size = " << sizeof(amps)/sizeof(float) << "\n";
-
-  //float* ampsDevice;
   cudaMalloc((void**)&amps, numOfNodes*sizeof(float));
-  //cudaMalloc((void**)&ampsDevice, numOfNodes*sizeof(float));
+  
   // initialize amps
   for(int i = 0; i < numOfNodes; i++)
   {
@@ -102,10 +85,7 @@ float getAmpKernel(amoebae_t&                amoeba,
              sizeof(Node)*numOfNodes,
              cudaMemcpyHostToDevice);
 
-
-  std::cout << "amp size = " << sizeof(amps)/sizeof(float) << "\n";
-
-  float* tempParams = (float*)malloc(sizeof(float)*15);
+  float* tempParams = (float*)malloc(sizeof(float)*17);
 
   tempParams[0]  = float(a);          // a
   tempParams[1]  = float(b);          // b
@@ -122,8 +102,10 @@ float getAmpKernel(amoebae_t&                amoeba,
   tempParams[12] = float(b*cos(th));  // z3x
   tempParams[13] = float(b*sin(th));  // z3y
   tempParams[14] = float(imgPixSize/float(subgridSize)); // subgrid increment
+  tempParams[15] = float(imgPlaneOrigin.real()-imgPixSize/2.0); // x-origin of coordinates in image plane 
+  tempParams[16] = float(imgPlaneOrigin.imag()-imgPixSize/2.0); // y-origin of coordinates in image plane
 
-  cudaMemcpyToSymbol(params, tempParams, sizeof(float)*15);
+  cudaMemcpyToSymbol(params, tempParams, sizeof(float)*17);
   free(tempParams);
 
   //cudaMemcpy(collectedPointsDevice,
@@ -156,12 +138,9 @@ float getAmpKernel(amoebae_t&                amoeba,
   // Number of blocks correspons to number of nodes.
   int numBlocks = std::min(65535, numOfNodes);
 
-  std::cout << "Got all the way to kernel call!\n";
-
   cudaProfilerStart(); 
 
   arrangeShootingAmoeba<<<numBlocks, threadsPerBlock>>>(nodesDevice,
-                                                        imgPlane,
                                                         amps,
                                                         subgridSize,
                                                         numOfNodes);
@@ -172,19 +151,11 @@ float getAmpKernel(amoebae_t&                amoeba,
 
   cudaMemcpy(ampsOut,amps,numOfNodes*sizeof(float),cudaMemcpyDeviceToHost);
 
-  std::cout << "Have made it beyond the kernel!\n";
-
   float totalAmp = 0.0;
   for(int i = 0; i < numOfNodes; i++)
   {
     totalAmp += ampsOut[i];
   }
-
-
-  std::cout << "Assigned the amps!\n";
-  std::cout << "amp size = " << sizeof(amps)/sizeof(float) << "\n";
-  
-  //cudaUnbindTexture(collectedPointsTexture);
 
   // Free memory
   cudaFree(amps);
@@ -193,9 +164,6 @@ float getAmpKernel(amoebae_t&                amoeba,
   //cudaFree(collectedPointsShared);
   //cudaFree(collectedPointsDevice);
   cudaFree(nodesDevice);
-
-
-  std::cout << "Freed the memory!\n";
 
   return totalAmp/float(subgridSize*subgridSize);
 };
@@ -252,7 +220,6 @@ float getAmpKernel(amoebae_t&                amoeba,
 // Variable threads per points
 __global__
 void arrangeShootingAmoeba(Node*     nodes,
-                           ImgPlane& imgPlane,
                            float*    amps,
                            const int subgridSize,
                            const int numOfNodes)
@@ -270,14 +237,12 @@ void arrangeShootingAmoeba(Node*     nodes,
   // actual index of a thread
   //int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
 
-  double subgridPixSize = imgPlane.step / __int2double_rn(subgridSize);
-  
   // Make sure these are already shifted to the bottom left corner of a pixel! 
   //
   //threadIdx.x % subgridSize; - subgrid x
   //threadIdx.x / subgridSize; - subgrid y
-  double xShift = imgPlane.originX + __int2float_rn(threadIdx.x % subgridSize)*subgridPixSize;
-  double yShift = imgPlane.originY + __ll2float_rn(gridY)*params[9] + __int2float_rn(threadIdx.x / subgridSize)*subgridPixSize;
+  double xShift = params[15] + __int2float_rn(threadIdx.x % subgridSize)*params[9];
+  double yShift = params[16] + __ll2float_rn(gridY)*params[9] + __int2float_rn(threadIdx.x / subgridSize)*params[9];
 
   thrust::complex<float> sourcePos = thrust::complex<float>(params[7], params[8]);
 
@@ -288,8 +253,8 @@ void arrangeShootingAmoeba(Node*     nodes,
 
     thrust::complex<float> imgPos = thrust::complex<float>(
       // origin + position of the pixel + position of subpixel
-      xShift + __ll2float_rn(gridX)*params[9],
-      yShift
+      __double2float_rn(xShift) + __ll2float_rn(gridX)*params[9],
+      __double2float_rn(yShift)
     );
 
     tempAmp += irs(z2, z3, imgPos, sourcePos);

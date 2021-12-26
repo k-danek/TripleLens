@@ -125,9 +125,6 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
     // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
     // we use looping over the indices rather than push_back.
     lcVec[i] = _amplification*_ampScale;
-
-    std::cout << "Assigned the amp to lc amoeba size was " << amoebae.amoebae.size() << "\n";
-
   }
 
   _hasLightCurve = true;
