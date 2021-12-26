@@ -23,8 +23,8 @@
 #include<lcirs.h>
 #include<imgpoint.h>
 #include<lens.h>
-#include<cudapointcollector.h>
 
+#include "cudairs.cuh"
 
 class LightCurveCUDA: public LightCurveIRS
 {
@@ -57,8 +57,6 @@ class LightCurveCUDA: public LightCurveIRS
     CriticalCurveCaustic ccc;
     Amoeba amoebae;
 
-  private:
-    CudaPointCollector _cudaPointCollector;
 };
 
 #endif                

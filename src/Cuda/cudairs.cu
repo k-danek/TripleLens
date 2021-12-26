@@ -113,12 +113,6 @@ float getAmpKernel(amoebae_t&                amoeba,
   //           sizeof(float)*size,
   //           cudaMemcpyHostToDevice);
 
-  // Shifted by half-pixel to safe myself some GPU time
-  ImgPlane imgPlane(imgPixSize,
-                    real(imgPlaneOrigin)-imgPixSize/2.0,
-                    imag(imgPlaneOrigin-imgPixSize/2.0)
-                   );
-
   // Run kernel on 1M elements on the GPU
   int threadsPerBlock = 1<<6;
 

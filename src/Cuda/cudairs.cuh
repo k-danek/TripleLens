@@ -39,6 +39,8 @@ struct XRange
 typedef std::unordered_map<long int, std::list<XRange>> amoebae_t;
 
 
+#ifndef NODE
+#define NODE
 struct Node 
 {
     long int y;
@@ -52,23 +54,7 @@ struct Node
       xR = inR;
     }
 };
-
-struct ImgPlane
-{
-  double step;
-  double originX;
-  double originY;
-
-  ImgPlane(double inStep, double inOriginX, double inOriginY)
-  {
-    step  = inStep;
-    originX = inOriginX;    
-    originY = inOriginY;
-  }
-
-};
-
-
+#endif
 
 // Kernel
 float getAmpKernel(amoebae_t&                 amoebae,

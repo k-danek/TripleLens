@@ -11,14 +11,7 @@ LightCurveCUDA::LightCurveCUDA(
                              long int     pointsPerRadius = 300
                               ): LightCurveIRS(a, b, th, m2, m3, sourceSize, lcLength, pointsPerRadius),
                                  ccc(lensPar, 500),
-                                 amoebae(pointsPerRadius),
-                                 _cudaPointCollector(a,
-                                                     b,
-                                                     th,
-                                                     m2,
-                                                     m3,
-                                                     sourceSize,
-                                                     sourceSize/double(pointsPerRadius))
+                                 amoebae(pointsPerRadius)
 {
   _lcLength = lcLength;
   _sourceRadius = sourceSize;
@@ -26,7 +19,6 @@ LightCurveCUDA::LightCurveCUDA(
   ccc.getCa();
   _getCaBoxes();
   _getImgPlanePars();
-  _cudaPointCollector.updateOrigin(_bottomLeftCornerImg);
 };
 
 
@@ -99,24 +91,28 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
     _amplification = 0.0;
     _irsCount = 0;
 
-    // Updating point collector for CUDA with new source position
-    _cudaPointCollector.reset();
-    _cudaPointCollector.setSourcePos(pos.real(), pos.imag());
-
     //std::cout << "Just before the floodfill for " << imgPos.size() << " seeds\n";
 
     for(auto imgSeed: imgPos)
     {
       //std::cout << "Started filling for a seed with "
-      //          << _cudaPointCollector.getNumberOfPoints()
-      //          << " points in the collector and "
       //          << _irsCount << " in count \n";
       lineFloodFillCUDA(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
 
     //std::cout << "Finished filling for the seeds\n";
 
-    _amplification += _cudaPointCollector.getAmp(amoebae.amoebae);
+    _amplification += getAmpKernel(amoebae.amoebae,
+                                   a,
+                                   b,
+                                   th,
+                                   m2,
+                                   m3,
+                                   _sourceRadius,
+                                   pos.real(),
+                                   pos.imag(),
+                                   _sourceRadius/double(_pointsPerRadius),
+                                   _bottomLeftCornerImg);
 
     std::cout << "Got back to lcIRS with amplification " << _amplification << "\n";
 
@@ -181,7 +177,6 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
     {
       //_amplification += amp;
       _irsCount++;
-      _cudaPointCollector.addPoint(x,y);
     }
 
     long int nL, nR, nn;
@@ -200,7 +195,6 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
       {
         //_amplification += amp;
         _irsCount++;
-        _cudaPointCollector.addPoint(x,y);
       }
     }
 
@@ -218,7 +212,6 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
       {
         //_amplification += amp;
         _irsCount++;
-        _cudaPointCollector.addPoint(x,y);
       }
 
     }
