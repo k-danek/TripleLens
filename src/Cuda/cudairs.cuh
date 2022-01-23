@@ -88,11 +88,11 @@ void arrangeShootingAmoeba(Node*     nodes,
 //                     const int numOfPoint);
 
 __device__
-float irs(//const thrust::complex<float>& z1,
-          const thrust::complex<float>& z2,
-          const thrust::complex<float>& z3,
-          const thrust::complex<float>& img,
-          const thrust::complex<float>& sourcePos);
+double irs(//const thrust::complex<float>& z1,
+          const thrust::complex<double>& z2,
+          const thrust::complex<double>& z3,
+          const thrust::complex<double>& img,
+          const thrust::complex<double>& sourcePos);
 
 float irsCPU(const float*                  params,
              //const thrust::complex<float>& z1,
