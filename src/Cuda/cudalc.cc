@@ -173,16 +173,16 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
     if (!irsCheck(x,y,sPos)) {
       return;
     }
-    else
-    {
-      //_amplification += amp;
-      _irsCount++;
-    }
+    //else
+    //{
+    //  //_amplification += amp;
+    //  _irsCount++;
+    //}
 
     long int nL, nR, nn;
 
     // scan right
-    for (nR = nx+1; nR < _imgPlaneSize; nR++)
+    for (nR = nx+2; nR < _imgPlaneSize; nR+=2)
     {
       x = nxToX(nR); 
       
@@ -191,15 +191,15 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
         nR--;
         break;
       }
-      else
-      {
-        //_amplification += amp;
-        _irsCount++;
-      }
+      //else
+      //{
+      //  //_amplification += amp;
+      //  _irsCount++;
+      //}
     }
 
     // scan left
-    for (nL = nx-1; nL > 0; nL--)
+    for (nL = nx-2; nL > 0; nL-=2)
     {
       x = nxToX(nL); 
       
@@ -208,11 +208,11 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
         nL++;
         break;
       }
-      else
-      {
-        //_amplification += amp;
-        _irsCount++;
-      }
+      //else
+      //{
+      //  //_amplification += amp;
+      //  _irsCount++;
+      //}
 
     }
 
