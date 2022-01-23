@@ -17,7 +17,7 @@ CUDA_INC_DIR= -I$(CUDA_ROOT_DIR)/include
 NVCC=nvcc
 # Note flag -Ofast as it made execution cca 10 times faster than -O2 on CCC 
 # Flag -fPIC makes o files usable in the shared library
-CUDAFLAGS= --relocatable-device-code=true --compiler-options '-fPIC'
+CUDAFLAGS= --relocatable-device-code=true --compiler-options '-fPIC' -Xptxas -v -O3
 
 
 SOURCE_DIR=./src
@@ -69,7 +69,7 @@ amoeba.o: $(INC_UTILS)/amoeba.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/amoeba.o $(INC_UTILS)/amoeba.cc 
 
 cudalink.o: cudairs.o
-	$(NVCC) -dlink --compiler-options '-fPIC' -o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
+	$(NVCC) $(CUDAFLAGS) -dlink --compiler-options '-fPIC' -o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
 
 cudairs.o: $(INC_CUDA)/cudairs.cuh
 	$(NVCC) -c $(CUDAFLAGS) -dc -o $(BUILD_TARGET)/cudairs.o $(INC_CUDA)/cudairs.cu
