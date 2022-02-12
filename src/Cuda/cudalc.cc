@@ -111,7 +111,7 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
                                    _sourceRadius,
                                    pos.real(),
                                    pos.imag(),
-                                   _sourceRadius/double(_pointsPerRadius),
+                                   _imgPlaneSizeDouble/double(_imgPlaneSize-1.0),
                                    _bottomLeftCornerImg);
 
     std::cout << "Got back to lcIRS with amplification " << _amplification << "\n";
@@ -152,6 +152,8 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
 {
     //cout << "line floodfill run with nx " << nx << " ny " << ny << "\n";
 
+    const int lenghtOfStep = 1;
+
     if(!checked)
     {
       if (ny <= 0 || ny >= _imgPlaneSize)
@@ -173,16 +175,11 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
     if (!irsCheck(x,y,sPos)) {
       return;
     }
-    //else
-    //{
-    //  //_amplification += amp;
-    //  _irsCount++;
-    //}
 
     long int nL, nR, nn;
 
     // scan right
-    for (nR = nx+2; nR < _imgPlaneSize; nR+=2)
+    for (nR = nx+lenghtOfStep; nR < _imgPlaneSize; nR+=lenghtOfStep)
     {
       x = nxToX(nR); 
       
@@ -191,15 +188,10 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
         nR--;
         break;
       }
-      //else
-      //{
-      //  //_amplification += amp;
-      //  _irsCount++;
-      //}
     }
 
     // scan left
-    for (nL = nx-2; nL > 0; nL-=2)
+    for (nL = nx-lenghtOfStep; nL > 0; nL-=lenghtOfStep)
     {
       x = nxToX(nL); 
       
@@ -208,11 +200,6 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
         nL++;
         break;
       }
-      //else
-      //{
-      //  //_amplification += amp;
-      //  _irsCount++;
-      //}
 
     }
 
