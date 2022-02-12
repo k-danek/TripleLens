@@ -70,8 +70,10 @@ float getAmpKernel(amoebae_t&                amoeba,
              cudaMemcpyHostToDevice);
  
   float* amps;
+  double* ampsCPU;
   float* ampsOut;
   ampsOut = (float*) malloc(sizeof(float)*numOfNodes);
+  ampsCPU = (double*) malloc(sizeof(double)*numOfNodes);
 
   cudaMalloc((void**)&amps, numOfNodes*sizeof(float));
   
@@ -79,6 +81,7 @@ float getAmpKernel(amoebae_t&                amoeba,
   for(int i = 0; i < numOfNodes; i++)
   {
     ampsOut[i] = 0.0;
+    ampsCPU[i] = 0.0;
   }
   cudaMemcpy(amps,
              ampsOut,
@@ -101,12 +104,11 @@ float getAmpKernel(amoebae_t&                amoeba,
   tempParams[11] = double(0.0);        // z2y
   tempParams[12] = double(b*cos(th));  // z3x
   tempParams[13] = double(b*sin(th));  // z3y
-  tempParams[14] = double(imgPixSize/float(subgridSize)); // subgrid increment
+  tempParams[14] = double(imgPixSize/double(subgridSize)); // subgrid increment
   tempParams[15] = double(imgPlaneOrigin.real()-imgPixSize/2.0); // x-origin of coordinates in image plane 
   tempParams[16] = double(imgPlaneOrigin.imag()-imgPixSize/2.0); // y-origin of coordinates in image plane
 
   cudaMemcpyToSymbol(params, tempParams, sizeof(double)*17);
-  free(tempParams);
 
   //cudaMemcpy(collectedPointsDevice,
   //           &collectedPoints[0],
@@ -120,17 +122,12 @@ float getAmpKernel(amoebae_t&                amoeba,
   // Supposed size of the number of blocks is 65535.
   // https://en.wikipedia.org/wiki/Thread_block_(CUDA_programming)#Dimensions
   // Please note that Device query claims following:
+  // Max dimension size of a thread block (x,y,z): (1024, 1024, 64)
+  // Max dimension size of a grid size    (x,y,z): (2147483647, 65535, 65535)
 
-  //int numBlocks = std::min(65535, 
-  //                        (numOfPoints * subgridSize * subgridSize + threadsPerBlock)
-  //                        / threadsPerBlock);
-
-  //int numBlocks = std::min(65535, 
-  //                         (numOfNodes + threadsPerBlock)
-  //                         / threadsPerBlock);
 
   // Number of blocks correspons to number of nodes.
-  int numBlocks = std::min(65535, numOfNodes);
+  int numBlocks = std::min(1<<31-1, numOfNodes);
 
   cudaProfilerStart(); 
 
@@ -145,21 +142,36 @@ float getAmpKernel(amoebae_t&                amoeba,
 
   cudaMemcpy(ampsOut,amps,numOfNodes*sizeof(float),cudaMemcpyDeviceToHost);
 
-  float totalAmp = 0.0;
+  double totalAmpCUDA = 0.0;
   for(int i = 0; i < numOfNodes; i++)
   {
-    totalAmp += ampsOut[i];
+    totalAmpCUDA += ampsOut[i];
   }
+
+  std::cout << "total cuda amp =" << totalAmpCUDA/float(subgridSize*subgridSize)*0.000146912 << "\n";
+
+  arrangeShootingCPU(nodes, ampsCPU, tempParams, subgridSize, numOfNodes);
+
+  double totalAmpCPU = 0.0;
+  for(int i = 0; i < numOfNodes; i++)
+  {
+    totalAmpCPU += ampsCPU[i];
+  }
+
+  std::cout << "total cpu amp =" << totalAmpCPU/float(subgridSize*subgridSize)*0.000146912 << "\n";
+  
+  std::cout << "amp difference =" 
+            << (totalAmpCPU-totalAmpCUDA)/float(subgridSize*subgridSize)*0.000146912 
+            << "\n";
 
   // Free memory
   cudaFree(amps);
   free(ampsOut);
-  //cudaFree(params);
-  //cudaFree(collectedPointsShared);
-  //cudaFree(collectedPointsDevice);
+  free(ampsCPU);
+  free(tempParams);
   cudaFree(nodesDevice);
 
-  return totalAmp/float(subgridSize*subgridSize);
+  return totalAmpCUDA/float(subgridSize*subgridSize);
 };
 
 // Variable threads per points
@@ -186,8 +198,8 @@ void arrangeShootingAmoeba(Node*     nodes,
   //
   //threadIdx.x % subgridSize; - subgrid x
   //threadIdx.x / subgridSize; - subgrid y
-  double xShift = params[15] + __int2double_rn(threadIdx.x % subgridSize)*params[9];
-  double yShift = params[16] + __ll2double_rn(gridY)*params[9] + __int2double_rn(threadIdx.x / subgridSize)*params[9];
+  double xShift = params[15] + __int2double_rn(threadIdx.x % subgridSize)*params[14];
+  double yShift = params[16] + __ll2double_rn(gridY)*params[9] + __int2double_rn(threadIdx.x / subgridSize)*params[14];
 
   thrust::complex<double> sourcePos = thrust::complex<double>(params[7], params[8]);
 
@@ -233,19 +245,19 @@ double irs(const thrust::complex<double>& z2,
     //return 1.0/(1.0+r*r);
 };
 
-float irsCPU(const float*                  params,
+double irsCPU(const double*                  params,
              //const thrust::complex<float>& z1,
-             const thrust::complex<float>& z2,
-             const thrust::complex<float>& z3,
-             const thrust::complex<float>& img,
-             const thrust::complex<float>& sourcePos)
+             const std::complex<double>& z2,
+             const std::complex<double>& z3,
+             const std::complex<double>& img,
+             const std::complex<double>& sourcePos)
 {
 
-    thrust::complex<float> impact = img-params[3]/conj(img)
+    std::complex<double> impact = img-params[3]/conj(img)
                                     -params[4]/conj(img-z2)
                                     -params[5]/conj(img-z3);
 
-    float r = thrust::abs(impact-sourcePos)/params[6];
+    float r = std::abs(impact-sourcePos)/params[6];
 
     if(r <= 1.0)
     {
@@ -255,6 +267,53 @@ float irsCPU(const float*                  params,
     {
         return 0.0;
     }
+};
 
-    //return 1.0/(1.0+r*r);
+
+
+void arrangeShootingCPU(std::vector<Node>     nodes,
+                        double*    amps,
+                        double*   params,
+                        const int subgridSize,
+                        const int numOfNodes)
+{
+  //const thrust::complex<float> z1 = thrust::complex<float>(0.0,0.0);
+  const std::complex<double> z2 = std::complex<double>(params[10],params[11]);
+  const std::complex<double> z3 = std::complex<double>(params[12],params[13]);
+
+  const int numOfThreads = subgridSize *subgridSize;
+
+  for(int blockInd = 0; blockInd < numOfNodes; blockInd++)
+  {
+
+    // use blockIdx.x as a node index
+    Node locNode = nodes[blockInd];
+    long int gridY  = locNode.y;
+    long int gridXl = locNode.xL;
+    long int gridXr = locNode.xR; 
+
+    double tempAmp = 0.0;
+
+    for(int threadInd = 0; threadInd < numOfThreads; threadInd++)
+    {
+      double xShift = params[15] + double(threadInd % subgridSize)*params[14];
+      double yShift = params[16] + double(gridY)*params[9] + double(threadInd / subgridSize)*params[14];
+
+      std::complex<double> sourcePos = std::complex<double>(params[7], params[8]);
+
+      for(long int gridX = gridXl; gridX <= gridXr; gridX++)
+      {
+        std::complex<double> imgPos = std::complex<double>(
+          // origin + position of the pixel + position of subpixel
+          xShift + double(gridX)*params[9],
+          yShift
+        );
+
+        tempAmp += double(irsCPU(params, z2, z3, imgPos, sourcePos));
+      }
+    }
+
+    amps[blockInd] += tempAmp;
+
+  }
 };

@@ -101,4 +101,10 @@ float irsCPU(const float*                  params,
              const thrust::complex<float>& img,
              const thrust::complex<float>& sourcePos);
 
+void arrangeShootingCPU(std::vector<Node>     nodes,
+                        double*    amps,
+                        double*   params,
+                        const int subGridSize,
+                        const int numOfNodes);
+
 

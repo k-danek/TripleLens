@@ -102,7 +102,7 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
 
     //std::cout << "Finished filling for the seeds\n";
 
-    _amplification += getAmpKernel(amoebae.amoebae,
+    _amplification = getAmpKernel(amoebae.amoebae,
                                    a,
                                    b,
                                    th,
