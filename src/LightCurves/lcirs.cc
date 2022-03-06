@@ -140,8 +140,6 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
       }  
     }
 
-    //cout << "number of trial seeds: " << imgPos.size() << "\n"; 
-
     // Add up amplification from all the images/seeds
     _amplification = 0.0;
     _irsCount = 0;
@@ -150,7 +148,7 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
     {
       lineFloodFill(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
-    
+
     cout << "irs amplification: " << _amplification*_ampScale << " and the count " << _irsCount
          << " and amp scale " << _ampScale << "\n";
 
@@ -236,15 +234,17 @@ double LightCurveIRS::irs(double imgX,
    // Computationally heavy part, optimise as much as possible!
    complex<double> img(imgX,imgY);  
    complex<double> testSourcePos=img-m1/conj(img-z1)-m2/conj(img-z2)-m3/conj(img-z3);
-   double R = std::abs(testSourcePos-sourcePos);
+   double r = std::abs(testSourcePos-sourcePos);
 
-   if( R < _sourceRadius)
+   if( r < _sourceRadius)
    {
-     double r = R/_sourceRadius; 
-     return sourceBrightness(r);
+     double rn = r/_sourceRadius; 
+     return sourceBrightness(rn);
    }  
    else
+   {
      return 0.0;
+   }
 };
 
 
@@ -310,7 +310,10 @@ void LightCurveIRS::lineFloodFill(long int nx,
     // need to get the y only once as the fill stays withing a line
     double y = nyToY(ny), amp = irs(nxToX(nx), y, sPos); 
 
-    if (amp <= 0.0) return;
+    if (amp <= 0.0)
+    {
+      return;
+    }
     else
     {
       _amplification += amp;

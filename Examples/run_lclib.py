@@ -65,25 +65,31 @@ print("Bounding box cc: ", cc_min, cc_max)
 print("Bounding box ca: ", ca_min, ca_max)
 
 # imgs
-pos_ini_x = 0.0
-pos_ini_y = 0.0
+#pos_ini_x = 0.0
+#pos_ini_y = 0.0
+#pos_fin_x = 1.0
+#pos_fin_y = 0.577
 
-
+# source pos
+pos_ini_x = 0.22
+pos_ini_y = 0.12694
+pos_fin_x = 0.24
+pos_fin_y = 0.13848
 
 # number of steps
-lc_steps = 100
+lc_steps = 5
 source_size = 1e-5
-points_per_radius = 300
+points_per_radius = 2000
 
 lc_point_array = np.zeros(lc_steps, np.double)
 lc_irs_array   = np.zeros(lc_steps, np.double)
 
 lc_irs = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
 
-lc_irs.get_lc_irs(0.0,0.0,1.0,0.577)
+lc_irs.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
 lc_irs.copy_lc(lc_irs_array)
 
-lc_irs.get_lc(0.0,0.0,1.0,0.577)
+lc_irs.get_lc(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
 lc_irs.copy_lc(lc_point_array)
 
 print("Copied LC")

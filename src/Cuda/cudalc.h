@@ -54,9 +54,18 @@ class LightCurveCUDA: public LightCurveIRS
                            complex<double> sPos,
                            bool            checked = false);
 
+    void lineFloodFillIRS(long int        nx,
+                           long int        ny,
+                           complex<double> sPos,
+                           bool            checked = false);
+
     CriticalCurveCaustic ccc;
     Amoeba amoebae;
 
+    // Whole point of using an envelope is to make sure that 
+    // thin parts of the image are included in the amoeba that
+    // is given to cuda filling.
+    double _envelopeRadius;
 };
 
 #endif                

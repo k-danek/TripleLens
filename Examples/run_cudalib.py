@@ -65,14 +65,22 @@ ccc.get_bounding_box(cc_min, cc_max, ca_min, ca_max, 1.5)
 print("Bounding box cc: ", cc_min, cc_max)
 print("Bounding box ca: ", ca_min, ca_max)
 
-# imgs
+# source pos - for very high amplifications
+#pos_ini_x = 0.22
+#pos_ini_y = 0.12694
+#pos_fin_x = 0.24
+#pos_fin_y = 0.13848
+#0.0,0.0,1.0,0.577
+
 pos_ini_x = 0.0
 pos_ini_y = 0.0
+pos_fin_x = 1.0
+pos_fin_y = 0.577
 
 # number of steps
 lc_steps = 100
 source_size = 1e-3
-points_per_radius = 50
+points_per_radius = 30
 
 lc_point_array  = np.zeros(lc_steps, np.double)
 lc_cuda_array   = np.zeros(lc_steps, np.double)
@@ -80,28 +88,28 @@ lc_irs_array    = np.zeros(lc_steps, np.double)
 lc_irs_ac_array = np.zeros(lc_steps, np.double)
 
 lc_cuda   = LC_cuda(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
-lc_irs    = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
-lc_irs_ac = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, 4*points_per_radius)
+lc_irs    = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, 8*points_per_radius)
+lc_irs_ac = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, 16*points_per_radius)
 
 
 temp_temp = time.time()
-lc_cuda.get_lc_cuda(0.0,0.0,1.0,0.577)
+lc_cuda.get_lc_cuda(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
 lc_cuda.copy_lc(lc_cuda_array)
 time_to_cuda = time.time() - temp_temp
 
 temp_temp = time.time()
-lc_irs.get_lc(0.0,0.0,1.0,0.577)
+lc_irs.get_lc(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
 lc_irs.copy_lc(lc_point_array)
 time_to_point = time.time() - temp_temp
 
 temp_temp = time.time()
-lc_irs.get_lc_irs(0.0,0.0,1.0,0.577)
+lc_irs.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
 lc_irs.copy_lc(lc_irs_array)
 time_to_irs = time.time() - temp_temp
 
 
 temp_temp = time.time()
-lc_irs_ac.get_lc_irs(0.0,0.0,1.0,0.577)
+lc_irs_ac.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
 lc_irs_ac.copy_lc(lc_irs_ac_array)
 time_to_irs_ac = time.time() - temp_temp
 
@@ -125,6 +133,7 @@ ax2.text(.7,.85,'Light Curve', horizontalalignment='center',transform=ax2.transA
 ax2.plot(lc_point_array, color='red', label='point')
 ax2.plot(lc_irs_array, color='blue', label='irs')
 ax2.plot(lc_cuda_array, color='green', label='cuda')
+ax2.legend()
 
 ax3 = plt.subplot(424)
 ax3.text(.7,.85,'point vs irs', horizontalalignment='center',transform=ax3.transAxes)
@@ -140,11 +149,11 @@ ax5.plot(lc_cuda_array-lc_irs_array, color='cyan', label='point')
 
 ax6 = plt.subplot(425)
 ax6.text(.7,.85,'precise irs vs cuda', horizontalalignment='center',transform=ax6.transAxes)
-ax6.plot(lc_irs_ac_array-lc_cuda_array, color='black', label='point')
+ax6.plot((lc_irs_ac_array-lc_cuda_array)/lc_irs_ac_array, color='black', label='point')
 
 ax7 = plt.subplot(427)
 ax7.text(.7,.85,'precise irs vs irs', horizontalalignment='center',transform=ax7.transAxes)
-ax7.plot(lc_irs_ac_array-lc_irs_array, color='black', label='point')
+ax7.plot((lc_irs_ac_array-lc_irs_array)/lc_irs_ac_array, color='black', label='point')
 
 
 

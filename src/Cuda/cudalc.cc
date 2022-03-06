@@ -16,6 +16,7 @@ LightCurveCUDA::LightCurveCUDA(
   _lcLength = lcLength;
   _sourceRadius = sourceSize;
   _pointsPerRadius = pointsPerRadius;
+  _envelopeRadius = sourceSize * 1.1;
   ccc.getCa();
   _getCaBoxes();
   _getImgPlanePars();
@@ -85,22 +86,14 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
       }  
     }
 
-    //cout << "number of trial seeds: " << imgPos.size() << "\n"; 
-
     // Add up amplification from all the images/seeds
     _amplification = 0.0;
     _irsCount = 0;
 
-    //std::cout << "Just before the floodfill for " << imgPos.size() << " seeds\n";
-
     for(auto imgSeed: imgPos)
     {
-      //std::cout << "Started filling for a seed with "
-      //          << _irsCount << " in count \n";
       lineFloodFillCUDA(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
-
-    //std::cout << "Finished filling for the seeds\n";
 
     _amplification = getAmpKernel(amoebae.amoebae,
                                    a,
@@ -113,8 +106,6 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
                                    pos.imag(),
                                    _imgPlaneSizeDouble/double(_imgPlaneSize-1.0),
                                    _bottomLeftCornerImg);
-
-    std::cout << "Got back to lcIRS with amplification " << _amplification << "\n";
 
     cout << "cuda amplification: " << _amplification*_ampScale << " and the count "
          << _irsCount << " and scale " << _ampScale << "\n";
@@ -135,9 +126,11 @@ bool LightCurveCUDA::irsCheck(double imgX,
    // Computationally heavy part, optimise as much as possible!
    complex<double> img(imgX,imgY);  
    complex<double> testSourcePos=img-m1/conj(img-z1)-m2/conj(img-z2)-m3/conj(img-z3);
-   double R = std::abs(testSourcePos-sourcePos);
+   double r = std::abs(testSourcePos-sourcePos);
 
-   if( R < _sourceRadius)
+   // Beware.Evelope radius is used instead of source radius.
+   // Resulting amoeba correspons to images of the envelope size.   
+   if( r <= _envelopeRadius)
    {
      return true;
    }  
@@ -145,26 +138,114 @@ bool LightCurveCUDA::irsCheck(double imgX,
    return false;
 };
 
-void LightCurveCUDA::lineFloodFillCUDA(long int nx,
-                                       long int ny,
-                                       complex<double> sPos,
-                                       bool checked)
+void LightCurveCUDA::lineFloodFillIRS(long int nx,
+                                  long int ny,
+                                  complex<double> sPos,
+                                  bool checked)
 {
-    //cout << "line floodfill run with nx " << nx << " ny " << ny << "\n";
-
-    const int lenghtOfStep = 1;
-
     if(!checked)
     {
       if (ny <= 0 || ny >= _imgPlaneSize)
       {
-        //cout << "Row outside image plane: " << ny << " \n";
         return;
       }
 
       if (!amoebae.checkLine(ny, nx))
       {
-        //cout << "Amoebae check failed: " << nx << " , " << ny << " \n";
+        return;
+      }
+    }
+    // need to get the y only once as the fill stays withing a line
+    double y = nyToY(ny), amp = irs(nxToX(nx), y, sPos); 
+
+    if (amp <= 0.0)
+    {
+      return;
+    }
+    else
+    {
+      _amplification += amp;
+      _irsCount++;
+    }
+
+    long int nL, nR, nn;
+
+    // scan right
+    for (nR = nx+1; nR < _imgPlaneSize; nR++)
+    {
+      amp = irs(nxToX(nR), y, sPos);
+      
+      if (amp <= 0.0)
+      {
+        nR--;
+        break;
+      }
+      else
+      {
+        _amplification += amp;
+        _irsCount++;
+      }
+    }
+
+    // scan left
+    for (nL = nx-1; nL > 0; nL--)
+    {
+      amp = irs(nxToX(nL), y, sPos);
+      
+      if (amp <= 0.0)
+      {
+        nL++;
+        break;
+      }
+      else
+      {
+        _amplification += amp;
+        _irsCount++;
+      }
+    }
+
+    amoebae.addNode(nL, nR, ny);
+
+    // trying a good position to move one row up/down
+    nn = nL;
+    // upper line
+    while (nn <= nR) {
+      if (amoebae.checkLineShift(ny+1, nn))
+      {  
+        lineFloodFillIRS(nn, ny+1, sPos, true);
+        nn++;
+      }
+    }
+    nn = nL;
+    // lower line
+    while (nn <= nR) {
+      if (amoebae.checkLineShift(ny-1, nn))
+      {
+        lineFloodFillIRS(nn, ny-1, sPos, true);
+        nn++;
+      }
+    }
+
+    return;
+}
+
+void LightCurveCUDA::lineFloodFillCUDA(long int nx,
+                                       long int ny,
+                                       complex<double> sPos,
+                                       bool checked)
+{
+    const int lenghtOfStep = 5;
+
+    if(!checked)
+    {
+      if (ny <= 0 || ny >= _imgPlaneSize)
+      {
+        cout << "Row outside image plane: " << ny << " \n";
+        return;
+      }
+
+      if (!amoebae.checkLine(ny, nx))
+      {
         return;
       }
     }
@@ -204,10 +285,9 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
     }
 
     amoebae.addNode(nL, nR, ny);
-    //cout << "got out of addNode \n";
+    _irsCount += nR - nL + 1;
 
     // trying a good position to move one row up/down
- 
     nn = nL;
     // upper line
     while (nn <= nR) {
@@ -226,7 +306,6 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
         nn++;
       }
     }
-    //cout << "finished one fill \n";
 
     return;
 }

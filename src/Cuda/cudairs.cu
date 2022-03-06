@@ -41,21 +41,21 @@ float getAmpKernel(amoebae_t&                amoeba,
                    double                    imgPixSize,
                    std::complex<double>      imgPlaneOrigin)
 {
-
-  int size = amoeba.size(); 
-  //int numOfPoints;
-
   std::vector<Node> nodes;
   int numOfNodes = 0;
+  long int numOfAmoebaPoints = 0;
 
   for(auto lines: amoeba)
   {
     for(auto segment: lines.second)
     {
       nodes.push_back(Node(lines.first, segment.xleft, segment.xright));
+      numOfAmoebaPoints += 1 + (segment.xright - segment.xleft);     
       numOfNodes++;
     }
   }
+
+  std::cout << "Copied amoeba with " << numOfAmoebaPoints << " points.\n";
 
   // Each pixel will be subdivided into finer grid.
   // subgridSize determines how fine the subgrid should be.
@@ -73,7 +73,6 @@ float getAmpKernel(amoebae_t&                amoeba,
   double* ampsCPU;
   float* ampsOut;
   ampsOut = (float*) malloc(sizeof(float)*numOfNodes);
-  ampsCPU = (double*) malloc(sizeof(double)*numOfNodes);
 
   cudaMalloc((void**)&amps, numOfNodes*sizeof(float));
   
@@ -81,7 +80,7 @@ float getAmpKernel(amoebae_t&                amoeba,
   for(int i = 0; i < numOfNodes; i++)
   {
     ampsOut[i] = 0.0;
-    ampsCPU[i] = 0.0;
+    //ampsCPU[i] = 0.0;
   }
   cudaMemcpy(amps,
              ampsOut,
@@ -105,8 +104,8 @@ float getAmpKernel(amoebae_t&                amoeba,
   tempParams[12] = double(b*cos(th));  // z3x
   tempParams[13] = double(b*sin(th));  // z3y
   tempParams[14] = double(imgPixSize/double(subgridSize)); // subgrid increment
-  tempParams[15] = double(imgPlaneOrigin.real()-imgPixSize/2.0); // x-origin of coordinates in image plane 
-  tempParams[16] = double(imgPlaneOrigin.imag()-imgPixSize/2.0); // y-origin of coordinates in image plane
+  tempParams[15] = double(imgPlaneOrigin.real()-imgPixSize*(0.5-0.5/double(subgridSize))); // x-origin of coordinates in image plane 
+  tempParams[16] = double(imgPlaneOrigin.imag()-imgPixSize*(0.5-0.5/double(subgridSize))); // y-origin of coordinates in image plane
 
   cudaMemcpyToSymbol(params, tempParams, sizeof(double)*17);
 
@@ -116,7 +115,7 @@ float getAmpKernel(amoebae_t&                amoeba,
   //           cudaMemcpyHostToDevice);
 
   // Run kernel on 1M elements on the GPU
-  int threadsPerBlock = 1<<6;
+  int threadsPerBlock = subgridSize * subgridSize;
 
   // I might easily run out of available blocks per grid.
   // Supposed size of the number of blocks is 65535.
@@ -150,24 +149,10 @@ float getAmpKernel(amoebae_t&                amoeba,
 
   std::cout << "total cuda amp =" << totalAmpCUDA/float(subgridSize*subgridSize)*0.000146912 << "\n";
 
-  arrangeShootingCPU(nodes, ampsCPU, tempParams, subgridSize, numOfNodes);
-
-  double totalAmpCPU = 0.0;
-  for(int i = 0; i < numOfNodes; i++)
-  {
-    totalAmpCPU += ampsCPU[i];
-  }
-
-  std::cout << "total cpu amp =" << totalAmpCPU/float(subgridSize*subgridSize)*0.000146912 << "\n";
-  
-  std::cout << "amp difference =" 
-            << (totalAmpCPU-totalAmpCUDA)/float(subgridSize*subgridSize)*0.000146912 
-            << "\n";
-
   // Free memory
   cudaFree(amps);
   free(ampsOut);
-  free(ampsCPU);
+  //free(ampsCPU);
   free(tempParams);
   cudaFree(nodesDevice);
 
@@ -187,17 +172,17 @@ void arrangeShootingAmoeba(Node*     nodes,
 
   // use blockIdx.x as a node index
   Node locNode = nodes[blockIdx.x];
-  long int gridY  = locNode.y;
-  long int gridXl = locNode.xL;
-  long int gridXr = locNode.xR; 
+  const long int gridY  = locNode.y;
+  const long int gridXl = locNode.xL;
+  const long int gridXr = locNode.xR; 
 
   // actual index of a thread
   //int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
 
   // Make sure these are already shifted to the bottom left corner of a pixel! 
   //
-  //threadIdx.x % subgridSize; - subgrid x
-  //threadIdx.x / subgridSize; - subgrid y
+  //threadIdx.x % subgridSize; that is subgrid x
+  //threadIdx.x / subgridSize; that is subgrid y
   double xShift = params[15] + __int2double_rn(threadIdx.x % subgridSize)*params[14];
   double yShift = params[16] + __ll2double_rn(gridY)*params[9] + __int2double_rn(threadIdx.x / subgridSize)*params[14];
 
@@ -257,7 +242,7 @@ double irsCPU(const double*                  params,
                                     -params[4]/conj(img-z2)
                                     -params[5]/conj(img-z3);
 
-    float r = std::abs(impact-sourcePos)/params[6];
+    double r = std::abs(impact-sourcePos)/params[6];
 
     if(r <= 1.0)
     {
@@ -272,10 +257,10 @@ double irsCPU(const double*                  params,
 
 
 void arrangeShootingCPU(std::vector<Node>     nodes,
-                        double*    amps,
-                        double*   params,
-                        const int subgridSize,
-                        const int numOfNodes)
+                        double*               amps,
+                        double*               params,
+                        const int             subgridSize,
+                        const int             numOfNodes)
 {
   //const thrust::complex<float> z1 = thrust::complex<float>(0.0,0.0);
   const std::complex<double> z2 = std::complex<double>(params[10],params[11]);
