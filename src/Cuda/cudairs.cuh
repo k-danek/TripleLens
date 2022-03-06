@@ -36,9 +36,6 @@ struct XRange
 };
 #endif
 
-typedef std::unordered_map<long int, std::list<XRange>> amoebae_t;
-
-
 #ifndef NODE
 #define NODE
 struct Node 
@@ -56,6 +53,11 @@ struct Node
 };
 #endif
 
+typedef std::unordered_map<long int, std::list<XRange>> amoebae_t;
+
+// This is to be able between single and double precision
+typedef float cudaFloat;
+
 // Kernel
 float getAmpKernel(amoebae_t&                 amoebae,
                    double                     a,
@@ -69,42 +71,28 @@ float getAmpKernel(amoebae_t&                 amoebae,
                    double                     imgPixSize,
                    std::complex<double>       imgPlaneOrigin);
 
-//__global__
-//void arrangeShooting(float*    amps,
-//                     const int subGridSize,
-//                     const int numOfPoint,
-//                     const int pointsPerThread);
-
 __global__
 void arrangeShootingAmoeba(Node*     nodes,
                            float*    amps,
                            const int subGridSize,
                            const int numOfNodes);
 
-//__global__
-//void arrangeShootingThreadPerSubgrid(
-//                     float*    amps,
-//                     const int subGridSize,
-//                     const int numOfPoint);
-
 __device__
-double irs(//const thrust::complex<float>& z1,
-          const thrust::complex<double>& z2,
-          const thrust::complex<double>& z3,
-          const thrust::complex<double>& img,
-          const thrust::complex<double>& sourcePos);
+cudaFloat irs(const thrust::complex<cudaFloat>& z2,
+              const thrust::complex<cudaFloat>& z3,
+              const thrust::complex<cudaFloat>& img,
+              const thrust::complex<cudaFloat>& sourcePos);
 
 float irsCPU(const float*                  params,
-             //const thrust::complex<float>& z1,
              const thrust::complex<float>& z2,
              const thrust::complex<float>& z3,
              const thrust::complex<float>& img,
              const thrust::complex<float>& sourcePos);
 
 void arrangeShootingCPU(std::vector<Node>     nodes,
-                        double*    amps,
-                        double*   params,
-                        const int subGridSize,
-                        const int numOfNodes);
+                        double*               amps,
+                        double*               params,
+                        const int             subGridSize,
+                        const int             numOfNodes);
 
 

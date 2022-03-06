@@ -8,7 +8,7 @@
 #include "cudairs.cuh"
 
 
-__constant__ double params[17];
+__constant__ cudaFloat params[17];
 //texture<float,cudaTextureType1D,cudaReadModeElementType> collectedPointsTexture;
 
 //const int numberOfCores = 384; 
@@ -87,32 +87,27 @@ float getAmpKernel(amoebae_t&                amoeba,
              sizeof(Node)*numOfNodes,
              cudaMemcpyHostToDevice);
 
-  double* tempParams = (double*)malloc(sizeof(double)*17);
+  cudaFloat* tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*17);
 
-  tempParams[0]  = double(a);          // a
-  tempParams[1]  = double(b);          // b
-  tempParams[2]  = double(th);         // th
-  tempParams[3]  = double(1.0-m2-m3);  // m1
-  tempParams[4]  = double(m2);         // m2
-  tempParams[5]  = double(m3);         // m3
-  tempParams[6]  = double(sourceSize); // sourceSize
-  tempParams[7]  = double(sourcePosX); // source position X
-  tempParams[8]  = double(sourcePosY); // source position Y
-  tempParams[9]  = double(imgPixSize); // size of pixel
-  tempParams[10] = double(a);          // z2x
-  tempParams[11] = double(0.0);        // z2y
-  tempParams[12] = double(b*cos(th));  // z3x
-  tempParams[13] = double(b*sin(th));  // z3y
-  tempParams[14] = double(imgPixSize/double(subgridSize)); // subgrid increment
-  tempParams[15] = double(imgPlaneOrigin.real()-imgPixSize*(0.5-0.5/double(subgridSize))); // x-origin of coordinates in image plane 
-  tempParams[16] = double(imgPlaneOrigin.imag()-imgPixSize*(0.5-0.5/double(subgridSize))); // y-origin of coordinates in image plane
+  tempParams[0]  = cudaFloat(a);          // a
+  tempParams[1]  = cudaFloat(b);          // b
+  tempParams[2]  = cudaFloat(th);         // th
+  tempParams[3]  = cudaFloat(1.0-m2-m3);  // m1
+  tempParams[4]  = cudaFloat(m2);         // m2
+  tempParams[5]  = cudaFloat(m3);         // m3
+  tempParams[6]  = cudaFloat(sourceSize); // sourceSize
+  tempParams[7]  = cudaFloat(sourcePosX); // source position X
+  tempParams[8]  = cudaFloat(sourcePosY); // source position Y
+  tempParams[9]  = cudaFloat(imgPixSize); // size of pixel
+  tempParams[10] = cudaFloat(a);          // z2x
+  tempParams[11] = cudaFloat(0.0);        // z2y
+  tempParams[12] = cudaFloat(b*cos(th));  // z3x
+  tempParams[13] = cudaFloat(b*sin(th));  // z3y
+  tempParams[14] = cudaFloat(imgPixSize/double(subgridSize)); // subgrid increment
+  tempParams[15] = cudaFloat(imgPlaneOrigin.real()-imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // x-origin of coordinates in image plane 
+  tempParams[16] = cudaFloat(imgPlaneOrigin.imag()-imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // y-origin of coordinates in image plane
 
-  cudaMemcpyToSymbol(params, tempParams, sizeof(double)*17);
-
-  //cudaMemcpy(collectedPointsDevice,
-  //           &collectedPoints[0],
-  //           sizeof(float)*size,
-  //           cudaMemcpyHostToDevice);
+  cudaMemcpyToSymbol(params, tempParams, sizeof(cudaFloat)*17);
 
   // Run kernel on 1M elements on the GPU
   int threadsPerBlock = subgridSize * subgridSize;
@@ -141,13 +136,13 @@ float getAmpKernel(amoebae_t&                amoeba,
 
   cudaMemcpy(ampsOut,amps,numOfNodes*sizeof(float),cudaMemcpyDeviceToHost);
 
-  double totalAmpCUDA = 0.0;
+  cudaFloat totalAmpCUDA = 0.0;
   for(int i = 0; i < numOfNodes; i++)
   {
     totalAmpCUDA += ampsOut[i];
   }
 
-  std::cout << "total cuda amp =" << totalAmpCUDA/float(subgridSize*subgridSize)*0.000146912 << "\n";
+  std::cout << "total cuda amp =" << totalAmpCUDA/cudaFloat(subgridSize*subgridSize)*0.000146912 << "\n";
 
   // Free memory
   cudaFree(amps);
@@ -156,7 +151,7 @@ float getAmpKernel(amoebae_t&                amoeba,
   free(tempParams);
   cudaFree(nodesDevice);
 
-  return totalAmpCUDA/float(subgridSize*subgridSize);
+  return totalAmpCUDA/cudaFloat(subgridSize*subgridSize);
 };
 
 // Variable threads per points
@@ -166,9 +161,8 @@ void arrangeShootingAmoeba(Node*     nodes,
                            const int subgridSize,
                            const int numOfNodes)
 {
-  //const thrust::complex<float> z1 = thrust::complex<float>(0.0,0.0);
-  const thrust::complex<double> z2 = thrust::complex<double>(params[10],params[11]);
-  const thrust::complex<double> z3 = thrust::complex<double>(params[12],params[13]);
+  const thrust::complex<cudaFloat> z2 = thrust::complex<cudaFloat>(params[10],params[11]);
+  const thrust::complex<cudaFloat> z3 = thrust::complex<cudaFloat>(params[12],params[13]);
 
   // use blockIdx.x as a node index
   Node locNode = nodes[blockIdx.x];
@@ -186,7 +180,7 @@ void arrangeShootingAmoeba(Node*     nodes,
   double xShift = params[15] + __int2double_rn(threadIdx.x % subgridSize)*params[14];
   double yShift = params[16] + __ll2double_rn(gridY)*params[9] + __int2double_rn(threadIdx.x / subgridSize)*params[14];
 
-  thrust::complex<double> sourcePos = thrust::complex<double>(params[7], params[8]);
+  thrust::complex<cudaFloat> sourcePos = thrust::complex<cudaFloat>(params[7], params[8]);
 
   double tempAmp = 0.0;
 
@@ -202,21 +196,23 @@ void arrangeShootingAmoeba(Node*     nodes,
     tempAmp += irs(z2, z3, imgPos, sourcePos);
   }
 
+  // For sm_30 there is no atomicAdd that would accept doubles.
+  // Change this if you evet lay your hands on sm_60.
   atomicAdd(&amps[blockIdx.x], __double2float_rn(tempAmp));
 };
 
 __device__
-double irs(const thrust::complex<double>& z2,
-           const thrust::complex<double>& z3,
-           const thrust::complex<double>& img,
-           const thrust::complex<double>& sourcePos)
+cudaFloat irs(const thrust::complex<cudaFloat>& z2,
+              const thrust::complex<cudaFloat>& z3,
+              const thrust::complex<cudaFloat>& img,
+              const thrust::complex<cudaFloat>& sourcePos)
 {
 
-    thrust::complex<double> impact = img-params[3]/conj(img)
+    thrust::complex<cudaFloat> impact = img-params[3]/conj(img)
                                     -params[4]/conj(img-z2)
                                     -params[5]/conj(img-z3);
 
-    double r = thrust::abs(impact-sourcePos)/params[6];
+    cudaFloat r = thrust::abs(impact-sourcePos)/params[6];
 
     if(r <= 1.0)
     {
@@ -226,8 +222,6 @@ double irs(const thrust::complex<double>& z2,
     {
         return 0.0;
     }
-
-    //return 1.0/(1.0+r*r);
 };
 
 double irsCPU(const double*                  params,
