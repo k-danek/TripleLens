@@ -95,4 +95,19 @@ void arrangeShootingCPU(std::vector<Node>     nodes,
                         const int             subGridSize,
                         const int             numOfNodes);
 
+class CudaOrchestrator
+{
+  public:
+    // Synchronises streams and returns the amp
+    // It should be called before subsequent call to CUDA
+    cudaFloat getAmp();
 
+    bool initialized = false;
+  private:
+    // Using two stream as there are two actions that can happen in paralel:
+    // 1. Copying of data
+    // 2. Actual calculation  
+    cudaStream_t* streamA, streamB; 
+
+
+};

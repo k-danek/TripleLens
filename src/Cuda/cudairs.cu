@@ -63,16 +63,30 @@ float getAmpKernel(amoebae_t&                amoeba,
 
   Node* nodesDevice;
 
+  Node* nodesPinned;
+  cudaHostAlloc((void**)& nodesPinned,
+                sizeof(Node)*numOfNodes,
+                cudaHostAllocDefault);
+
+  nodesPinned = &nodes[0];
+
+  // Registed the nodes as cuda-pinned memory.
+  //cudaHostRegister(&nodes[0],
+  //                 sizeof(Node)*numOfNodes,
+  //                 cudaHostRegisterPortable); 
+
   cudaMalloc( (void**)&nodesDevice, numOfNodes*sizeof(Node));
   cudaMemcpy(nodesDevice,
-             &nodes[0],
+             nodesPinned,
              sizeof(Node)*numOfNodes,
              cudaMemcpyHostToDevice);
  
   float* amps;
   double* ampsCPU;
   float* ampsOut;
-  ampsOut = (float*) malloc(sizeof(float)*numOfNodes);
+
+  // Allocating in pinned memory
+  cudaHostAlloc( (void**)&ampsOut,sizeof(float)*numOfNodes, cudaHostAllocDefault);
 
   cudaMalloc((void**)&amps, numOfNodes*sizeof(float));
   
@@ -146,7 +160,8 @@ float getAmpKernel(amoebae_t&                amoeba,
 
   // Free memory
   cudaFree(amps);
-  free(ampsOut);
+  cudaFreeHost(ampsOut);
+  cudaFreeHost(nodesPinned);
   //free(ampsCPU);
   free(tempParams);
   cudaFree(nodesDevice);
