@@ -41,8 +41,10 @@ class LightCurveCUDA: public LightCurveIRS
                   );
     
     void getLCCUDA(complex<double> startPos,
-                      complex<double> endPos 
-                     );
+                   complex<double> endPos 
+                  );
+
+    std::vector<complex<double>> getSeeds(complex<double> pos);
 
     bool irsCheck(double imgX,
                   double imgY,

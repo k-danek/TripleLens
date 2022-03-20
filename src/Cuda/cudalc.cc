@@ -22,34 +22,14 @@ LightCurveCUDA::LightCurveCUDA(
   _getImgPlanePars();
 };
 
-
-void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
-                               complex<double> endPoint
-                              )
+std::vector<complex<double>> LightCurveCUDA::getSeeds(complex<double> pos)
 {
-  
-  cout << "IRS called with imgPlaneSize:" << _imgPlaneSize << "\n";
-  cout << "IRS called with sourceRadius:" << _sourceRadius << "\n";
-  cout << "IRS called with _imgPlaneSizeDouble:" << _imgPlaneSizeDouble << "\n";
-  cout << "IRS called with _ampScale:" << _ampScale << "\n";
-  
-  complex<double> pos = startPoint;
-
-  // Looping over source positions
-  for(unsigned int i = 0; i <= _lcLength; i++)
-  {
-    //pos = (endPoint-startPoint)*(i/(_lcLength-1.0));
-    pos = startPoint + (endPoint-startPoint)*(double(i)/double(_lcLength));
-    cout << "started pos:" << i << ", (" << pos.real()
-         << "," << pos.imag() <<")\n";
+    // Get images for the image position
     vector<complex<double>> imgPos = _pointImages.getImages(pos);
-    complex<double> trialPoint;
+
     bool pointTaken = false;
+    complex<double> trialPoint;
 
-    // erase amoeba by initialising it again.
-    amoebae = Amoeba(_imgPlaneSize);
-
-    // this whole bit can be in an additional method
     for(unsigned int rootInd = 0; rootInd < 6; rootInd++)
     {
       // check if the point is in the caustic box
@@ -86,11 +66,42 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
       }  
     }
 
+    return imgPos;
+}
+
+
+void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
+                               complex<double> endPoint
+                              )
+{
+  
+  cout << "IRS called with imgPlaneSize:" << _imgPlaneSize << "\n";
+  cout << "IRS called with sourceRadius:" << _sourceRadius << "\n";
+  cout << "IRS called with _imgPlaneSizeDouble:" << _imgPlaneSizeDouble << "\n";
+  cout << "IRS called with _ampScale:" << _ampScale << "\n";
+  
+  complex<double> pos = startPoint;
+
+  // Looping over source positions
+  for(unsigned int i = 0; i <= _lcLength; i++)
+  {
+    //pos = (endPoint-startPoint)*(i/(_lcLength-1.0));
+    pos = startPoint + (endPoint-startPoint)*(double(i)/double(_lcLength));
+    cout << "started pos:" << i << ", (" << pos.real()
+         << "," << pos.imag() <<")\n";
+    //bool pointTaken = false;
+
+    // This includes both images of source center and source-caustic intersections
+    vector<complex<double>> imgSeeds = getSeeds(pos);
+
+    // erase amoeba by initialising it again.
+    amoebae = Amoeba(_imgPlaneSize);
+
     // Add up amplification from all the images/seeds
     _amplification = 0.0;
     _irsCount = 0;
 
-    for(auto imgSeed: imgPos)
+    for(auto imgSeed: imgSeeds)
     {
       lineFloodFillCUDA(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
