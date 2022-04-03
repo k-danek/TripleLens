@@ -41,6 +41,11 @@ float getAmpKernel(amoebae_t&                amoeba,
                    double                    imgPixSize,
                    std::complex<double>      imgPlaneOrigin)
 {
+
+  // Each pixel will be subdivided into finer grid.
+  // subgridSize determines how fine the subgrid should be.
+  const int subgridSize = 8;
+
   std::vector<Node> nodes;
   int numOfNodes = 0;
   long int numOfAmoebaPoints = 0;
@@ -60,11 +65,32 @@ float getAmpKernel(amoebae_t&                amoeba,
 
   std::cout << "Copied amoeba with " << numOfAmoebaPoints << " points.\n";
 
-  // Each pixel will be subdivided into finer grid.
-  // subgridSize determines how fine the subgrid should be.
-  const int subgridSize = 8;
+  cudaFloat* tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*17);
+
+  tempParams[0]  = cudaFloat(a);          // a
+  tempParams[1]  = cudaFloat(b);          // b
+  tempParams[2]  = cudaFloat(th);         // th
+  tempParams[3]  = cudaFloat(1.0-m2-m3);  // m1
+  tempParams[4]  = cudaFloat(m2);         // m2
+  tempParams[5]  = cudaFloat(m3);         // m3
+  tempParams[6]  = cudaFloat(sourceSize); // sourceSize
+  tempParams[7]  = cudaFloat(sourcePosX); // source position X
+  tempParams[8]  = cudaFloat(sourcePosY); // source position Y
+  tempParams[9]  = cudaFloat(imgPixSize); // size of pixel
+  tempParams[10] = cudaFloat(a);          // z2x
+  tempParams[11] = cudaFloat(0.0);        // z2y
+  tempParams[12] = cudaFloat(b*cos(th));  // z3x
+  tempParams[13] = cudaFloat(b*sin(th));  // z3y
+  tempParams[14] = cudaFloat(imgPixSize/double(subgridSize)); // subgrid increment
+  tempParams[15] = cudaFloat(imgPlaneOrigin.real()-imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // x-origin of coordinates in image plane 
+  tempParams[16] = cudaFloat(imgPlaneOrigin.imag()-imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // y-origin of coordinates in image plane
+
+  cudaMemcpyToSymbol(params, tempParams, sizeof(cudaFloat)*17);
+
 
   cudaStream_t streamA, streamB;
+  cudaStreamCreate(&streamA);
+  cudaStreamCreate(&streamB);
 
   Node* nodesDevice; 
   Node* nodesDeviceA;
@@ -87,20 +113,10 @@ float getAmpKernel(amoebae_t&                amoeba,
     nodesPinnedB[bInd] = nodes[bInd];
   }
 
-  //nodesPinned = &nodes[0];
-
-  // Registed the nodes as cuda-pinned memory.
-  //cudaHostRegister(&nodes[0],
-  //                 sizeof(Node)*numOfNodes,
-  //                 cudaHostRegisterPortable); 
-
   //cudaMalloc( (void**)&nodesDevice, numOfNodes*sizeof(Node));
   cudaMalloc( (void**)&nodesDeviceA, halfSizeA*sizeof(Node));
   cudaMalloc( (void**)&nodesDeviceB, halfSizeB*sizeof(Node));
-  //cudaMemcpy(nodesDevice,
-  //           nodesPinned,
-  //           sizeof(Node)*numOfNodes,
-  //           cudaMemcpyHostToDevice);
+
   cudaMemcpyAsync(nodesDeviceA,
                   nodesPinnedA,
                   sizeof(Node)*halfSizeA,
@@ -142,38 +158,19 @@ float getAmpKernel(amoebae_t&                amoeba,
   //           sizeof(Node)*numOfNodes,
   //           cudaMemcpyHostToDevice);
 
-  cudaMemcpyAsync(ampsA,
-                  ampsOutA,
-                  sizeof(Node)*halfSizeA,
-                  cudaMemcpyHostToDevice,
-                  streamA);
-  cudaMemcpyAsync(ampsB,
-                  ampsOutB,
-                  sizeof(Node)*halfSizeB,
-                  cudaMemcpyHostToDevice,
-                  streamB);
+  // I don't need to copy over empty arrays
+  //cudaMemcpyAsync(ampsA,
+  //                ampsOutA,
+  //                sizeof(Node)*halfSizeA,
+  //                cudaMemcpyHostToDevice,
+  //                streamA);
+  //cudaMemcpyAsync(ampsB,
+  //                ampsOutB,
+  //                sizeof(Node)*halfSizeB,
+  //                cudaMemcpyHostToDevice,
+  //                streamB);
 
-  cudaFloat* tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*17);
-
-  tempParams[0]  = cudaFloat(a);          // a
-  tempParams[1]  = cudaFloat(b);          // b
-  tempParams[2]  = cudaFloat(th);         // th
-  tempParams[3]  = cudaFloat(1.0-m2-m3);  // m1
-  tempParams[4]  = cudaFloat(m2);         // m2
-  tempParams[5]  = cudaFloat(m3);         // m3
-  tempParams[6]  = cudaFloat(sourceSize); // sourceSize
-  tempParams[7]  = cudaFloat(sourcePosX); // source position X
-  tempParams[8]  = cudaFloat(sourcePosY); // source position Y
-  tempParams[9]  = cudaFloat(imgPixSize); // size of pixel
-  tempParams[10] = cudaFloat(a);          // z2x
-  tempParams[11] = cudaFloat(0.0);        // z2y
-  tempParams[12] = cudaFloat(b*cos(th));  // z3x
-  tempParams[13] = cudaFloat(b*sin(th));  // z3y
-  tempParams[14] = cudaFloat(imgPixSize/double(subgridSize)); // subgrid increment
-  tempParams[15] = cudaFloat(imgPlaneOrigin.real()-imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // x-origin of coordinates in image plane 
-  tempParams[16] = cudaFloat(imgPlaneOrigin.imag()-imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // y-origin of coordinates in image plane
-
-  cudaMemcpyToSymbol(params, tempParams, sizeof(cudaFloat)*17);
+  
 
   // Run kernel on 1M elements on the GPU
   int threadsPerBlock = subgridSize * subgridSize;
@@ -210,7 +207,7 @@ float getAmpKernel(amoebae_t&                amoeba,
                                                                      subgridSize,
                                                                      halfSizeB);
 
-  cudaProfilerStop();
+  //cudaProfilerStop();
 
   //cudaDeviceSynchronize();
 
@@ -245,7 +242,8 @@ float getAmpKernel(amoebae_t&                amoeba,
   cudaFreeHost(nodesPinnedB);
   //free(ampsCPU);
   free(tempParams);
-  cudaFree(nodesDevice);
+  cudaFree(nodesDeviceA);
+  cudaFree(nodesDeviceB);
   cudaStreamDestroy(streamA);
   cudaStreamDestroy(streamB);
 
