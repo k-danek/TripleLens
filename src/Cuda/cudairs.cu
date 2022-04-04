@@ -46,25 +46,6 @@ float getAmpKernel(amoebae_t&                amoeba,
   // subgridSize determines how fine the subgrid should be.
   const int subgridSize = 8;
 
-  std::vector<Node> nodes;
-  int numOfNodes = 0;
-  long int numOfAmoebaPoints = 0;
-
-  for(auto lines: amoeba)
-  {
-    for(auto segment: lines.second)
-    {
-      nodes.push_back(Node(lines.first, segment.xleft, segment.xright));
-      numOfAmoebaPoints += 1 + (segment.xright - segment.xleft);     
-      numOfNodes++;
-    }
-  }
-
-  int halfSizeA = numOfNodes / 2 + numOfNodes % 2;
-  int halfSizeB = numOfNodes; 
-
-  std::cout << "Copied amoeba with " << numOfAmoebaPoints << " points.\n";
-
   cudaFloat* tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*17);
 
   tempParams[0]  = cudaFloat(a);          // a
@@ -87,93 +68,24 @@ float getAmpKernel(amoebae_t&                amoeba,
 
   cudaMemcpyToSymbol(params, tempParams, sizeof(cudaFloat)*17);
 
+  std::vector<Node> nodes;
+  int numOfNodes = 0;
+  long int numOfAmoebaPoints = 0;
 
-  cudaStream_t streamA, streamB;
-  cudaStreamCreate(&streamA);
-  cudaStreamCreate(&streamB);
-
-  Node* nodesDevice; 
-  Node* nodesDeviceA;
-  Node* nodesDeviceB;
-
-  Node* nodesPinnedA;
-  Node* nodesPinnedB;
-  cudaHostAlloc((void**)& nodesPinnedA,
-                sizeof(Node)*halfSizeA,
-                cudaHostAllocDefault);
-
-  cudaHostAlloc((void**)& nodesPinnedB,
-                sizeof(Node)*halfSizeB,
-                cudaHostAllocDefault);
-
-  for(int i = 0; i < halfSizeA; i++)
+  for(auto lines: amoeba)
   {
-    nodesPinnedA[i] = nodes[i];
-    int bInd = numOfNodes-1-i;
-    nodesPinnedB[bInd] = nodes[bInd];
+    for(auto segment: lines.second)
+    {
+      nodes.push_back(Node(lines.first, segment.xleft, segment.xright));
+      numOfAmoebaPoints += 1 + (segment.xright - segment.xleft);     
+      numOfNodes++;
+    }
   }
 
-  //cudaMalloc( (void**)&nodesDevice, numOfNodes*sizeof(Node));
-  cudaMalloc( (void**)&nodesDeviceA, halfSizeA*sizeof(Node));
-  cudaMalloc( (void**)&nodesDeviceB, halfSizeB*sizeof(Node));
-
-  cudaMemcpyAsync(nodesDeviceA,
-                  nodesPinnedA,
-                  sizeof(Node)*halfSizeA,
-                  cudaMemcpyHostToDevice,
-                  streamA);
-  cudaMemcpyAsync(nodesDeviceB,
-                  nodesPinnedB,
-                  sizeof(Node)*halfSizeB,
-                  cudaMemcpyHostToDevice,
-                  streamB);
- 
-  float *ampsA, *ampsB;
-  double* ampsCPU;
-  float *ampsOutA, *ampsOutB;
-
-  // Allocating in pinned memory
-  cudaHostAlloc((void**)&ampsOutA,sizeof(float)*halfSizeA, cudaHostAllocDefault);
-  cudaHostAlloc((void**)&ampsOutB,sizeof(float)*halfSizeB, cudaHostAllocDefault);
-
-  cudaMalloc((void**)&ampsA, halfSizeA*sizeof(float));
-  cudaMalloc((void**)&ampsB, halfSizeB*sizeof(float));
-  
-  // initialize amps
-  //for(int i = 0; i < numOfNodes; i++)
-  //{
-  //  ampsOut[i] = 0.0;
-  //  //ampsCPU[i] = 0.0;
-  //}
-
-  for(int i = 0; i < halfSizeA; i++)
-  {
-    ampsOutA[i] = 0.0;
-    int bInd = numOfNodes-1-i;
-    ampsOutB[bInd] = 0.0;
-  }
-
-  //cudaMemcpy(amps,
-  //           ampsOut,
-  //           sizeof(Node)*numOfNodes,
-  //           cudaMemcpyHostToDevice);
-
-  // I don't need to copy over empty arrays
-  //cudaMemcpyAsync(ampsA,
-  //                ampsOutA,
-  //                sizeof(Node)*halfSizeA,
-  //                cudaMemcpyHostToDevice,
-  //                streamA);
-  //cudaMemcpyAsync(ampsB,
-  //                ampsOutB,
-  //                sizeof(Node)*halfSizeB,
-  //                cudaMemcpyHostToDevice,
-  //                streamB);
-
-  
-
-  // Run kernel on 1M elements on the GPU
-  int threadsPerBlock = subgridSize * subgridSize;
+  cudaStream_t streamA, streamB, streamC;
+  cudaStreamCreateWithFlags(&streamA,cudaStreamNonBlocking);
+  cudaStreamCreateWithFlags(&streamB,cudaStreamNonBlocking);
+  cudaStreamCreateWithFlags(&streamC,cudaStreamNonBlocking);
 
   // I might easily run out of available blocks per grid.
   // Supposed size of the number of blocks is 65535.
@@ -181,71 +93,121 @@ float getAmpKernel(amoebae_t&                amoeba,
   // Please note that Device query claims following:
   // Max dimension size of a thread block (x,y,z): (1024, 1024, 64)
   // Max dimension size of a grid size    (x,y,z): (2147483647, 65535, 65535)
-
-
-  // Number of blocks correspons to number of nodes.
-  // int numBlocks = std::min(1<<31-1, numOfNodes);
-  int numBlocksA = std::min(1<<31-1, halfSizeA);
-  int numBlocksB = std::min(1<<31-1, halfSizeB);
-
-  cudaProfilerStart(); 
-
-  //arrangeShootingAmoeba<<<numBlocks, threadsPerBlock>>>(nodesDevice,
-  //                                                      amps,
-  //                                                      subgridSize,
-  //                                                      numOfNodes);
-
-  // A part
-  arrangeShootingAmoeba<<<numBlocksA, threadsPerBlock, 0, streamA>>>(nodesDeviceA,
-                                                                     ampsA,
-                                                                     subgridSize,
-                                                                     halfSizeA);
-
-  // B part
-  arrangeShootingAmoeba<<<numBlocksB, threadsPerBlock, 0, streamB>>>(nodesDeviceB,
-                                                                     ampsB,
-                                                                     subgridSize,
-                                                                     halfSizeB);
-
-  //cudaProfilerStop();
-
-  //cudaDeviceSynchronize();
-
-  //cudaMemcpy(ampsOut,amps,numOfNodes*sizeof(float),cudaMemcpyDeviceToHost);
-  // A part
-  cudaMemcpyAsync(ampsOutA,ampsA,halfSizeA*sizeof(float),cudaMemcpyDeviceToHost, streamA);
+  // It equals number of blocks used for a single GPU execution. 
+  const int numOfBlocks = 128;
   
-  // B part
-  cudaMemcpyAsync(ampsOutB,ampsB,halfSizeB*sizeof(float),cudaMemcpyDeviceToHost, streamB);
+  // Segment size is a number of nodes put into buffer for calculation with the streams.
+  const int segmentSize = 3 * numOfBlocks;
+
+  const int leftOverNodes = numOfNodes % segmentSize;
+  // Adding number of dummy nodes in order to keep 
+  const int numOfNodesExtended = numOfNodes + (segmentSize - leftOverNodes);
+
+  std::cout << "Copied amoeba with " << numOfAmoebaPoints << " points. Segment size is " 
+            << segmentSize << " .\n"
+            << "Left over after segmentaion is " << numOfNodesExtended % segmentSize
+            << ", number of segments is " << numOfNodes / segmentSize << "\n";
+
+  Node* nodesDeviceA; 
+  Node* nodesDeviceB; 
+  Node* nodesDeviceC; 
+
+  Node* nodesHost;
+
+  float *ampsDeviceA, *ampsDeviceB, *ampsDeviceC;
+  float *ampsHost;
+
+  cudaHostAlloc((void**)& nodesHost,
+                sizeof(Node)*numOfNodesExtended,
+                cudaHostAllocDefault);
+
+  // TODO: replace this with actual one-structure directly from amoeba
+  for(int i = 0; i < numOfNodes; i++)
+  {
+    nodesHost[i] = nodes[i];
+  }
+  for(int i = numOfNodes; i < numOfNodesExtended; i++)
+  {
+    nodesHost[i] = Node(0,0,0);
+  }
+
+  // Allocation of device buffers
+  cudaMalloc((void**)&nodesDeviceA, numOfBlocks*sizeof(Node));
+  cudaMalloc((void**)&nodesDeviceB, numOfBlocks*sizeof(Node));
+  cudaMalloc((void**)&nodesDeviceC, numOfBlocks*sizeof(Node));
+
+  // Allocating in pinned memory
+  // Always check whether these need to be initialized correctly. 
+  cudaHostAlloc((void**)&ampsHost,sizeof(float)*numOfNodesExtended, cudaHostAllocDefault);
+
+  // Allocatin device buffers
+  cudaMalloc((void**)&ampsDeviceA, numOfBlocks*sizeof(float));
+  cudaMalloc((void**)&ampsDeviceB, numOfBlocks*sizeof(float));
+  cudaMalloc((void**)&ampsDeviceC, numOfBlocks*sizeof(float));
+
+  // Run kernel on 1M elements on the GPU
+  const int threadsPerBlock = subgridSize * subgridSize;
+
+  // Filling the stream queues
+  for(int i = 0; i < numOfNodesExtended; i += segmentSize)
+  {
+    // copy host -> device
+    cudaMemcpyAsync(nodesDeviceA,nodesHost+i,              sizeof(Node)*numOfBlocks,cudaMemcpyHostToDevice,streamA);
+    cudaMemcpyAsync(nodesDeviceB,nodesHost+i+numOfBlocks,  sizeof(Node)*numOfBlocks,cudaMemcpyHostToDevice,streamB);
+    cudaMemcpyAsync(nodesDeviceC,nodesHost+i+2*numOfBlocks,sizeof(Node)*numOfBlocks,cudaMemcpyHostToDevice,streamC);
+
+    // initializing outputs
+    cudaMemsetAsync(ampsDeviceA,0,sizeof(float)*numOfBlocks,streamA);
+    cudaMemsetAsync(ampsDeviceB,0,sizeof(float)*numOfBlocks,streamB);
+    cudaMemsetAsync(ampsDeviceC,0,sizeof(float)*numOfBlocks,streamC);
+
+    // invoking the kernel
+    arrangeShootingAmoeba<<<numOfBlocks, threadsPerBlock, 0, streamA>>>(nodesDeviceA,
+                                                                          ampsDeviceA,
+                                                                          subgridSize,
+                                                                          numOfBlocks);
+
+    arrangeShootingAmoeba<<<numOfBlocks, threadsPerBlock, 0, streamB>>>(nodesDeviceB,
+                                                                          ampsDeviceB,
+                                                                          subgridSize,
+                                                                          numOfBlocks);
+
+    arrangeShootingAmoeba<<<numOfBlocks, threadsPerBlock, 0, streamC>>>(nodesDeviceC,
+                                                                          ampsDeviceC,
+                                                                          subgridSize,
+                                                                          numOfBlocks);
+
+    // copy device -> host
+    cudaMemcpyAsync(ampsHost+i              ,ampsDeviceA,numOfBlocks*sizeof(float),cudaMemcpyDeviceToHost,streamA);
+    cudaMemcpyAsync(ampsHost+i+  numOfBlocks,ampsDeviceB,numOfBlocks*sizeof(float),cudaMemcpyDeviceToHost,streamB);
+    cudaMemcpyAsync(ampsHost+i+2*numOfBlocks,ampsDeviceC,numOfBlocks*sizeof(float),cudaMemcpyDeviceToHost,streamC);
+}
 
   cudaStreamSynchronize(streamA);
   cudaStreamSynchronize(streamB);
+  cudaStreamSynchronize(streamC);
 
   cudaFloat totalAmpCUDA = 0.0;
-  for(int i = 0; i < halfSizeA; i++)
+  for(int i = 0; i < numOfNodes; i++)
   {
-    totalAmpCUDA += ampsOutA[i];
-  }
-  for(int i = 0; i < halfSizeB; i++)
-  {
-    totalAmpCUDA += ampsOutB[i];
+    totalAmpCUDA += ampsHost[i];
   }
 
   std::cout << "total cuda amp =" << totalAmpCUDA/cudaFloat(subgridSize*subgridSize)*0.000146912 << "\n";
 
   // Free memory
-  cudaFree(ampsA);
-  cudaFree(ampsB);
-  cudaFreeHost(ampsOutA);
-  cudaFreeHost(ampsOutB);
-  cudaFreeHost(nodesPinnedA);
-  cudaFreeHost(nodesPinnedB);
-  //free(ampsCPU);
+  cudaFree(ampsDeviceA);
+  cudaFree(ampsDeviceB);
+  cudaFree(ampsDeviceC);
+  cudaFreeHost(ampsHost);
+  cudaFreeHost(nodesHost);
   free(tempParams);
   cudaFree(nodesDeviceA);
   cudaFree(nodesDeviceB);
+  cudaFree(nodesDeviceC);
   cudaStreamDestroy(streamA);
   cudaStreamDestroy(streamB);
+  cudaStreamDestroy(streamC);
 
   return totalAmpCUDA/cudaFloat(subgridSize*subgridSize);
 };
