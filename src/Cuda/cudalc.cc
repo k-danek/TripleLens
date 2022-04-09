@@ -82,14 +82,33 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
   
   complex<double> pos = startPoint;
 
+  SyncerCUDA cudaSyncer(a,
+                        b,
+                        th,
+                        m2,
+                        m3,
+                        _sourceRadius,
+                        _imgPlaneSizeDouble/double(_imgPlaneSize-1.0),
+                        _bottomLeftCornerImg);
+
   // Looping over source positions
   for(unsigned int i = 0; i <= _lcLength; i++)
   {
+    if(i > 0) 
+    {
+      // sync and copy the calculation from the previous step
+      _amplification = cudaSyncer.syncAndReturn(i-1);
+      cout << "cuda amplification: " << _amplification*_ampScale << " and the count "
+         << _irsCount << " and scale " << _ampScale << "\n";
+      // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
+      // we use looping over the indices rather than push_back.
+      lcVec[i-1] = _amplification*_ampScale;    
+    };
+
     //pos = (endPoint-startPoint)*(i/(_lcLength-1.0));
     pos = startPoint + (endPoint-startPoint)*(double(i)/double(_lcLength));
     cout << "started pos:" << i << ", (" << pos.real()
          << "," << pos.imag() <<")\n";
-    //bool pointTaken = false;
 
     // This includes both images of source center and source-caustic intersections
     vector<complex<double>> imgSeeds = getSeeds(pos);
@@ -106,24 +125,16 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
       lineFloodFillCUDA(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
 
-    _amplification = getAmpKernel(amoebae.amoebae,
-                                   a,
-                                   b,
-                                   th,
-                                   m2,
-                                   m3,
-                                   _sourceRadius,
-                                   pos.real(),
-                                   pos.imag(),
-                                   _imgPlaneSizeDouble/double(_imgPlaneSize-1.0),
-                                   _bottomLeftCornerImg);
-
-    cout << "cuda amplification: " << _amplification*_ampScale << " and the count "
-         << _irsCount << " and scale " << _ampScale << "\n";
-    // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
-    // we use looping over the indices rather than push_back.
-    lcVec[i] = _amplification*_ampScale;
+    // Fill the GPU queue
+    cudaSyncer.trigger(amoebae.amoebae,pos.real(),pos.imag());
   }
+
+  _amplification = cudaSyncer.syncAndReturn(_lcLength-1);
+  cout << "cuda amplification: " << _amplification*_ampScale << " and the count "
+     << _irsCount << " and scale " << _ampScale << "\n";
+  // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
+  // we use looping over the indices rather than push_back.
+  lcVec[_lcLength-1] = _amplification*_ampScale;    
 
   _hasLightCurve = true;
 };

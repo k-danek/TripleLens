@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <complex>
 #include <math.h>
 //#include <nvfunctional>
 #include <unordered_map>
@@ -57,6 +58,51 @@ typedef std::unordered_map<long int, std::list<XRange>> amoebae_t;
 
 // This is to be able between single and double precision
 typedef float cudaFloat;
+
+class SyncerCUDA
+{
+  public:
+    SyncerCUDA(double                     a,
+               double                     b,
+               double                     th,
+               double                     m2,
+               double                     m3,
+               double                     sourceSize,
+               double                     imgPixSize,
+               std::complex<double>       imgPlaneOrigin);
+
+    double syncAndReturn(int lcStep);
+
+    void trigger(amoebae_t&  amoebae,
+                 double      sourcePosX,
+                 double      sourcePosY);
+
+    // holds index of lightcurve that is being calculated
+    int        currentStep;
+
+    // Each pixel will be subdivided into finer grid.
+    // subgridSize determines how fine the subgrid should be.
+    const int subgridSize = 8;
+
+  private:
+    double     _sourcePosX;
+    double     _sourcePosY;
+    int        _numOfNodes;
+    cudaStream_t _streamA, _streamB, _streamC;
+    Node *_nodesHost, *_nodesDeviceA, *_nodesDeviceB, *_nodesDeviceC;
+    float *_ampsHost, *_ampsDeviceA, *_ampsDeviceB, *_ampsDeviceC;
+    float *_tempParams;
+ 
+    double               _a;
+    double               _b;
+    double               _th;
+    double               _m2;
+    double               _m3;
+    double               _sourceSize;
+    double               _imgPixSize;
+    std::complex<double> _imgPlaneOrigin; 
+};
+
 
 // Kernel
 float getAmpKernel(amoebae_t&                 amoebae,

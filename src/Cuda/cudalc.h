@@ -64,10 +64,15 @@ class LightCurveCUDA: public LightCurveIRS
     CriticalCurveCaustic ccc;
     Amoeba amoebae;
 
+  private:
+
     // Whole point of using an envelope is to make sure that 
     // thin parts of the image are included in the amoeba that
     // is given to cuda filling.
     double _envelopeRadius;
+
+    // Syncer to keep state of cuda calculation
+    //SyncerCUDA _cudaSyncer;
 };
 
 #endif                
