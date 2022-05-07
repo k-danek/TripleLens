@@ -28,7 +28,24 @@ SyncerCUDA::SyncerCUDA(double                     a,
   _imgPixSize = imgPixSize;
   _imgPlaneOrigin = imgPlaneOrigin;
   _numOfNodes = 0;
+  allocateHost(_numberOfNodesBufferSize);
+  allocateCuda();
 };
+
+void SyncerCUDA::freeAll()
+{
+  cudaFreeHost(_ampsHost);
+  cudaFreeHost(_nodesHost);
+  cudaFree(_ampsDeviceA);
+  cudaFree(_ampsDeviceB);
+  cudaFree(_ampsDeviceC);
+
+  cudaFree(_nodesDeviceA);
+  cudaFree(_nodesDeviceB);
+  cudaFree(_nodesDeviceC);
+
+  free(_tempParams);
+}
 
 void SyncerCUDA::printOutTimes()
 {
@@ -43,6 +60,47 @@ void SyncerCUDA::printOutTimes()
             << "GPU copy up time:" << _gpuCopyUpTime / CLOCKS_PER_SEC  << "\n"
             << "GPU copy down time:" << _gpuCopyDownTime / CLOCKS_PER_SEC  << "\n";
 }
+
+void SyncerCUDA::allocateHost(int size)
+{
+  // size should be something like numberOfNodesExtended
+  _numberOfNodesBufferSize = size;
+
+  clock_t beginTime, endTime; 
+
+  beginTime = clock();
+  cudaHostAlloc((void**)& _nodesHost,
+                sizeof(Node)*size,
+                cudaHostAllocDefault);
+  endTime = clock();
+  _gpuMallocTime += double(endTime-beginTime);
+
+  // Allocating in pinned memory
+  // Always check whether these need to be initialized correctly. 
+  cudaHostAlloc((void**)&_ampsHost,sizeof(float)*size, cudaHostAllocDefault);
+
+  _tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*17);
+};
+
+void SyncerCUDA::allocateCuda()
+{
+  // Allocate bufferts for CUDA. The size is fixed and set up in constants.
+
+  clock_t beginTime, endTime; 
+
+  beginTime = clock();
+  // Allocation of device buffers
+  cudaMalloc((void**)&_nodesDeviceA, _numOfBlocks*sizeof(Node));
+  cudaMalloc((void**)&_nodesDeviceB, _numOfBlocks*sizeof(Node));
+  cudaMalloc((void**)&_nodesDeviceC, _numOfBlocks*sizeof(Node));
+
+  // Allocatin device buffers
+  cudaMalloc((void**)&_ampsDeviceA, _numOfBlocks*sizeof(float));
+  cudaMalloc((void**)&_ampsDeviceB, _numOfBlocks*sizeof(float));
+  cudaMalloc((void**)&_ampsDeviceC, _numOfBlocks*sizeof(float));
+  endTime = clock();
+  _gpuMallocTime += double(endTime-beginTime);
+};
 
 double SyncerCUDA::syncAndReturn(int lcStep)
 {
@@ -73,15 +131,6 @@ double SyncerCUDA::syncAndReturn(int lcStep)
   std::cout << "total cuda amp =" << totalAmpCUDA/cudaFloat(subgridSize*subgridSize)*0.000146912 << "\n";
 
   beginTime = clock();
-  // Free memory
-  cudaFree(_ampsDeviceA);
-  cudaFree(_ampsDeviceB);
-  cudaFree(_ampsDeviceC);
-  cudaFreeHost(_ampsHost);
-  cudaFreeHost(_nodesHost);
-  cudaFree(_nodesDeviceA);
-  cudaFree(_nodesDeviceB);
-  cudaFree(_nodesDeviceC);
   cudaStreamDestroy(_streamA);
   cudaStreamDestroy(_streamB);
   cudaStreamDestroy(_streamC);
@@ -101,37 +150,42 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
 
   clock_t beginTime, endTime; 
   beginTime = clock();
-  cudaFloat* tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*17);
+
 
   std::cout << "trigger called \n";
 
-  tempParams[0]  = cudaFloat(_a);          // a
-  tempParams[1]  = cudaFloat(_b);          // b
-  tempParams[2]  = cudaFloat(_th);         // th
-  tempParams[3]  = cudaFloat(1.0-_m2-_m3);  // m1
-  tempParams[4]  = cudaFloat(_m2);         // m2
-  tempParams[5]  = cudaFloat(_m3);         // m3
-  tempParams[6]  = cudaFloat(_sourceSize); // sourceSize
-  tempParams[7]  = cudaFloat(sourcePosX); // source position X
-  tempParams[8]  = cudaFloat(sourcePosY); // source position Y
-  tempParams[9]  = cudaFloat(_imgPixSize); // size of pixel
-  tempParams[10] = cudaFloat(_a);          // z2x
-  tempParams[11] = cudaFloat(0.0);        // z2y
-  tempParams[12] = cudaFloat(_b*cos(_th));  // z3x
-  tempParams[13] = cudaFloat(_b*sin(_th));  // z3y
-  tempParams[14] = cudaFloat(_imgPixSize/double(subgridSize)); // subgrid increment
-  tempParams[15] = cudaFloat(_imgPlaneOrigin.real()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // x-origin of coordinates in image plane 
-  tempParams[16] = cudaFloat(_imgPlaneOrigin.imag()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // y-origin of coordinates in image plane
+  _tempParams[0]  = cudaFloat(_a);          // a
+  cudaFloat* tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*17);
+ 
+  _tempParams[1]  = cudaFloat(_b);          // b
+  _tempParams[2]  = cudaFloat(_th);         // th
+  _tempParams[3]  = cudaFloat(1.0-_m2-_m3);  // m1
+  _tempParams[4]  = cudaFloat(_m2);         // m2
+  _tempParams[5]  = cudaFloat(_m3);         // m3
+  _tempParams[6]  = cudaFloat(_sourceSize); // sourceSize
+  _tempParams[7]  = cudaFloat(sourcePosX); // source position X
+  _tempParams[8]  = cudaFloat(sourcePosY); // source position Y
+  _tempParams[9]  = cudaFloat(_imgPixSize); // size of pixel
+  _tempParams[10] = cudaFloat(_a);          // z2x
+  _tempParams[11] = cudaFloat(0.0);        // z2y
+  _tempParams[12] = cudaFloat(_b*cos(_th));  // z3x
+  _tempParams[13] = cudaFloat(_b*sin(_th));  // z3y
+  _tempParams[14] = cudaFloat(_imgPixSize/double(subgridSize)); // subgrid increment
+  _tempParams[15] = cudaFloat(_imgPlaneOrigin.real()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // x-origin of coordinates in image plane 
+  _tempParams[16] = cudaFloat(_imgPlaneOrigin.imag()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // y-origin of coordinates in image plane
 
-  cudaMemcpyToSymbol(params, tempParams, sizeof(cudaFloat)*17); 
+  
+  cudaMemcpyToSymbol(params, _tempParams, sizeof(cudaFloat)*17); 
   endTime = clock();
   _gpuConstMemTime += double(endTime-beginTime);
-  
+
+
+  std::cout << "Constant memory copied over \n";
+
   std::vector<Node> nodes;
   long int numOfAmoebaPoints = 0;
 
   _numOfNodes = 0;
-
 
   beginTime = clock();
   for(auto lines: amoeba)
@@ -156,10 +210,10 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   // Max dimension size of a thread block (x,y,z): (1024, 1024, 64)
   // Max dimension size of a grid size    (x,y,z): (2147483647, 65535, 65535)
   // It equals number of blocks used for a single GPU execution. 
-  const int numOfBlocks = 128;
+  //const int numOfBlocks = 128;
   
   // Segment size is a number of nodes put into buffer for calculation with the streams.
-  const int segmentSize = 3 * numOfBlocks;
+  const int segmentSize = 3 * _numOfBlocks;
 
   const int leftOverNodes = _numOfNodes % segmentSize;
   // Adding number of dummy nodes in order to keep 
@@ -170,20 +224,19 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
             << "Left over after segmentaion is " << numOfNodesExtended % segmentSize
             << ", number of segments is " << _numOfNodes / segmentSize << "\n";
 
+  // Pinned memory is allocated as a buffer. If the needed size is higher, realocate the host memory!
+  if(numOfNodesExtended > _numberOfNodesBufferSize)
+  {
+    allocateHost(numOfNodesExtended);
+  }
+
+
   // creating the streams
   cudaStreamCreateWithFlags(&_streamA,cudaStreamNonBlocking);
   cudaStreamCreateWithFlags(&_streamB,cudaStreamNonBlocking);
   cudaStreamCreateWithFlags(&_streamC,cudaStreamNonBlocking);
 
   std::cout << "Streams created \n";
-
-
-  beginTime = clock();
-  cudaHostAlloc((void**)& _nodesHost,
-                sizeof(Node)*numOfNodesExtended,
-                cudaHostAllocDefault);
-  endTime = clock();
-  _gpuMallocTime += double(endTime-beginTime);
 
   beginTime = clock();
   // TODO: replace this with actual one-structure directly from amoeba
@@ -197,23 +250,6 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   }
   endTime = clock();
   _gpuAmoebaTime += double(endTime-beginTime);
-
-  beginTime = clock();
-  // Allocation of device buffers
-  cudaMalloc((void**)&_nodesDeviceA, numOfBlocks*sizeof(Node));
-  cudaMalloc((void**)&_nodesDeviceB, numOfBlocks*sizeof(Node));
-  cudaMalloc((void**)&_nodesDeviceC, numOfBlocks*sizeof(Node));
-
-  // Allocating in pinned memory
-  // Always check whether these need to be initialized correctly. 
-  cudaHostAlloc((void**)&_ampsHost,sizeof(float)*numOfNodesExtended, cudaHostAllocDefault);
-
-  // Allocatin device buffers
-  cudaMalloc((void**)&_ampsDeviceA, numOfBlocks*sizeof(float));
-  cudaMalloc((void**)&_ampsDeviceB, numOfBlocks*sizeof(float));
-  cudaMalloc((void**)&_ampsDeviceC, numOfBlocks*sizeof(float));
-  endTime = clock();
-  _gpuMallocTime += double(endTime-beginTime);
   
   std::cout << "Everything allocated\n";
 
@@ -221,41 +257,40 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   // Run kernel on 1M elements on the GPU
   const int threadsPerBlock = subgridSize * subgridSize;
 
-
   beginTime = clock();
   // Filling the stream queues
   for(int i = 0; i < numOfNodesExtended; i += segmentSize)
   {
     // copy host -> device
-    cudaMemcpyAsync(_nodesDeviceA,_nodesHost+i,              sizeof(Node)*numOfBlocks,cudaMemcpyHostToDevice,_streamA);
-    cudaMemcpyAsync(_nodesDeviceB,_nodesHost+i+numOfBlocks,  sizeof(Node)*numOfBlocks,cudaMemcpyHostToDevice,_streamB);
-    cudaMemcpyAsync(_nodesDeviceC,_nodesHost+i+2*numOfBlocks,sizeof(Node)*numOfBlocks,cudaMemcpyHostToDevice,_streamC);
+    cudaMemcpyAsync(_nodesDeviceA,_nodesHost+i,              sizeof(Node)*_numOfBlocks,cudaMemcpyHostToDevice,_streamA);
+    cudaMemcpyAsync(_nodesDeviceB,_nodesHost+i+_numOfBlocks,  sizeof(Node)*_numOfBlocks,cudaMemcpyHostToDevice,_streamB);
+    cudaMemcpyAsync(_nodesDeviceC,_nodesHost+i+2*_numOfBlocks,sizeof(Node)*_numOfBlocks,cudaMemcpyHostToDevice,_streamC);
 
     // initializing outputs
-    cudaMemsetAsync(_ampsDeviceA,0,sizeof(float)*numOfBlocks,_streamA);
-    cudaMemsetAsync(_ampsDeviceB,0,sizeof(float)*numOfBlocks,_streamB);
-    cudaMemsetAsync(_ampsDeviceC,0,sizeof(float)*numOfBlocks,_streamC);
+    cudaMemsetAsync(_ampsDeviceA,0,sizeof(float)*_numOfBlocks,_streamA);
+    cudaMemsetAsync(_ampsDeviceB,0,sizeof(float)*_numOfBlocks,_streamB);
+    cudaMemsetAsync(_ampsDeviceC,0,sizeof(float)*_numOfBlocks,_streamC);
 
     // invoking the kernel
-    arrangeShootingAmoeba<<<numOfBlocks, threadsPerBlock, 0, _streamA>>>(_nodesDeviceA,
-                                                                         _ampsDeviceA,
-                                                                         subgridSize,
-                                                                         numOfBlocks);
+    arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamA>>>(_nodesDeviceA,
+                                                                          _ampsDeviceA,
+                                                                          subgridSize,
+                                                                          _numOfBlocks);
 
-    arrangeShootingAmoeba<<<numOfBlocks, threadsPerBlock, 0, _streamB>>>(_nodesDeviceB,
+    arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamB>>>(_nodesDeviceB,
                                                                          _ampsDeviceB,
                                                                          subgridSize,
-                                                                         numOfBlocks);
+                                                                         _numOfBlocks);
 
-    arrangeShootingAmoeba<<<numOfBlocks, threadsPerBlock, 0, _streamC>>>(_nodesDeviceC,
-                                                                         _ampsDeviceC,
-                                                                         subgridSize,
-                                                                         numOfBlocks);
+    arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamC>>>(_nodesDeviceC,
+                                                                          _ampsDeviceC,
+                                                                          subgridSize,
+                                                                          _numOfBlocks);
 
     // copy device -> host
-    cudaMemcpyAsync(_ampsHost+i              ,_ampsDeviceA,numOfBlocks*sizeof(float),cudaMemcpyDeviceToHost,_streamA);
-    cudaMemcpyAsync(_ampsHost+i+  numOfBlocks,_ampsDeviceB,numOfBlocks*sizeof(float),cudaMemcpyDeviceToHost,_streamB);
-    cudaMemcpyAsync(_ampsHost+i+2*numOfBlocks,_ampsDeviceC,numOfBlocks*sizeof(float),cudaMemcpyDeviceToHost,_streamC);
+    cudaMemcpyAsync(_ampsHost+i               ,_ampsDeviceA,_numOfBlocks*sizeof(float),cudaMemcpyDeviceToHost,_streamA);
+    cudaMemcpyAsync(_ampsHost+i+  _numOfBlocks,_ampsDeviceB,_numOfBlocks*sizeof(float),cudaMemcpyDeviceToHost,_streamB);
+    cudaMemcpyAsync(_ampsHost+i+2*_numOfBlocks,_ampsDeviceC,_numOfBlocks*sizeof(float),cudaMemcpyDeviceToHost,_streamC);
   }
   endTime = clock();
   _gpuQueryTime += double(endTime-beginTime);

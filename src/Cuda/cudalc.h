@@ -75,6 +75,7 @@ class LightCurveCUDA: public LightCurveIRS
     double _cpuFloodFill = 0.0;
     double _gpuTrigger = 0.0;
     double _gpuSync = 0.0;
+    double _gpuInit = 0.0;
 
 };
 

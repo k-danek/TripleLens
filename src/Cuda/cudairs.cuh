@@ -71,6 +71,8 @@ class SyncerCUDA
                double                     imgPixSize,
                std::complex<double>       imgPlaneOrigin);
 
+    void freeAll();
+
     double syncAndReturn(int lcStep);
 
     void trigger(amoebae_t&  amoebae,
@@ -90,6 +92,9 @@ class SyncerCUDA
                      double                     imgPixSize,
                      std::complex<double>       imgPlaneOrigin);
 
+    void allocateHost(int size);
+    void allocateCuda();
+
     void printOutTimes();
 
     // holds index of lightcurve that is being calculated
@@ -106,7 +111,8 @@ class SyncerCUDA
     cudaStream_t _streamA, _streamB, _streamC;
     Node *_nodesHost, *_nodesDeviceA, *_nodesDeviceB, *_nodesDeviceC;
     float *_ampsHost, *_ampsDeviceA, *_ampsDeviceB, *_ampsDeviceC;
- 
+    cudaFloat *_tempParams;
+
     double               _a;
     double               _b;
     double               _th;
@@ -115,6 +121,13 @@ class SyncerCUDA
     double               _sourceSize;
     double               _imgPixSize;
     std::complex<double> _imgPlaneOrigin;
+
+    // Constant size
+    int       _numberOfNodesBufferSize = 768;
+    const int _numOfBlocks = 128;
+
+
+    // time analysis variables
     double               _gpuMallocTime = 0.0; 
     double               _gpuMallocHostTime = 0.0; 
     double               _gpuMemsetTime = 0.0; 
@@ -150,20 +163,3 @@ void arrangeShootingCPU(std::vector<Node>     nodes,
                         double*               params,
                         const int             subGridSize,
                         const int             numOfNodes);
-
-class CudaOrchestrator
-{
-  public:
-    // Synchronises streams and returns the amp
-    // It should be called before subsequent call to CUDA
-    cudaFloat getAmp();
-
-    bool initialized = false;
-  private:
-    // Using two stream as there are two actions that can happen in paralel:
-    // 1. Copying of data
-    // 2. Actual calculation  
-    cudaStream_t* streamA, streamB; 
-
-
-};

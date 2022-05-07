@@ -22,6 +22,7 @@ LightCurveCUDA::LightCurveCUDA(
   _getImgPlanePars();
 };
 
+
 std::vector<complex<double>> LightCurveCUDA::getSeeds(complex<double> pos)
 {
     // Get images for the image position
@@ -83,6 +84,8 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
   
   complex<double> pos = startPoint;
 
+  
+  beginTime = clock(); 
   SyncerCUDA cudaSyncer(a,
                         b,
                         th,
@@ -91,11 +94,12 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
                         _sourceRadius,
                         _imgPlaneSizeDouble/double(_imgPlaneSize-1.0),
                         _bottomLeftCornerImg);
-
+  endTime = clock(); 
+  _gpuInit += double(endTime - beginTime);
+ 
   // Looping over source positions
   for(unsigned int i = 0; i <= _lcLength; i++)
   {
-    //pos = (endPoint-startPoint)*(i/(_lcLength-1.0));
     pos = startPoint + (endPoint-startPoint)*(double(i)/double(_lcLength));
     cout << "started pos:" << i << ", (" << pos.real()
          << "," << pos.imag() <<")\n";
@@ -182,6 +186,8 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
   endTime = clock();
   _gpuSync += double(endTime - beginTime);
 
+  cudaSyncer.freeAll();
+
   lcVec[_lcLength] = _amplification*_ampScale;    
   cout << "last cuda amplification: " << lcVec[_lcLength] << " and the count "
        << _irsCount << " and scale " << _ampScale << "\n";
@@ -190,6 +196,7 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
        << "CPU Flood Fill time: " << _cpuFloodFill / CLOCKS_PER_SEC << "\n"
        << "GPU Trigger time " << _gpuTrigger / CLOCKS_PER_SEC << "\n"
        << "GPU Sync time: " << _gpuSync / CLOCKS_PER_SEC << "\n"
+       << "GPU Init time: " << _gpuInit / CLOCKS_PER_SEC << "\n"
        << "GPU of the overal time: " << (_gpuTrigger+_gpuSync)/(_cpuSeeds+_cpuFloodFill+_gpuTrigger+_gpuSync) << "\n";
 
   cudaSyncer.printOutTimes();
