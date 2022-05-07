@@ -77,6 +77,21 @@ class SyncerCUDA
                  double      sourcePosX,
                  double      sourcePosY);
 
+    // This is a simple sync version to make time estimates
+    float getAmpSync(amoebae_t&                 amoebae,
+                     double                     a,
+                     double                     b,
+                     double                     th,
+                     double                     m2,
+                     double                     m3,
+                     double                     sourceSize,
+                     double                     sourcePosX,
+                     double                     sourcePosY,
+                     double                     imgPixSize,
+                     std::complex<double>       imgPlaneOrigin);
+
+    void printOutTimes();
+
     // holds index of lightcurve that is being calculated
     int        currentStep;
 
@@ -91,7 +106,6 @@ class SyncerCUDA
     cudaStream_t _streamA, _streamB, _streamC;
     Node *_nodesHost, *_nodesDeviceA, *_nodesDeviceB, *_nodesDeviceC;
     float *_ampsHost, *_ampsDeviceA, *_ampsDeviceB, *_ampsDeviceC;
-    float *_tempParams;
  
     double               _a;
     double               _b;
@@ -100,22 +114,18 @@ class SyncerCUDA
     double               _m3;
     double               _sourceSize;
     double               _imgPixSize;
-    std::complex<double> _imgPlaneOrigin; 
+    std::complex<double> _imgPlaneOrigin;
+    double               _gpuMallocTime = 0.0; 
+    double               _gpuMallocHostTime = 0.0; 
+    double               _gpuMemsetTime = 0.0; 
+    double               _gpuCopyUpTime = 0.0; 
+    double               _gpuCopyDownTime = 0.0; 
+    double               _gpuAmoebaTime = 0.0; 
+    double               _gpuSyncTime = 0.0; 
+    double               _gpuQueryTime = 0.0; 
+    double               _gpuFreeTime = 0.0; 
+    double               _gpuConstMemTime = 0.0; 
 };
-
-
-// Kernel
-float getAmpKernel(amoebae_t&                 amoebae,
-                   double                     a,
-                   double                     b,
-                   double                     th,
-                   double                     m2,
-                   double                     m3,
-                   double                     sourceSize,
-                   double                     sourcePosX,
-                   double                     sourcePosY,
-                   double                     imgPixSize,
-                   std::complex<double>       imgPlaneOrigin);
 
 __global__
 void arrangeShootingAmoeba(Node*     nodes,

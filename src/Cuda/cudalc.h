@@ -71,8 +71,11 @@ class LightCurveCUDA: public LightCurveIRS
     // is given to cuda filling.
     double _envelopeRadius;
 
-    // Syncer to keep state of cuda calculation
-    //SyncerCUDA _cudaSyncer;
+    double _cpuSeeds = 0.0;
+    double _cpuFloodFill = 0.0;
+    double _gpuTrigger = 0.0;
+    double _gpuSync = 0.0;
+
 };
 
 #endif                

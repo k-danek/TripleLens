@@ -74,7 +74,8 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
                                complex<double> endPoint
                               )
 {
-  
+  clock_t beginTime, endTime;  
+
   cout << "IRS called with imgPlaneSize:" << _imgPlaneSize << "\n";
   cout << "IRS called with sourceRadius:" << _sourceRadius << "\n";
   cout << "IRS called with _imgPlaneSizeDouble:" << _imgPlaneSizeDouble << "\n";
@@ -94,24 +95,16 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
   // Looping over source positions
   for(unsigned int i = 0; i <= _lcLength; i++)
   {
-    if(i > 0) 
-    {
-      // sync and copy the calculation from the previous step
-      _amplification = cudaSyncer.syncAndReturn(i-1);
-      cout << "cuda amplification: " << _amplification*_ampScale << " and the count "
-         << _irsCount << " and scale " << _ampScale << "\n";
-      // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
-      // we use looping over the indices rather than push_back.
-      lcVec[i-1] = _amplification*_ampScale;    
-    };
-
     //pos = (endPoint-startPoint)*(i/(_lcLength-1.0));
     pos = startPoint + (endPoint-startPoint)*(double(i)/double(_lcLength));
     cout << "started pos:" << i << ", (" << pos.real()
          << "," << pos.imag() <<")\n";
-
+    
+    beginTime = clock(); 
     // This includes both images of source center and source-caustic intersections
     vector<complex<double>> imgSeeds = getSeeds(pos);
+    endTime = clock(); 
+    _cpuSeeds += double(endTime - beginTime);
 
     // erase amoeba by initialising it again.
     amoebae = Amoeba(_imgPlaneSize);
@@ -120,21 +113,86 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
     _amplification = 0.0;
     _irsCount = 0;
 
+
+    beginTime = clock(); 
     for(auto imgSeed: imgSeeds)
     {
       lineFloodFillCUDA(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
+    endTime = clock(); 
+    _cpuFloodFill += double(endTime - beginTime);
 
+
+    //beginTime = clock();
+    //_amplification = cudaSyncer.getAmpSync(amoebae.amoebae,
+    //                                       a,
+    //                                       b,
+    //                                       th,
+    //                                       m2,
+    //                                       m3,
+    //                                       _sourceRadius,
+    //                                       pos.real(),
+    //                                       pos.imag(),
+    //                                       _imgPlaneSizeDouble/double(_imgPlaneSize-1.0),
+    //                                       _bottomLeftCornerImg);
+    //endTime = clock();
+    //_gpuTrigger += double(endTime - beginTime);
+
+    //lcVec[i] = _amplification*_ampScale;
+
+    if(i > 0) 
+    {
+      beginTime = clock(); 
+      // sync and copy the calculation from the previous step
+      _amplification = cudaSyncer.syncAndReturn(i-1);
+      endTime = clock(); 
+      _gpuSync += double(endTime - beginTime);
+      
+      cout << "cuda amplification: " << _amplification*_ampScale << " and the count "
+         << _irsCount << " and scale " << _ampScale << "\n";
+      // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
+      // we use looping over the indices rather than push_back.
+      lcVec[i-1] = _amplification*_ampScale;    
+    };
+
+    beginTime = clock(); 
     // Fill the GPU queue
     cudaSyncer.trigger(amoebae.amoebae,pos.real(),pos.imag());
+    endTime = clock();
+    _gpuTrigger += double(endTime - beginTime);
   }
 
-  _amplification = cudaSyncer.syncAndReturn(_lcLength-1);
-  cout << "cuda amplification: " << _amplification*_ampScale << " and the count "
-     << _irsCount << " and scale " << _ampScale << "\n";
-  // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
-  // we use looping over the indices rather than push_back.
-  lcVec[_lcLength-1] = _amplification*_ampScale;    
+  //  // Kernel
+  //  float getAmpSync(amoebae_t&                 amoebae,
+  //                   double                     a,
+  //                   double                     b,
+  //                   double                     th,
+  //                   double                     m2,
+  //                   double                     m3,
+  //                   double                     sourceSize,
+  //                   double                     sourcePosX,
+  //                   double                     sourcePosY,
+  //                   double                     imgPixSize,
+  //                   std::complex<double>       imgPlaneOrigin);
+
+
+  beginTime = clock(); 
+  _amplification = cudaSyncer.syncAndReturn(_lcLength);
+
+  endTime = clock();
+  _gpuSync += double(endTime - beginTime);
+
+  lcVec[_lcLength] = _amplification*_ampScale;    
+  cout << "last cuda amplification: " << lcVec[_lcLength] << " and the count "
+       << _irsCount << " and scale " << _ampScale << "\n";
+
+  cout << "CPU Seed time: " << _cpuSeeds / CLOCKS_PER_SEC << "\n"
+       << "CPU Flood Fill time: " << _cpuFloodFill / CLOCKS_PER_SEC << "\n"
+       << "GPU Trigger time " << _gpuTrigger / CLOCKS_PER_SEC << "\n"
+       << "GPU Sync time: " << _gpuSync / CLOCKS_PER_SEC << "\n"
+       << "GPU of the overal time: " << (_gpuTrigger+_gpuSync)/(_cpuSeeds+_cpuFloodFill+_gpuTrigger+_gpuSync) << "\n";
+
+  cudaSyncer.printOutTimes();
 
   _hasLightCurve = true;
 };
