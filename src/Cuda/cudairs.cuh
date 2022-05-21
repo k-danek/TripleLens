@@ -143,9 +143,7 @@ class SyncerCUDA
 
 __global__
 void arrangeShootingAmoeba(Node*     nodes,
-                           float*    amps,
-                           const int subGridSize,
-                           const int numOfNodes);
+                           float*    amps);
 
 __device__
 cudaFloat irs(const thrust::complex<cudaFloat>& z2,
