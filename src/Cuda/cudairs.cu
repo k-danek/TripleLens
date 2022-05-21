@@ -8,7 +8,8 @@
 #include "cudairs.cuh"
 
 
-__constant__ cudaFloat params[17];
+__constant__ cudaFloat params[15];
+__constant__ cudaFloat sourcePosParams[2];
 
 SyncerCUDA::SyncerCUDA(double                     a,
                        double                     b,
@@ -30,6 +31,33 @@ SyncerCUDA::SyncerCUDA(double                     a,
   _numOfNodes = 0;
   allocateHost(_numberOfNodesBufferSize);
   allocateCuda();
+  setConstantPars();
+};
+
+void SyncerCUDA::setConstantPars()
+{
+  clock_t beginTime, endTime; 
+  beginTime = clock();
+
+  _tempParams[0]  = cudaFloat(_a);          // a
+  _tempParams[1]  = cudaFloat(_b);          // b
+  _tempParams[2]  = cudaFloat(_th);         // th
+  _tempParams[3]  = cudaFloat(1.0-_m2-_m3);  // m1
+  _tempParams[4]  = cudaFloat(_m2);         // m2
+  _tempParams[5]  = cudaFloat(_m3);         // m3
+  _tempParams[6]  = cudaFloat(_sourceSize); // sourceSize
+  _tempParams[7]  = cudaFloat(_imgPixSize);  // size of pixel
+  _tempParams[8] = cudaFloat(_a);           // z2x
+  _tempParams[9] = cudaFloat(0.0);          // z2y
+  _tempParams[10] = cudaFloat(_b*cos(_th));  // z3x
+  _tempParams[11] = cudaFloat(_b*sin(_th));  // z3y
+  _tempParams[12] = cudaFloat(_imgPixSize/double(subgridSize)); // subgrid increment
+  _tempParams[13] = cudaFloat(_imgPlaneOrigin.real()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // x-origin of coordinates in image plane 
+  _tempParams[14] = cudaFloat(_imgPlaneOrigin.imag()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // y-origin of coordinates in image plane
+
+  cudaMemcpyToSymbol(params, _tempParams, sizeof(cudaFloat)*15); 
+  endTime = clock();
+  _gpuConstMemTime += double(endTime-beginTime);
 };
 
 void SyncerCUDA::freeAll()
@@ -79,7 +107,10 @@ void SyncerCUDA::allocateHost(int size)
   // Always check whether these need to be initialized correctly. 
   cudaHostAlloc((void**)&_ampsHost,sizeof(float)*size, cudaHostAllocDefault);
 
-  _tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*17);
+  beginTime = clock();
+  _tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*15);
+  endTime = clock();
+  _gpuConstMemTime += double(endTime-beginTime);
 };
 
 void SyncerCUDA::allocateCuda()
@@ -140,7 +171,6 @@ double SyncerCUDA::syncAndReturn(int lcStep)
   std::cout << "Everything destroyed\n";
 
   return totalAmpCUDA/cudaFloat(subgridSize*subgridSize);
-
 }
 
 void SyncerCUDA::trigger(amoebae_t& amoeba,
@@ -149,36 +179,16 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
 {
 
   clock_t beginTime, endTime; 
+
   beginTime = clock();
 
+  cudaFloat tempSourcePos[2];
+  tempSourcePos[0] = cudaFloat(sourcePosX);
+  tempSourcePos[1] = cudaFloat(sourcePosY);
 
-  std::cout << "trigger called \n";
-
-  _tempParams[0]  = cudaFloat(_a);          // a
-  cudaFloat* tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*17);
- 
-  _tempParams[1]  = cudaFloat(_b);          // b
-  _tempParams[2]  = cudaFloat(_th);         // th
-  _tempParams[3]  = cudaFloat(1.0-_m2-_m3);  // m1
-  _tempParams[4]  = cudaFloat(_m2);         // m2
-  _tempParams[5]  = cudaFloat(_m3);         // m3
-  _tempParams[6]  = cudaFloat(_sourceSize); // sourceSize
-  _tempParams[7]  = cudaFloat(sourcePosX); // source position X
-  _tempParams[8]  = cudaFloat(sourcePosY); // source position Y
-  _tempParams[9]  = cudaFloat(_imgPixSize); // size of pixel
-  _tempParams[10] = cudaFloat(_a);          // z2x
-  _tempParams[11] = cudaFloat(0.0);        // z2y
-  _tempParams[12] = cudaFloat(_b*cos(_th));  // z3x
-  _tempParams[13] = cudaFloat(_b*sin(_th));  // z3y
-  _tempParams[14] = cudaFloat(_imgPixSize/double(subgridSize)); // subgrid increment
-  _tempParams[15] = cudaFloat(_imgPlaneOrigin.real()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // x-origin of coordinates in image plane 
-  _tempParams[16] = cudaFloat(_imgPlaneOrigin.imag()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // y-origin of coordinates in image plane
-
-  
-  cudaMemcpyToSymbol(params, _tempParams, sizeof(cudaFloat)*17); 
+  cudaMemcpyToSymbol(sourcePosParams, tempSourcePos, sizeof(cudaFloat)*2); 
   endTime = clock();
   _gpuConstMemTime += double(endTime-beginTime);
-
 
   std::cout << "Constant memory copied over \n";
 
@@ -262,7 +272,7 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   for(int i = 0; i < numOfNodesExtended; i += segmentSize)
   {
     // copy host -> device
-    cudaMemcpyAsync(_nodesDeviceA,_nodesHost+i,              sizeof(Node)*_numOfBlocks,cudaMemcpyHostToDevice,_streamA);
+    cudaMemcpyAsync(_nodesDeviceA,_nodesHost+i,               sizeof(Node)*_numOfBlocks,cudaMemcpyHostToDevice,_streamA);
     cudaMemcpyAsync(_nodesDeviceB,_nodesHost+i+_numOfBlocks,  sizeof(Node)*_numOfBlocks,cudaMemcpyHostToDevice,_streamB);
     cudaMemcpyAsync(_nodesDeviceC,_nodesHost+i+2*_numOfBlocks,sizeof(Node)*_numOfBlocks,cudaMemcpyHostToDevice,_streamC);
 
@@ -278,9 +288,9 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
                                                                           _numOfBlocks);
 
     arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamB>>>(_nodesDeviceB,
-                                                                         _ampsDeviceB,
-                                                                         subgridSize,
-                                                                         _numOfBlocks);
+                                                                          _ampsDeviceB,
+                                                                          subgridSize,
+                                                                          _numOfBlocks);
 
     arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamC>>>(_nodesDeviceC,
                                                                           _ampsDeviceC,
@@ -548,8 +558,8 @@ void arrangeShootingAmoeba(Node*     nodes,
                            const int subgridSize,
                            const int numOfNodes)
 {
-  const thrust::complex<cudaFloat> z2 = thrust::complex<cudaFloat>(params[10],params[11]);
-  const thrust::complex<cudaFloat> z3 = thrust::complex<cudaFloat>(params[12],params[13]);
+  const thrust::complex<cudaFloat> z2 = thrust::complex<cudaFloat>(params[8],params[9]);
+  const thrust::complex<cudaFloat> z3 = thrust::complex<cudaFloat>(params[10],params[11]);
 
   // use blockIdx.x as a node index
   Node locNode = nodes[blockIdx.x];
@@ -564,10 +574,10 @@ void arrangeShootingAmoeba(Node*     nodes,
   //
   //threadIdx.x % subgridSize; that is subgrid x
   //threadIdx.x / subgridSize; that is subgrid y
-  double xShift = params[15] + __int2double_rn(threadIdx.x % subgridSize)*params[14];
-  double yShift = params[16] + __ll2double_rn(gridY)*params[9] + __int2double_rn(threadIdx.x / subgridSize)*params[14];
+  double xShift = params[13] + __int2double_rn(threadIdx.x % subgridSize)*params[12];
+  double yShift = params[14] + __ll2double_rn(gridY)*params[7] + __int2double_rn(threadIdx.x / subgridSize)*params[12];
 
-  thrust::complex<cudaFloat> sourcePos = thrust::complex<cudaFloat>(params[7], params[8]);
+  thrust::complex<cudaFloat> sourcePos = thrust::complex<cudaFloat>(sourcePosParams[0], sourcePosParams[1]);
 
   double tempAmp = 0.0;
 
@@ -576,7 +586,7 @@ void arrangeShootingAmoeba(Node*     nodes,
 
     thrust::complex<double> imgPos = thrust::complex<double>(
       // origin + position of the pixel + position of subpixel
-      xShift + __ll2double_rn(gridX)*params[9],
+      xShift + __ll2double_rn(gridX)*params[7],
       yShift
     );
 
@@ -586,6 +596,7 @@ void arrangeShootingAmoeba(Node*     nodes,
   // For sm_30 there is no atomicAdd that would accept doubles.
   // Change this if you evet lay your hands on sm_60.
   atomicAdd(&amps[blockIdx.x], __double2float_rn(tempAmp));
+  //atomicAdd(&amps[blockIdx.x], __double2float_rn(sourcePosParams[0]));
 };
 
 __device__

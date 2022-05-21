@@ -94,6 +94,7 @@ class SyncerCUDA
 
     void allocateHost(int size);
     void allocateCuda();
+    void setConstantPars();
 
     void printOutTimes();
 
