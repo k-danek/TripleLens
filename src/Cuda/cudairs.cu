@@ -513,7 +513,6 @@ float SyncerCUDA::getAmpSync(
 
   }
 
-
   beginTime = clock();
   cudaFloat totalAmpCUDA = 0.0;
   for(int i = 0; i < numOfNodes; i++)
@@ -602,14 +601,16 @@ cudaFloat irs(const thrust::complex<cudaFloat>& z2,
 
     cudaFloat r = thrust::abs(impact-sourcePos)/params[6];
 
-    if(r <= 1.0)
-    {
-        return 0.6+0.4*sqrt(1.0-r*r); 
-    }
-    else
-    {
-        return 0.0;
-    }
+    //if(r <= 1.0)
+    //{
+    //    return 0.6+0.4*sqrt(1.0-r*r); 
+    //}
+    //else
+    //{
+    //    return 0.0;
+    //}
+    cudaFloat step = cudaFloat(r<=1.0);
+    return (0.6+0.4*sqrt(1-r*r*step))*step;
 };
 
 double irsCPU(const double*                  params,
