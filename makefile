@@ -3,6 +3,8 @@ CC=g++
 # Flag -fPIC makes o files usable in the shared library
 CFLAGS= -Wl,--no-undefined -fPIC -Ofast -g -std=c++17
 CPROFFLAGS= -pg -no-pie -fno-builtin
+# This flag determines that cuda should be included
+CFLAGS_CUDA= -DCUDA
 CFLAGS_SHARED= -shared
 
 CFCOMPATIBLE=
@@ -31,23 +33,28 @@ INC_UTILS=$(SOURCE_DIR)/Utils
 BUILD_TARGET=./bin
 INCLUDES= -I. -I$(INC_CCC) -I$(INC_LENS) -I$(INC_LAGUERRE) -I$(INC_IMG) -I$(INC_UTILS) -I$(INC_CUDA) -I$(INC_LC) $(CUDA_LIB_DIR) $(CUDA_INC_DIR) -I$(BUILD_TARGET)
 
-all: libimgpoint.so libccc.so liblcirs.so liblccuda.so ccc_test
+cuda: libimgpoint.so libccc.so liblcirs.so liblccuda.so ccc_cuda
+
+cpu: libimgpoint.so libccc.so liblcirs.so ccc_cpu
 
 profile: libimgpoint.so libccc.so liblcirs.so ccc_profile
 
 # Executables
-ccc_test: main.o libccc.so libimgpoint.so liblcirs.so laguerre.o cudalink.o cudalc.o
-	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
+ccc_cuda: maincuda.o libccc.so libimgpoint.so liblcirs.so laguerre.o cudalink.o cudalc.o
+	$(CC) $(CFLAGS) $(CFLAGS_CUDA) -o $(BUILD_TARGET)/ccc_cuda $(BUILD_TARGET)/maincuda.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
 
-ccc_profile: main.o libimgpoint.so liblcirs.so laguerre.o cudalink.o cudalc.o
-	$(CC) $(CFLAGS) $(CPROFFLAGS) -o $(BUILD_TARGET)/ccc_profile $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
+ccc_profile: maincuda.o libimgpoint.so liblcirs.so laguerre.o cudalink.o cudalc.o
+	$(CC) $(CFLAGS) $(CFLAGS_CUDA) $(CPROFFLAGS) -o $(BUILD_TARGET)/ccc_profile $(BUILD_TARGET)/maincuda.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
+
+ccc_cpu: main.o libimgpoint.so liblcirs.so laguerre.o
+	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_cpu $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o
 
 # Shared libraries
 liblccuda.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o laguerre.o cudalink.o cudalc.o
-	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/liblccuda.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) $(CFLAGS_CUDA) -o $(BUILD_TARGET)/liblccuda.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
 
 liblcirs.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o laguerre.o
-	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/liblcirs.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/liblcirs.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o
 
 libimgpoint.so: lens.o imgpoint.o laguerre.o  
 	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/libimgpoint.so $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o
@@ -56,13 +63,16 @@ libccc.so: lens.o ccc.o laguerre.o
 	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/libccc.so $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o 
 
 # Object files
-main.o: cudalc.o
+main.o:
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/main.o $(SOURCE_DIR)/main.cc
+
+maincuda.o: cudalc.o
+	$(CC) -c $(INCLUDES) $(CFLAGS) $(CFLAGS_CUDA) -o $(BUILD_TARGET)/maincuda.o $(SOURCE_DIR)/main.cc
 
 cudalc.o: $(INC_CUDA)/cudalc.h cudalink.o
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/cudalc.o $(INC_CUDA)/cudalc.cc
 
-lcirs.o: $(INC_LC)/lcirs.h cudalink.o
+lcirs.o: $(INC_LC)/lcirs.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lcirs.o $(INC_LC)/lcirs.cc
 
 amoeba.o: $(INC_UTILS)/amoeba.h
@@ -92,6 +102,6 @@ lens.o: $(INC_LENS)/lens.h
 -include $(INCLUDES)
 
 clean:
-	rm $(BUILD_TARGET)/*.o $(BUILD_TARGET)/*.so $(BUILD_TARGET)/*.a $(BUILD_TARGET)/ccc_test $(BUILD_TARGET)/ccc_profile
+	rm $(BUILD_TARGET)/*.o $(BUILD_TARGET)/*.so $(BUILD_TARGET)/*.a $(BUILD_TARGET)/ccc_*
 
 
