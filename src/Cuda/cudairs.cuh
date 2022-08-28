@@ -2,15 +2,11 @@
 #include <vector>
 #include <complex>
 #include <math.h>
-//#include <nvfunctional>
 #include <unordered_map>
 #include <list>
 
 #include <thrust/complex.h>
 #include <thrust/device_reference.h>
-//#include <unordered_map>
-
-//#include <amoeba.h>
 
 #ifndef XRANGE
 #define XRANGE

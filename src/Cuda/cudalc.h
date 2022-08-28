@@ -23,6 +23,7 @@
 #include<lcirs.h>
 #include<imgpoint.h>
 #include<lens.h>
+#include <limbdarkeningmodel.h>
 
 #include "cudairs.cuh"
 
@@ -61,6 +62,8 @@ class LightCurveCUDA: public LightCurveIRS
                            complex<double> sPos,
                            bool            checked = false);
 
+    void setLimbDarkeningModel(LimbDarkeningModel &ldm);
+
     CriticalCurveCaustic ccc;
     Amoeba amoebae;
 
@@ -76,7 +79,7 @@ class LightCurveCUDA: public LightCurveIRS
     double _gpuTrigger = 0.0;
     double _gpuSync = 0.0;
     double _gpuInit = 0.0;
-
+    LimbDarkeningModel _limbDarkeningModel;    
 };
 
 #endif                

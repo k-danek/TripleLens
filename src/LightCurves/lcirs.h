@@ -23,6 +23,7 @@
 #include<imgpoint.h>
 #include<lens.h>
 #include<amoeba.h>
+#include<limbdarkeningmodel.h>
 
 template<class T>
 using pair = std::pair<T, T>;
@@ -72,6 +73,8 @@ class LightCurveIRS: public LightCurveBase
                            complex<double>& trialPoint
                           );
 
+    void setLimbDarkeningModel(LimbDarkeningModel ldm);
+
     CriticalCurveCaustic ccc;
     Amoeba amoebae;
 
@@ -107,6 +110,8 @@ class LightCurveIRS: public LightCurveBase
  
     // sets Image plane to be square enveloping all the Critical Curve
     void _getImgPlanePars(); 
+
+    LimbDarkeningModel _limbDarkeningModel;
 };
 
 #endif                

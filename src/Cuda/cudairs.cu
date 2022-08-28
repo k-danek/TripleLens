@@ -56,6 +56,8 @@ void SyncerCUDA::setConstantPars()
   _tempParams[12] = cudaFloat(_imgPixSize/double(subgridSize)); // subgrid increment
   _tempParams[13] = cudaFloat(_imgPlaneOrigin.real()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // x-origin of coordinates in image plane 
   _tempParams[14] = cudaFloat(_imgPlaneOrigin.imag()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // y-origin of coordinates in image plane
+  _tempParams[15] = cudaFloat(_linLimbDarkeningA);
+  _tempParams[16] = cudaFloat(_linLimbDarkeningB);
 
   cudaMemcpyToSymbol(params, _tempParams, sizeof(cudaFloat)*15);
   // putting subgridsize to constant memory
@@ -611,6 +613,8 @@ cudaFloat irs(const thrust::complex<cudaFloat>& z2,
     //}
     cudaFloat step = cudaFloat(r<=1.0);
     return (0.6+0.4*sqrt(1-r*r*step))*step;
+    //return (0.4+0.6*sqrt(1-r*r*step))*step;
+    //return (1.0)*step;
 };
 
 double irsCPU(const double*                  params,

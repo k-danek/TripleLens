@@ -19,6 +19,7 @@ LightCurveIRS::LightCurveIRS(
   ccc.getCa();
   _getCaBoxes();
   _getImgPlanePars();
+  _limbDarkeningModel = LimbDarkeningModel();
 };
 
 void LightCurveIRS::_getCaBoxes()
@@ -68,7 +69,8 @@ void LightCurveIRS::_getImgPlanePars()
   // Set the ampScale as number of grid point of the image plane that would fit
   // in the source radius. Also divide by a factor from source brightness
   // integration (for source of radius 1).
-  _ampScale = 1.0/M_PI/pow(_pointsPerRadius,2.0)/(1.0-_vFactor/3.0);
+  //_ampScale = 1.0/M_PI/pow(_pointsPerRadius,2.0)/(1.0-_vFactor/3.0);
+  _ampScale = _limbDarkeningModel.intensityCoeff/M_PI/pow(_pointsPerRadius,2.0);
 
   //cout << "Image plane parameters:\n";
   //cout << "_imgPlaneSize:" << _imgPlaneSize << "\n";
@@ -80,6 +82,14 @@ void LightCurveIRS::_getImgPlanePars()
 
 };
 
+void LightCurveIRS::setLimbDarkeningModel(LimbDarkeningModel ldm)
+{
+  _limbDarkeningModel = ldm;
+  // Needs to re-calculate scalling amp parameter according to limb-darkening model
+  _ampScale = _limbDarkeningModel.intensityCoeff/M_PI/pow(_pointsPerRadius,2.0);
+
+  // I should also update IRS function.
+};
 
 void LightCurveIRS::getLCIRS(complex<double> startPoint,
                              complex<double> endPoint
@@ -239,7 +249,7 @@ double LightCurveIRS::irs(double imgX,
    if( r < _sourceRadius)
    {
      double rn = r/_sourceRadius; 
-     return sourceBrightness(rn);
+     return _limbDarkeningModel.sourceBrightness(rn);
    }  
    else
    {
@@ -280,10 +290,10 @@ long int LightCurveIRS::yToNy(double y)
 }
 
 
-double LightCurveIRS::sourceBrightness(double r)
-{
-  return _OneMvFactor+_vFactor*sqrt(1.0-r*r);
-}
+//double LightCurveIRS::sourceBrightness(double r)
+//{
+//  return _OneMvFactor+_vFactor*sqrt(1.0-r*r);
+//}
 
 
 void LightCurveIRS::lineFloodFill(long int nx,
@@ -449,5 +459,17 @@ extern "C"
       lcArray[i] = lc->lcVec[i];
     }
   }
+
+  // In order to access the data in python, 
+  // we copy them to array of complex<double>
+  void set_limb_darkening(LightCurveIRS* lc,
+                          double         v        
+                         )
+  {
+    LimbDarkeningModel ldm(v);
+    
+    lc->setLimbDarkeningModel(ldm);
+  }
+
 }
 

@@ -20,6 +20,7 @@ LightCurveCUDA::LightCurveCUDA(
   ccc.getCa();
   _getCaBoxes();
   _getImgPlanePars();
+  _limbDarkeningModel = LimbDarkeningModel();
 };
 
 

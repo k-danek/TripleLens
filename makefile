@@ -30,8 +30,9 @@ INC_LC=$(SOURCE_DIR)/LightCurves
 INC_IMG=$(SOURCE_DIR)/Images
 INC_CUDA=$(SOURCE_DIR)/Cuda
 INC_UTILS=$(SOURCE_DIR)/Utils
+INC_LIMBDARKENING=$(SOURCE_DIR)/LimbDarkening
 BUILD_TARGET=./bin
-INCLUDES= -I. -I$(INC_CCC) -I$(INC_LENS) -I$(INC_LAGUERRE) -I$(INC_IMG) -I$(INC_UTILS) -I$(INC_CUDA) -I$(INC_LC) $(CUDA_LIB_DIR) $(CUDA_INC_DIR) -I$(BUILD_TARGET)
+INCLUDES= -I. -I$(INC_CCC) -I$(INC_LENS) -I$(INC_LAGUERRE) -I$(INC_IMG) -I$(INC_UTILS) -I$(INC_LIMBDARKENING) -I$(INC_CUDA) -I$(INC_LC) $(CUDA_LIB_DIR) $(CUDA_INC_DIR) -I$(BUILD_TARGET)
 
 cuda: libimgpoint.so libccc.so liblcirs.so liblccuda.so ccc_cuda
 
@@ -47,14 +48,14 @@ ccc_profile: maincuda.o libimgpoint.so liblcirs.so laguerre.o cudalink.o cudalc.
 	$(CC) $(CFLAGS) $(CFLAGS_CUDA) $(CPROFFLAGS) -o $(BUILD_TARGET)/ccc_profile $(BUILD_TARGET)/maincuda.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
 
 ccc_cpu: main.o libimgpoint.so liblcirs.so laguerre.o
-	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_cpu $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o
+	$(CC) $(CFLAGS) -o $(BUILD_TARGET)/ccc_cpu $(BUILD_TARGET)/main.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/limbdarkeningmodel.o
 
 # Shared libraries
 liblccuda.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o laguerre.o cudalink.o cudalc.o
 	$(CC) $(CFLAGS_SHARED) $(CFLAGS) $(CFLAGS_CUDA) -o $(BUILD_TARGET)/liblccuda.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
 
-liblcirs.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o laguerre.o
-	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/liblcirs.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o
+liblcirs.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o laguerre.o limbdarkeningmodel.o
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/liblcirs.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/limbdarkeningmodel.o
 
 libimgpoint.so: lens.o imgpoint.o laguerre.o  
 	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/libimgpoint.so $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o
@@ -77,6 +78,9 @@ lcirs.o: $(INC_LC)/lcirs.h
 
 amoeba.o: $(INC_UTILS)/amoeba.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/amoeba.o $(INC_UTILS)/amoeba.cc 
+
+limbdarkeningmodel.o: $(INC_LIMBDARKENING)/limbdarkeningmodel.h
+	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/limbdarkeningmodel.o $(INC_LIMBDARKENING)/limbdarkeningmodel.cc 
 
 cudalink.o: cudairs.o
 	$(NVCC) $(CUDAFLAGS) -dlink --compiler-options '-fPIC' -o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
