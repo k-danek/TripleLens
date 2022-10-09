@@ -161,6 +161,12 @@ class LC_irs(object):
                                        ]
         self.lib_lc.copy_lc.restypes = ctypes.c_void_p
 
+        self.lib_lc.set_limb_darkening.argtypes = [ctypes.c_void_p,
+                                                   ctypes.c_char_p,
+                                                   ctypes.c_double
+                                                  ]
+        self.lib_lc.set_limb_darkening.restypes = ctypes.c_void_p
+
         self.obj = self.lib_lc.lcirs_new(a, b, th, m2, m3, source_size, lc_len, img_plane_size)
 
     def get_lc(self, iniX, iniY, finX, finY):
@@ -171,6 +177,9 @@ class LC_irs(object):
 
     def copy_lc(self,lc_vec):
         self.lib_lc.copy_lc(self.obj, lc_vec)
+
+    def set_limb_darkening(self, model_type, model_parameter):
+        self.lib_lc.set_limb_darkening(self.obj, model_type, model_parameter)
 
 
 # Represent functional ctypes version of C++ LightCurveCUDA class as Python Class
@@ -203,6 +212,12 @@ class LC_cuda(object):
                                          ]
         self.lib_cuda.copy_lc.restypes = ctypes.c_void_p
 
+        self.lib_cuda.set_limb_darkening_cuda.argtypes = [ctypes.c_void_p,
+                                                          ctypes.c_char_p,
+                                                          ctypes.c_double
+                                                         ]
+        self.lib_cuda.set_limb_darkening_cuda.restypes = ctypes.c_void_p
+
         self.obj = self.lib_cuda.lccuda_new(a, b, th, m2, m3, source_size, lc_len, img_plane_size)
 
     def get_lc(self, iniX, iniY, finX, finY):
@@ -213,3 +228,6 @@ class LC_cuda(object):
 
     def copy_lc(self,lc_vec):
         self.lib_cuda.copy_lc(self.obj, lc_vec)
+
+    def set_limb_darkening(self, model_type, model_parameter):
+        self.lib_cuda.set_limb_darkening_cuda(self.obj, model_type, model_parameter)

@@ -1,4 +1,5 @@
 #include<lcirs.h>
+#include <string.h>
 
 LightCurveIRS::LightCurveIRS(
                              double       a,
@@ -36,7 +37,7 @@ void LightCurveIRS::_getCaBoxes()
 
 void LightCurveIRS::_getImgPlanePars()
 {
-  const double resizingFactor = 1.2;
+  const double resizingFactor = 3.0;
   complex<double> min = {0.0,0.0}, max = {0.0,0.0};
   complex<double> centre;
   double halfEdge;
@@ -289,13 +290,6 @@ long int LightCurveIRS::yToNy(double y)
       (y - _bottomLeftCornerImg.imag())*_imgPlaneSize/_imgPlaneSizeDouble+0.5);
 }
 
-
-//double LightCurveIRS::sourceBrightness(double r)
-//{
-//  return _OneMvFactor+_vFactor*sqrt(1.0-r*r);
-//}
-
-
 void LightCurveIRS::lineFloodFill(long int nx,
                                   long int ny,
                                   complex<double> sPos,
@@ -460,14 +454,25 @@ extern "C"
     }
   }
 
-  // In order to access the data in python, 
-  // we copy them to array of complex<double>
+  // Api to set limb darkening model.
   void set_limb_darkening(LightCurveIRS* lc,
+                          const char*    model,
                           double         v        
                          )
   {
-    LimbDarkeningModel ldm(v);
-    
+    LimbDarkeningModel ldm;
+
+    if(strcmp(model, "linear") == 0) 
+    {
+      std::cout<< "model is linear\n";
+      ldm = LimbDarkeningModel(v);
+    }
+    else 
+    {
+      std::cout<< "model is default\n";
+      ldm = LimbDarkeningModel();
+    }
+
     lc->setLimbDarkeningModel(ldm);
   }
 

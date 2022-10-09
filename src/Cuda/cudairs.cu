@@ -8,7 +8,7 @@
 #include "cudairs.cuh"
 
 
-__constant__ cudaFloat params[15];
+__constant__ cudaFloat params[17];
 __constant__ cudaFloat sourcePosParams[2];
 // Subgrid size
 __constant__ int       sgSize[1];
@@ -31,6 +31,35 @@ SyncerCUDA::SyncerCUDA(double                     a,
   _imgPixSize = imgPixSize;
   _imgPlaneOrigin = imgPlaneOrigin;
   _numOfNodes = 0;
+  allocateHost(_numberOfNodesBufferSize);
+  allocateCuda();
+  setConstantPars();
+  _linLimbDarkeningA = 0.6;
+  _linLimbDarkeningB = 0.8;
+};
+
+SyncerCUDA::SyncerCUDA(double                     a,
+                       double                     b,
+                       double                     th,
+                       double                     m2,
+                       double                     m3,
+                       double                     sourceSize,
+                       double                     imgPixSize,
+                       std::complex<double>       imgPlaneOrigin,
+                       double                     limbDarkeningA,
+                       double                     limbDarkeningB)
+{
+  _a = a;
+  _b = b;
+  _th = th;
+  _m2 = m2;
+  _m3 = m3;
+  _sourceSize = sourceSize;
+  _imgPixSize = imgPixSize;
+  _imgPlaneOrigin = imgPlaneOrigin;
+  _numOfNodes = 0;
+  _linLimbDarkeningA = limbDarkeningA;
+  _linLimbDarkeningB = limbDarkeningB;
   allocateHost(_numberOfNodesBufferSize);
   allocateCuda();
   setConstantPars();
@@ -59,7 +88,7 @@ void SyncerCUDA::setConstantPars()
   _tempParams[15] = cudaFloat(_linLimbDarkeningA);
   _tempParams[16] = cudaFloat(_linLimbDarkeningB);
 
-  cudaMemcpyToSymbol(params, _tempParams, sizeof(cudaFloat)*15);
+  cudaMemcpyToSymbol(params, _tempParams, sizeof(cudaFloat)*17);
   // putting subgridsize to constant memory
   cudaMemcpyToSymbol(sgSize, (const void*)&subgridSize, sizeof(int)); 
   endTime = clock();
@@ -612,9 +641,9 @@ cudaFloat irs(const thrust::complex<cudaFloat>& z2,
     //    return 0.0;
     //}
     cudaFloat step = cudaFloat(r<=1.0);
-    return (0.6+0.4*sqrt(1-r*r*step))*step;
-    //return (0.4+0.6*sqrt(1-r*r*step))*step;
-    //return (1.0)*step;
+    return (params[15]+params[16]*sqrt(1-r*r*step))*step;
+    //return params[15]+params[16];
+    //return (0.6+0.4*sqrt(1-r*r*step))*step;
 };
 
 double irsCPU(const double*                  params,
@@ -626,8 +655,8 @@ double irsCPU(const double*                  params,
 {
 
     std::complex<double> impact = img-params[3]/conj(img)
-                                    -params[4]/conj(img-z2)
-                                    -params[5]/conj(img-z3);
+                                     -params[4]/conj(img-z2)
+                                     -params[5]/conj(img-z3);
 
     double r = std::abs(impact-sourcePos)/params[6];
 

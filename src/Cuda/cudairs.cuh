@@ -67,6 +67,17 @@ class SyncerCUDA
                double                     imgPixSize,
                std::complex<double>       imgPlaneOrigin);
 
+    SyncerCUDA(double                     a,
+               double                     b,
+               double                     th,
+               double                     m2,
+               double                     m3,
+               double                     sourceSize,
+               double                     imgPixSize,
+               std::complex<double>       imgPlaneOrigin,
+               double                     limbDarkeningA,
+               double                     limbDarkeningB);
+
     void freeAll();
 
     double syncAndReturn(int lcStep);
@@ -118,6 +129,10 @@ class SyncerCUDA
     double               _sourceSize;
     double               _imgPixSize;
     std::complex<double> _imgPlaneOrigin;
+
+    // Limb Darkening
+    double               _linLimbDarkeningA;
+    double               _linLimbDarkeningB;
 
     // Constant size
     int       _numberOfNodesBufferSize = 768;

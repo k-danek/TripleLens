@@ -84,7 +84,6 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
   cout << "IRS called with _ampScale:" << _ampScale << "\n";
   
   complex<double> pos = startPoint;
-
   
   beginTime = clock(); 
   SyncerCUDA cudaSyncer(a,
@@ -94,7 +93,9 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
                         m3,
                         _sourceRadius,
                         _imgPlaneSizeDouble/double(_imgPlaneSize-1.0),
-                        _bottomLeftCornerImg);
+                        _bottomLeftCornerImg,
+                        _limbDarkeningModel.getParA(),
+                        _limbDarkeningModel.getParB());
   endTime = clock(); 
   _gpuInit += double(endTime - beginTime);
  
@@ -126,24 +127,6 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
     }
     endTime = clock(); 
     _cpuFloodFill += double(endTime - beginTime);
-
-
-    //beginTime = clock();
-    //_amplification = cudaSyncer.getAmpSync(amoebae.amoebae,
-    //                                       a,
-    //                                       b,
-    //                                       th,
-    //                                       m2,
-    //                                       m3,
-    //                                       _sourceRadius,
-    //                                       pos.real(),
-    //                                       pos.imag(),
-    //                                       _imgPlaneSizeDouble/double(_imgPlaneSize-1.0),
-    //                                       _bottomLeftCornerImg);
-    //endTime = clock();
-    //_gpuTrigger += double(endTime - beginTime);
-
-    //lcVec[i] = _amplification*_ampScale;
 
     if(i > 0) 
     {
@@ -199,6 +182,9 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
        << "GPU Sync time: " << _gpuSync / CLOCKS_PER_SEC << "\n"
        << "GPU Init time: " << _gpuInit / CLOCKS_PER_SEC << "\n"
        << "GPU of the overal time: " << (_gpuTrigger+_gpuSync)/(_cpuSeeds+_cpuFloodFill+_gpuTrigger+_gpuSync) << "\n";
+
+
+  cout << "Syncer Cuda set with:" << _limbDarkeningModel.getParA() << " " << _limbDarkeningModel.getParB() << "\n";
 
   cudaSyncer.printOutTimes();
 
@@ -436,17 +422,24 @@ extern "C"
                      );
   }
 
-  // In order to access the data in python, 
-  // we copy them to array of complex<double>
-  void copycuda_lc(LightCurveCUDA* lc,
-                   double*         lcArray        
-                  )
+  // Api to set limb darkening model.
+  void set_limb_darkening_cuda(LightCurveCUDA* lc,
+                               const char*    model,
+                               double         v        
+                              )
   {
-    unsigned int length = lc->lcVec.size();
+    LimbDarkeningModel ldm;
 
-    for(unsigned int i = 0; i < length; i++)
+    if(strcmp(model, "linear") == 0) 
     {
-      lcArray[i] = lc->lcVec[i];
+      ldm = LimbDarkeningModel(v);
     }
+    else 
+    {
+      ldm = LimbDarkeningModel();
+    }
+
+    lc->setLimbDarkeningModel(ldm);
   }
+
 }

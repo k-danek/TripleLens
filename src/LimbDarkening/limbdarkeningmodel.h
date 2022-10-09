@@ -1,3 +1,6 @@
+#ifndef LIMBDARKENINGMODEL_H
+#define LIMBDARKENINGMODEL_H
+
 class LimbDarkeningModel {
   public:
 
@@ -17,8 +20,13 @@ class LimbDarkeningModel {
 
     double intensityCoeff;
 
+    double getParA();
+    double getParB();
+
   private:
     double _linearLimbDarkeningA;
     double _linearLimbDarkeningB;
 
 };
+
+#endif

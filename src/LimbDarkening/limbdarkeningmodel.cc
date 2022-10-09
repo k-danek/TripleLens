@@ -42,3 +42,12 @@ double LimbDarkeningModel::sourceBrightness(double r)
   return _linearLimbDarkeningA+_linearLimbDarkeningB*sqrt(1.0-r*r);
 }
 
+double LimbDarkeningModel::getParA()
+{
+  return _linearLimbDarkeningA;
+}
+
+double LimbDarkeningModel::getParB()
+{
+  return _linearLimbDarkeningB;
+}

@@ -70,16 +70,22 @@ print("Bounding box ca: ", ca_min, ca_max)
 #pos_fin_x = 1.0
 #pos_fin_y = 0.577
 
+# imgs
+pos_ini_x = 0.0
+pos_ini_y = -0.7
+pos_fin_x = 1.0
+pos_fin_y = 0.7
+
 # source pos
-pos_ini_x = 0.22
-pos_ini_y = 0.12694
-pos_fin_x = 0.24
-pos_fin_y = 0.13848
+#pos_ini_x = 0.22
+#pos_ini_y = 0.12694
+#pos_fin_x = 0.24
+#pos_fin_y = 0.13848
 
 # number of steps
-lc_steps = 5
+lc_steps = 200
 source_size = 1e-5
-points_per_radius = 2000
+points_per_radius = 300
 
 lc_point_array = np.zeros(lc_steps, np.double)
 lc_irs_array   = np.zeros(lc_steps, np.double)
@@ -95,20 +101,24 @@ lc_irs.copy_lc(lc_point_array)
 print("Copied LC")
 
 # Plotting
-fig, (ax1, ax2) = plt.subplots(1, 2)
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
 ax1.set_title("Source Trajectory")
 
 ax1.axis(xmin=cc_min.real, xmax=cc_max.real, ymin=cc_min.imag, ymax=cc_max.imag)
 ax1.scatter(ca_real, ca_imag, s = 0.1)
 ax1.scatter(lenses_real, lenses_imag, s=200.0, marker = 'o')
-ax1.plot([0.0,1.0],[0.0,0.577])
+ax1.plot([pos_ini_x,pos_fin_x],[pos_ini_y,pos_fin_y])
 
 ax2.set_title("Light Curve")
 
-ax2.plot(lc_point_array)
-ax2.plot(lc_irs_array)
+ax2.plot(lc_point_array, color='cyan', label='point')
+ax2.plot(lc_irs_array, color='red', label='irs')
 
-fig.savefig("LightCurvePoint.png", dpi=200)
+ax3.set_title("Ratio Curve")
+
+ax3.plot(lc_irs_array/lc_point_array, color='cyan', label='point')
+#ax3.set_ylim([1.0, 1.5])
+fig.savefig("LightCurvePoint.png", dpi=300)
 
 print("Time to initialise and calculate the images (s): ",time.time()-start_time)
