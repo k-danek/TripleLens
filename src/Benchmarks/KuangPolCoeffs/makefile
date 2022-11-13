@@ -12,8 +12,12 @@ CC=g++
 # 7) -freciprocal-math seems to mess up accuracy at 15-16th figure.
 # 9) -fassociative-math -fno-signed-zeros -fno-trapping-math combination leads
 #     to correct result while leveling the performance.
+# Also see https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html
 
-OPTFLAGS= -O3 -fassociative-math -fno-signed-zeros -fno-trapping-math
+
+#OPTFLAGS= -O3 -fassociative-math -fno-signed-zeros -fno-trapping-math
+OPTFLAGS= -O3
+#OPTFLAGS= -Ofast
 CFLAGS= -Wl,--no-undefined -fPIC $(OPTFLAGS) -g -std=c++17
 
 SOURCE_DIR=../..

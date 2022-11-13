@@ -104,6 +104,55 @@ void ImgPoint::getRoots(bool forceNewRoots = false,
   _rootsAvailable = true;
 };
 
+// Given all the image candidates, we establish which one is a real root.
+// Uses simplification when we calculate parts of coefss at firs
+// This is just a for triple lens only
+void ImgPoint::getRootsPrecalculated(bool forceNewRoots = false)
+{
+
+  vector<complex<double>> imgCoeffSourceDependent = getCoeffsOptJustZ();
+  
+  if(!_areZetaFreeCoeffsAvailable || forceNewRoots)
+  { 
+    _zetaFreeCoeffs = getCoeffsOptNoZ();
+    _areZetaFreeCoeffsAvailable = true;
+  }
+  
+  vector<complex<double>> imgCoeff(11);
+
+  for(unsigned int i = 0; i < imgCoeff.size(); i++)
+  {
+    imgCoeff[i] = _zetaFreeCoeffs[i] + imgCoeffSourceDependent[i];
+  }
+  
+  Laguerre laguerre(imgCoeff);
+
+  //This part decides whether to polish previous or calculate new roots.
+  //Doing just polishing should speed up the process cca twice.
+  //Also, it leaves the roots in the same order as in the previous step.
+  //<10 condition is there to check whether tempRoots holds all 10 roots    
+  if(_tempRoots.size() < (imgCoeff.size()-1) || forceNewRoots)
+  {
+    _tempRoots = laguerre.solveRoots();
+  }
+  else
+  {
+    // Solve the roots with initial guess set to previous solution
+    _tempRoots = laguerre.solveRoots(_tempRoots);  
+
+    if(!laguerre.checkRoots(_tempRoots))
+    {
+      cout << "Roots off for img " << "\n";
+      _tempRoots = laguerre.solveRoots();
+    }        
+  };  
+
+  // no cleaning of roots as we just assing the roots
+  roots = _tempRoots;
+
+  // Calculation finished, the critical curve is now available.
+  _rootsAvailable = true; 
+};
 
 // Given all the image candidates, we establish which one is a real root.
 void ImgPoint::getImages()
@@ -172,6 +221,8 @@ void ImgPoint::getImages()
 
   _imgsAvailable = true;
 };
+
+
 
 vector<complex<double>> ImgPoint::getImages(complex<double> pos)
 {

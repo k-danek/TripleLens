@@ -41,6 +41,8 @@ class ImgPoint: public Lens
 
     vector<complex<double>> getCoeffs();
     vector<complex<double>> getCoeffsOpt();
+    vector<complex<double>> getCoeffsOptJustZ();
+    vector<complex<double>> getCoeffsOptNoZ();
     vector<complex<double>> getCoeffsBinOpt();
 
     // checks if an roos is an image
@@ -51,6 +53,9 @@ class ImgPoint: public Lens
     // Image position caulculation
     void getRoots(bool forceNewRoots,
                   bool isBinaryLens); 
+
+    // update and return images in one functional call
+    void getRootsPrecalculated(bool forceNewRoots);
 
     void getImages();
     
@@ -68,9 +73,10 @@ class ImgPoint: public Lens
   private:
     bool _rootsAvailable = false;
     bool _imgsAvailable = false;
+    bool _areZetaFreeCoeffsAvailable = false;
     complex<double> _sourcePos;
     vector<complex<double>> _tempRoots;
-
+    vector<complex<double>> _zetaFreeCoeffs;
 };
 
 #endif

@@ -33,14 +33,21 @@ int main()
   std::complex<double> z1 = {0.0,0.0};
   std::complex<double> z2 = {a,0.0};
   std::complex<double> z3 = {b*cos(th), b*sin(th)};
-  std::vector<std::complex<double>> coeffs;
+  std::vector<std::complex<double>> coeffs(11);
   ImgPoint img(a,b,th,m2,m3,0.0,0.0);
+  std::vector<double> coeffSums(11);
 
   double coeffSum = 0.0;
 
   unsigned int numOfSteps = 100000;
   unsigned int precision = 16;
 
+  // Zero Coeff summs
+  std::fill(coeffSums.begin(), coeffSums.end(), 0.0);
+
+  //////////////////////////////////////////////
+  // Calculating coeffs without optimization
+  //////////////////////////////////////////////
   begin = clock();  
   for(unsigned int i = 0; i < numOfSteps; i++)
   {
@@ -53,6 +60,7 @@ int main()
     coeffs = img.getCoeffs();
     for(unsigned j = 0; j < coeffs.size(); j++)
     {
+      coeffSums[j] += std::abs(coeffs[j]);
       coeffSum += std::abs(coeffs[j]); 
     }
   }
@@ -64,21 +72,25 @@ int main()
             << coeffSum
             << "\n\n";
 
+  // Zero Coeff summs
+  std::fill(coeffSums.begin(), coeffSums.end(), 0.0);
 
+
+  ///////////////////////////////////////////
+  // Calculating coeffs with optimalization
+  /////////////////////////////////////////
   coeffSum = 0.0;
-
   begin = clock(); 
   for(unsigned int i = 0; i < numOfSteps; i++)
   {
     // A spiral souce trajectory
     complex<double> source = {(double)i/(double)numOfSteps*cos((double)i/100.0),
                               (double)i/(double)numOfSteps*sin((double)i/100.0)};
-    //cout << "Img step " << i << "\n";
-    //complex<double> source = {(double)i*0.1, (double)i*0.0577};     
     img.setPos(source);
     coeffs = img.getCoeffsOpt();
     for(unsigned j = 0; j < coeffs.size(); j++)
     {
+      coeffSums[j] += std::abs(coeffs[j]);
       coeffSum += std::abs(coeffs[j]); 
     }
   }
@@ -90,6 +102,53 @@ int main()
             << coeffSum
             << "\n\n";
 
+  for(unsigned j = 0; j < coeffs.size(); j++)
+  {
+      std::cout << "z-not-separated n:" << j
+                << std::setprecision(precision) 
+                << ", valueL " << coeffSums[j]
+                //<< ", valueL " << std::abs(coeffs[j])
+                << "\n"; 
+  }
+
+  // Zero Coeff summs
+  std::fill(coeffSums.begin(), coeffSums.end(), 0.0);
+
+  /////////////////////////////
+  // Split zeta and zeta-independent coefficients
+  /////////////////////////////
+  coeffSum = 0.0;
+  begin = clock();
+  vector<complex<double>> coeff0 = img.getCoeffsOptNoZ(); 
+  for(unsigned int i = 0; i < numOfSteps; i++)
+  {
+    // A spiral souce trajectory
+    complex<double> source = {(double)i/(double)numOfSteps*cos((double)i/100.0),
+                              (double)i/(double)numOfSteps*sin((double)i/100.0)};
+    img.setPos(source);
+    coeffs = img.getCoeffsOptJustZ();
+    for(unsigned j = 0; j < coeffs.size(); j++)
+    {
+      coeffSums[j] += std::abs(coeffs[j]+coeff0[j]);
+      coeffSum += std::abs(coeffs[j]+coeff0[j]); 
+    }
+  }
+  end = clock();
+  std::cout << "10k my coeff opt separated calculations:" 
+            << std::setprecision(precision) 
+            << double(end - begin) / CLOCKS_PER_SEC 
+            << "s; Coeff sum = "
+            << coeffSum
+            << "\n\n";
+  
+  for(unsigned j = 0; j < coeffs.size(); j++)
+  {
+      std::cout << "z-separated n:" << j
+                << std::setprecision(precision) 
+                << ", valueL " << coeffSums[j]
+                << "\n"; 
+  }
+
   //KuangCoeffCalculator(double mlens[], std::complex<double> zlens[]);
   double mlens[NLENS] = {1.0-m2-m3, m2, m3};
   std::complex<double> zlens[NLENS] = {z1, z2, z3};
@@ -97,6 +156,9 @@ int main()
   std::complex<double> kuangCoeffs[11];
 
   coeffSum = 0.0;
+
+  // Zero Coeff summs
+  std::fill(coeffSums.begin(), coeffSums.end(), 0.0);
 
   begin = clock(); 
   for(unsigned int i = 0; i < numOfSteps; i++)
@@ -108,6 +170,7 @@ int main()
 
     for(unsigned j = 0; j < 11; j++)
     {
+      coeffSums[j] += std::abs(kuangCoeffs[j]);
       coeffSum += std::abs(kuangCoeffs[j]); 
     }
 
@@ -120,5 +183,15 @@ int main()
             << coeffSum
             << "\n\n";
 
+  for(unsigned j = 0; j < coeffs.size(); j++)
+  {
+      std::cout << "z-separated n:" << j
+                << std::setprecision(precision) 
+                << ", valueL " << coeffSums[j]
+                << "\n"; 
+  }
+
   return 0;
 }
+
+
