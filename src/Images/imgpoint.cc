@@ -15,6 +15,21 @@ ImgPoint::ImgPoint(
   setPos(posX,posY);
 };
 
+ImgPoint::ImgPoint(
+                   double       a,
+                   double       b,
+                   double       th,
+                   double       m2,
+                   double       m3,
+                   double       sourceSize,
+                   double       posX,
+                   double       posY
+                  ): Lens(a, b, th, m2, m3)
+{
+  setPos(posX,posY);
+  setSourceSize(sourceSize);
+};
+
 ImgPoint::ImgPoint(const LensPar &lensParam): Lens(lensParam.a,
                                                    lensParam.b,
                                                    lensParam.th,
@@ -105,8 +120,9 @@ void ImgPoint::getRoots(bool forceNewRoots = false,
 };
 
 // Given all the image candidates, we establish which one is a real root.
-// Uses simplification when we calculate parts of coefss at firs
-// This is just a for triple lens only
+// Uses simplification when we calculate parts of coeffs independent of zeta
+// at first and then zeta-depentent on every change of source position.
+// This is for triple lens only
 void ImgPoint::getRootsPrecalculated(bool forceNewRoots = false)
 {
 
@@ -160,17 +176,18 @@ void ImgPoint::getImages()
   // clears all the elements of the vector
   imgs.clear();
   isImg.clear();
-  double err = 1.0e-6;
 
   if(!_rootsAvailable)
   {
     // for m3 == 0.0 this is a Binary Lens
-    getRoots();
+    //getRoots();
+    //getRoots();
+    getRootsPrecalculated();
   }
 
   for(auto root: roots)
   {
-    if(imgCheck(root, err))
+    if(imgCheck(root, _imgErr))
     {
       imgs.push_back(root);
       isImg.push_back(true);
@@ -188,14 +205,16 @@ void ImgPoint::getImages()
      ((imgs.size() % 2 != 1 || imgs.size() < 3) &&  isBinaryLens))
   { 
     
-    getRoots(true);
+    //getRoots(true);
+    getRootsPrecalculated(true);
+    
     // clears all the elements of the vector
     imgs.clear();
     isImg.clear();
     
     for(auto root: roots)
     {
-      if(imgCheck(root, err))
+      if(imgCheck(root, _imgErr))
       {
         imgs.push_back(root);
         isImg.push_back(true);
@@ -222,7 +241,10 @@ void ImgPoint::getImages()
   _imgsAvailable = true;
 };
 
-
+void ImgPoint::setSourceSize(double sourceSize)
+{
+  _imgErr = sourceSize;
+}
 
 vector<complex<double>> ImgPoint::getImages(complex<double> pos)
 {
@@ -230,6 +252,15 @@ vector<complex<double>> ImgPoint::getImages(complex<double> pos)
   getImages();
   return imgs;
 };  
+
+vector<complex<double>> ImgPoint::getImages(complex<double> pos,
+                                            double          sourceSize)
+{
+  setSourceSize(sourceSize);
+  setPos(pos);
+  getImages();
+  return imgs;
+}; 
 
 // Python Wrapper for ctypes module
 extern "C"

@@ -40,7 +40,9 @@ class LightCurveCUDA: public LightCurveIRS
                    unsigned int    lcLength,
                    long int        imgPlaneSize
                   );
-    
+
+    ~LightCurveCUDA();
+
     void getLCCUDA(complex<double> startPos,
                    complex<double> endPos 
                   );
@@ -58,9 +60,9 @@ class LightCurveCUDA: public LightCurveIRS
                            bool            checked = false);
 
     void lineFloodFillIRS(long int        nx,
-                           long int        ny,
-                           complex<double> sPos,
-                           bool            checked = false);
+                          long int        ny,
+                          complex<double> sPos,
+                          bool            checked = false);
 
     CriticalCurveCaustic ccc;
     Amoeba amoebae;

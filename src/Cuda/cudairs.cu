@@ -97,31 +97,64 @@ void SyncerCUDA::setConstantPars()
 
 void SyncerCUDA::freeAll()
 {
-  cudaFreeHost(_ampsHost);
-  cudaFreeHost(_nodesHost);
-  cudaFree(_ampsDeviceA);
-  cudaFree(_ampsDeviceB);
-  cudaFree(_ampsDeviceC);
+  if(_ampsHost != nullptr) {
+    cudaFreeHost(_ampsHost);
+    _ampsHost = nullptr;
+  }
 
-  cudaFree(_nodesDeviceA);
-  cudaFree(_nodesDeviceB);
-  cudaFree(_nodesDeviceC);
+  if(_nodesHost != nullptr) {
+    cudaFreeHost(_nodesHost);
+    _nodesHost = nullptr;
+  }
 
-  free(_tempParams);
+  if(_ampsDeviceA != nullptr) {
+    cudaFree(_ampsDeviceA);
+    _ampsDeviceA = nullptr;
+  }
+
+  if(_ampsDeviceB != nullptr) {
+    cudaFree(_ampsDeviceB);
+    _ampsDeviceB = nullptr;
+  }
+
+  if(_ampsDeviceC != nullptr) {
+    cudaFree(_ampsDeviceC);
+    _ampsDeviceC = nullptr;
+  }
+
+  if(_nodesDeviceA != nullptr) {
+    cudaFree(_nodesDeviceA);
+    _nodesDeviceA = nullptr;
+  }
+  
+  if(_nodesDeviceB != nullptr) {
+    cudaFree(_nodesDeviceB);
+    _nodesDeviceB = nullptr;
+  }
+  
+  if(_nodesDeviceC != nullptr) {
+    cudaFree(_nodesDeviceC);
+    _nodesDeviceC = nullptr;
+  }
+
+  if(_tempParams != nullptr) {
+    free(_tempParams);
+    _tempParams = nullptr;
+  }
 }
 
 void SyncerCUDA::printOutTimes()
 {
-  std::cout << "From CUDA part: \n"
-            << "GPU malloc time:" << _gpuMallocTime / CLOCKS_PER_SEC  << "\n"
-            << "GPU malloc host time:" << _gpuMallocHostTime / CLOCKS_PER_SEC  << "\n"
-            << "GPU amoeba time:" << _gpuAmoebaTime / CLOCKS_PER_SEC  << "\n"
-            << "GPU const mem time:" << _gpuConstMemTime / CLOCKS_PER_SEC  << "\n"
-            << "GPU sync time:" << _gpuSyncTime / CLOCKS_PER_SEC  << "\n"
-            << "GPU free time:" << _gpuFreeTime / CLOCKS_PER_SEC  << "\n"
-            << "GPU query time:" << _gpuQueryTime / CLOCKS_PER_SEC  << "\n"
-            << "GPU copy up time:" << _gpuCopyUpTime / CLOCKS_PER_SEC  << "\n"
-            << "GPU copy down time:" << _gpuCopyDownTime / CLOCKS_PER_SEC  << "\n";
+  //std::cout << "From CUDA part: \n"
+  //          << "GPU malloc time:" << _gpuMallocTime / CLOCKS_PER_SEC  << "\n"
+  //          << "GPU malloc host time:" << _gpuMallocHostTime / CLOCKS_PER_SEC  << "\n"
+  //          << "GPU amoeba time:" << _gpuAmoebaTime / CLOCKS_PER_SEC  << "\n"
+  //          << "GPU const mem time:" << _gpuConstMemTime / CLOCKS_PER_SEC  << "\n"
+  //          << "GPU sync time:" << _gpuSyncTime / CLOCKS_PER_SEC  << "\n"
+  //          << "GPU free time:" << _gpuFreeTime / CLOCKS_PER_SEC  << "\n"
+  //          << "GPU query time:" << _gpuQueryTime / CLOCKS_PER_SEC  << "\n"
+  //          << "GPU copy up time:" << _gpuCopyUpTime / CLOCKS_PER_SEC  << "\n"
+  //          << "GPU copy down time:" << _gpuCopyDownTime / CLOCKS_PER_SEC  << "\n";
 }
 
 void SyncerCUDA::allocateHost(int size)
@@ -170,7 +203,7 @@ void SyncerCUDA::allocateCuda()
 
 double SyncerCUDA::syncAndReturn(int lcStep)
 {
-  std::cout << "Sync and return\n";
+  //std::cout << "Sync and return\n";
 
   clock_t beginTime, endTime; 
 
@@ -186,7 +219,7 @@ double SyncerCUDA::syncAndReturn(int lcStep)
   endTime = clock();
   _gpuSyncTime += double(endTime-beginTime);
 
-  std::cout << "Streams synchronised\n";
+  //std::cout << "Streams synchronised\n";
 
   cudaFloat totalAmpCUDA = 0.0;
   for(int i = 0; i < _numOfNodes; i++)
@@ -194,7 +227,7 @@ double SyncerCUDA::syncAndReturn(int lcStep)
     totalAmpCUDA += _ampsHost[i];
   }
 
-  std::cout << "total cuda amp =" << totalAmpCUDA/cudaFloat(subgridSize*subgridSize)*0.000146912 << "\n";
+  //std::cout << "total cuda amp =" << totalAmpCUDA/cudaFloat(subgridSize*subgridSize)*0.000146912 << "\n";
 
   beginTime = clock();
   cudaStreamDestroy(_streamA);
@@ -203,7 +236,7 @@ double SyncerCUDA::syncAndReturn(int lcStep)
   endTime = clock();
   _gpuFreeTime += double(endTime-beginTime);
   
-  std::cout << "Everything destroyed\n";
+  //std::cout << "Everything destroyed\n";
 
   return totalAmpCUDA/cudaFloat(subgridSize*subgridSize);
 }
@@ -225,7 +258,7 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   endTime = clock();
   _gpuConstMemTime += double(endTime-beginTime);
 
-  std::cout << "Constant memory copied over \n";
+  //std::cout << "Constant memory copied over \n";
 
   std::vector<Node> nodes;
   long int numOfAmoebaPoints = 0;
@@ -246,7 +279,7 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   _gpuAmoebaTime += double(endTime-beginTime);
 
 
-  std::cout << "Nodes assigned \n";
+  //std::cout << "Nodes assigned \n";
 
   // I might easily run out of available blocks per grid.
   // Supposed size of the number of blocks is 65535.
@@ -264,10 +297,10 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   // Adding number of dummy nodes in order to keep 
   const int numOfNodesExtended = _numOfNodes + (segmentSize - leftOverNodes);
 
-  std::cout << "Copied amoeba with " << numOfAmoebaPoints << " points. Segment size is " 
-            << segmentSize << " .\n"
-            << "Left over after segmentaion is " << numOfNodesExtended % segmentSize
-            << ", number of segments is " << _numOfNodes / segmentSize << "\n";
+  //std::cout << "Copied amoeba with " << numOfAmoebaPoints << " points. Segment size is " 
+  //          << segmentSize << " .\n"
+  //          << "Left over after segmentaion is " << numOfNodesExtended % segmentSize
+  //          << ", number of segments is " << _numOfNodes / segmentSize << "\n";
 
   // Pinned memory is allocated as a buffer. If the needed size is higher, realocate the host memory!
   if(numOfNodesExtended > _numberOfNodesBufferSize)
@@ -281,7 +314,7 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   cudaStreamCreateWithFlags(&_streamB,cudaStreamNonBlocking);
   cudaStreamCreateWithFlags(&_streamC,cudaStreamNonBlocking);
 
-  std::cout << "Streams created \n";
+  //std::cout << "Streams created \n";
 
   beginTime = clock();
   // TODO: replace this with actual one-structure directly from amoeba
@@ -296,7 +329,7 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   endTime = clock();
   _gpuAmoebaTime += double(endTime-beginTime);
   
-  std::cout << "Everything allocated\n";
+  //std::cout << "Everything allocated\n";
 
 
   // Run kernel on 1M elements on the GPU
@@ -333,7 +366,7 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   }
   endTime = clock();
   _gpuQueryTime += double(endTime-beginTime);
-  std::cout << "Queues filled\n";
+  //std::cout << "Queues filled\n";
 
 }
 

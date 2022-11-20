@@ -32,6 +32,16 @@ class ImgPoint: public Lens
              double posY
              );
 
+    ImgPoint(double a,
+             double b,
+             double th,
+             double m2,
+             double m3,
+             double sourceSize,
+             double posX,
+             double posY
+            );
+
     ImgPoint(const LensPar &lensParam);
 
 
@@ -62,6 +72,12 @@ class ImgPoint: public Lens
     // update and return images in one functional call
     vector<complex<double>> getImages(complex<double> pos);
 
+    // update and return images in one functional call
+    // test spurious images agains real sourcesize.
+    vector<complex<double>> getImages(complex<double> pos,
+                                      double          sourceSize
+                                     );
+
     // update position of the source
     void setPos(double       posX,
                 double       posY
@@ -70,6 +86,10 @@ class ImgPoint: public Lens
     // update position of the source
     void setPos(complex<double> pos);
 
+    // set error range to checking for spurious images
+    // to a new value, e.g., source size.
+    void setSourceSize(double sourceSize);
+
   private:
     bool _rootsAvailable = false;
     bool _imgsAvailable = false;
@@ -77,6 +97,7 @@ class ImgPoint: public Lens
     complex<double> _sourcePos;
     vector<complex<double>> _tempRoots;
     vector<complex<double>> _zetaFreeCoeffs;
+    double _imgErr = 1.0e-6;
 };
 
 #endif

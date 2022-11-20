@@ -13,14 +13,25 @@ LightCurveCUDA::LightCurveCUDA(
                                  ccc(lensPar, 500),
                                  amoebae(pointsPerRadius)
 {
+  std::cout << "Initializing LCCuda";
+
   _lcLength = lcLength;
   _sourceRadius = sourceSize;
   _pointsPerRadius = pointsPerRadius;
-  _envelopeRadius = sourceSize * 1.1;
+  _envelopeRadius = sourceSize * 1.2;
   ccc.getCa();
   _getCaBoxes();
   _getImgPlanePars();
   _limbDarkeningModel = LimbDarkeningModel();
+
+  // Make spurious images check based on actual source size
+  _pointImages.setSourceSize(sourceSize);
+  std::cout << " Initializing LCCuda - finished\n";
+};
+
+LightCurveCUDA::~LightCurveCUDA()
+{
+  std::cout << "LightCurve CUDA destroyed\n";
 };
 
 
@@ -32,6 +43,7 @@ std::vector<complex<double>> LightCurveCUDA::getSeeds(complex<double> pos)
     bool pointTaken = false;
     complex<double> trialPoint;
 
+    // check for instersections with caustic.
     for(unsigned int rootInd = 0; rootInd < 6; rootInd++)
     {
       // check if the point is in the caustic box
@@ -48,12 +60,14 @@ std::vector<complex<double>> LightCurveCUDA::getSeeds(complex<double> pos)
         {
           // If a point is taken the next positive intersection will not add other.
           // Next point then will be added ony if there the previous was not an 
-          // intersection. 
+          // intersection.
           if(intersectionCheck(pos,
                                ccc.caVec[rootInd][solInd],
                                ccc.caVec[rootInd][solInd+1],
                                trialPoint))
           {
+            // Take just 1 point. This fails for 1-root self-intersection when we would have
+            // two intersections from just 1 root.
             if(!pointTaken)
             {
               for(auto trialImg: _pointImages.getImages(trialPoint))
@@ -61,6 +75,12 @@ std::vector<complex<double>> LightCurveCUDA::getSeeds(complex<double> pos)
               
               pointTaken = true;
             }
+
+            // Add points on Critical curve that might have images appearing on them.
+            // If there is an intersection add the surrounding points.
+            imgPos.push_back(ccc.ccVec[rootInd][solInd]);
+            imgPos.push_back(ccc.ccVec[rootInd][solInd+1]);
+          
           }
           else
             pointTaken = false;
@@ -98,13 +118,15 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
                         _limbDarkeningModel.getParB());
   endTime = clock(); 
   _gpuInit += double(endTime - beginTime);
- 
+
+  cout << "Syncer run" << "\n";
+
   // Looping over source positions
   for(unsigned int i = 0; i <= _lcLength; i++)
   {
     pos = startPoint + (endPoint-startPoint)*(double(i)/double(_lcLength));
-    cout << "started pos:" << i << ", (" << pos.real()
-         << "," << pos.imag() <<")\n";
+    //cout << "started pos:" << i << ", (" << pos.real()
+    //     << "," << pos.imag() <<")\n";
     
     beginTime = clock(); 
     // This includes both images of source center and source-caustic intersections
@@ -136,8 +158,8 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
       endTime = clock(); 
       _gpuSync += double(endTime - beginTime);
       
-      cout << "cuda amplification: " << _amplification*_ampScale << " and the count "
-         << _irsCount << " and scale " << _ampScale << "\n";
+      //cout << "cuda amplification: " << _amplification*_ampScale << " and the count "
+      //   << _irsCount << " and scale " << _ampScale << "\n";
       // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
       // we use looping over the indices rather than push_back.
       lcVec[i-1] = _amplification*_ampScale;    
@@ -149,6 +171,8 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
     endTime = clock();
     _gpuTrigger += double(endTime - beginTime);
   }
+
+  cout << "LC completed" << "\n";
 
   //  // Kernel
   //  float getAmpSync(amoebae_t&                 amoebae,
@@ -167,14 +191,19 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
   beginTime = clock(); 
   _amplification = cudaSyncer.syncAndReturn(_lcLength);
 
+
+  cout << "LC synced" << "\n";
+
   endTime = clock();
   _gpuSync += double(endTime - beginTime);
 
   cudaSyncer.freeAll();
 
+  cout << "Syncer freed" << "\n";
+
   lcVec[_lcLength] = _amplification*_ampScale;    
-  cout << "last cuda amplification: " << lcVec[_lcLength] << " and the count "
-       << _irsCount << " and scale " << _ampScale << "\n";
+  //cout << "last cuda amplification: " << lcVec[_lcLength] << " and the count "
+  //     << _irsCount << " and scale " << _ampScale << "\n";
 
   cout << "CPU Seed time: " << _cpuSeeds / CLOCKS_PER_SEC << "\n"
        << "CPU Flood Fill time: " << _cpuFloodFill / CLOCKS_PER_SEC << "\n"
