@@ -96,7 +96,12 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
                              complex<double> endPoint
                             )
 {
-  
+
+  if(_amoebaPrintOut) 
+  {
+    printOutLCParameters();
+  }
+
   cout << "IRS called with imgPlaneSize:" << _imgPlaneSize << "\n";
   complex<double> pos = startPoint;
 
@@ -166,6 +171,11 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
     // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
     // we use looping over the indices rather than push_back.
     lcVec[i] = _amplification*_ampScale;
+
+    if(_amoebaPrintOut)
+    {
+      amoebae.printOut(_amoebaFilename+std::to_string(i));
+    }
 
   }
 
@@ -389,6 +399,46 @@ void LightCurveIRS::lineFloodFill(long int nx,
     return;
 }
 
+void LightCurveIRS::setAmoebaPrintOut(
+                                  bool printOutAmoebae,
+                                  std::string amoebaFilename,
+                                  std::string parFilename)
+{
+  _amoebaPrintOut = printOutAmoebae;
+  _amoebaFilename = amoebaFilename;
+  _parFilename =    parFilename;
+}
+
+void LightCurveIRS::printOutLCParameters()
+{
+  std::ofstream parOutputFile;
+  parOutputFile.open(_parFilename);
+
+  parOutputFile << "_sourceRadius = " << _sourceRadius << '\n';
+  parOutputFile << "_pointsPerRadius = " << _pointsPerRadius << '\n';
+  parOutputFile << "_imgPlaneSize = " << _imgPlaneSize << '\n';
+  parOutputFile << "_imgPlaneSizeDouble = " << _imgPlaneSizeDouble << '\n';
+  parOutputFile << "_bottomLeftCornerImg = (" << _bottomLeftCornerImg.real() <<
+                   "," << _bottomLeftCornerImg.imag()<< ")\n";
+  parOutputFile << "_topRightCornerImg = (" << _topRightCornerImg.real() <<
+                   "," << _topRightCornerImg.imag()<< ")\n";
+
+  parOutputFile << "a = " << a << '\n';
+  parOutputFile << "b =" << b << '\n';
+  parOutputFile << "th = " << th << '\n';
+  parOutputFile << "m1 = " << m1 << '\n';
+  parOutputFile << "m2 = " << m2 << '\n';
+  parOutputFile << "m3 = " << m2 << '\n';
+
+  parOutputFile << "z1 = (" << z1.real() <<
+                   "," << z1.imag()<< ")\n";
+  parOutputFile << "z2 = (" << z2.real() <<
+                   "," << z2.imag()<< ")\n";
+  parOutputFile << "z3 = (" << z3.real() <<
+                   "," << z3.imag()<< ")\n";
+
+  parOutputFile.close();
+}
 
 // Python Wrapper for ctypes module
 extern "C"
@@ -476,5 +526,13 @@ extern "C"
     lc->setLimbDarkeningModel(ldm);
   }
 
-}
+  // Api to set limb darkening model.
+  void set_amoeba_printout(LightCurveIRS* lc,
+                           const char*    amoebaFilename,
+                           const char*    parFilename        
+                          )
+  {
+    lc->setAmoebaPrintOut(true, (std::string)amoebaFilename, (std::string)parFilename);
+  }
 
+}

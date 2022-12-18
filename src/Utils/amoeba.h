@@ -7,6 +7,7 @@
 #include <unordered_map>
 #include <utility>
 #include <iostream>
+#include <fstream>
 
 using std::vector;
 using std::list;
@@ -61,6 +62,8 @@ class Amoeba
 
     void resize(long int size
                );
+
+    void printOut(const std::string& fileName);
 
     // Image plane grid filled with amoebae
     //vector< list<XRange> > amoebae;   

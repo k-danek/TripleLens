@@ -75,6 +75,12 @@ class LightCurveIRS: public LightCurveBase
 
     void setLimbDarkeningModel(LimbDarkeningModel ldm);
 
+    void setAmoebaPrintOut(bool amoebaPrintOut,
+                           std::string parFilename,
+                           std::string amoebaFilename);
+
+    void printOutLCParameters();
+
     CriticalCurveCaustic ccc;
     Amoeba amoebae;
 
@@ -105,6 +111,11 @@ class LightCurveIRS: public LightCurveBase
     // constants to control surface brightness
     const double _vFactor = 0.4;
     const double _OneMvFactor = 1.0 - _vFactor;
+
+    // Pars for Amoeba analysis of images
+    bool _amoebaPrintOut = false;
+    std::string _amoebaFilename = "";
+    std::string _parFilename = "";
 
     void _getCaBoxes();
  

@@ -2,6 +2,7 @@ import ctypes
 import time
 import numpy as np
 from numpy.ctypeslib import ndpointer
+import copy
 
 # Create a structure for complex numbers
 class Complex(ctypes.Structure):
@@ -167,6 +168,13 @@ class LC_irs(object):
                                                   ]
         self.lib_lc.set_limb_darkening.restypes = ctypes.c_void_p
 
+        self.lib_lc.set_amoeba_printout.argtypes = [ctypes.c_void_p,
+                                                    ctypes.c_char_p,
+                                                    ctypes.c_char_p
+                                                  ]
+        self.lib_lc.set_amoeba_printout.restypes = ctypes.c_void_p
+
+
         self.obj = self.lib_lc.lcirs_new(a, b, th, m2, m3, source_size, lc_len, img_plane_size)
 
     def get_lc(self, iniX, iniY, finX, finY):
@@ -181,12 +189,19 @@ class LC_irs(object):
     def set_limb_darkening(self, model_type, model_parameter):
         self.lib_lc.set_limb_darkening(self.obj, model_type, model_parameter)
 
+    def set_amoeba_printout(self, amoeba_filename, par_filename):
+        self.lib_lc.set_amoeba_printout(self.obj, amoeba_filename, par_filename)
+
 
 # Represent functional ctypes version of C++ LightCurveCUDA class as Python Class
 class LC_cuda(object):
     def __init__(self, a, b, th, m2, m3, source_size, lc_len, img_plane_size):
+        print("Python Init: called")
+        
         # load the C++ shared library as lib
         self.lib_cuda = ctypes.cdll.LoadLibrary('../bin/liblccuda.so')
+
+        print("Python Init: linked binary")
 
         self.lib_cuda.lccuda_new.argtypes = [ctypes.c_double,
                                              ctypes.c_double,
@@ -218,7 +233,23 @@ class LC_cuda(object):
                                                          ]
         self.lib_cuda.set_limb_darkening_cuda.restypes = ctypes.c_void_p
 
-        self.obj = self.lib_cuda.lccuda_new(a, b, th, m2, m3, source_size, lc_len, img_plane_size)
+        print("Python Init: defined all the functions")
+
+        self.obj = self.lib_cuda.lccuda_new(copy.copy(a),
+                                            copy.copy(b),
+                                            copy.copy(th),
+                                            copy.copy(m2),
+                                            copy.copy(m3),
+                                            copy.copy(source_size),
+                                            copy.copy(lc_len),
+                                            copy.copy(img_plane_size)
+                                            )
+
+        print("Python Init: called lccuda_new")
+
+
+    def __del__(self):
+        print("LC_Cuda destroyed")
 
     def get_lc(self, iniX, iniY, finX, finY):
         self.lib_cuda.get_lc(self.obj, iniX, iniY, finX, finY)
