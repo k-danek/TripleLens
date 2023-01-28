@@ -16,8 +16,8 @@ CC=g++
 
 
 #OPTFLAGS= -O3 -fassociative-math -fno-signed-zeros -fno-trapping-math
-OPTFLAGS= -O3
-#OPTFLAGS= -Ofast
+#OPTFLAGS= -O3
+OPTFLAGS= -Ofast
 CFLAGS= -Wl,--no-undefined -fPIC $(OPTFLAGS) -g -std=c++17
 
 SOURCE_DIR=../..

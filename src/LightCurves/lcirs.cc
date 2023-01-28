@@ -413,29 +413,33 @@ void LightCurveIRS::printOutLCParameters()
 {
   std::ofstream parOutputFile;
   parOutputFile.open(_parFilename);
+  std::string indent = "\t"; 
 
-  parOutputFile << "_sourceRadius = " << _sourceRadius << '\n';
-  parOutputFile << "_pointsPerRadius = " << _pointsPerRadius << '\n';
-  parOutputFile << "_imgPlaneSize = " << _imgPlaneSize << '\n';
-  parOutputFile << "_imgPlaneSizeDouble = " << _imgPlaneSizeDouble << '\n';
-  parOutputFile << "_bottomLeftCornerImg = (" << _bottomLeftCornerImg.real() <<
-                   "," << _bottomLeftCornerImg.imag()<< ")\n";
-  parOutputFile << "_topRightCornerImg = (" << _topRightCornerImg.real() <<
-                   "," << _topRightCornerImg.imag()<< ")\n";
+  parOutputFile << "{" << '\n';
+  parOutputFile << indent << "\"sourceRadius\": " << _sourceRadius << ",\n";
+  parOutputFile << indent <<"\"pointsPerRadius\": " << _pointsPerRadius << ",\n";
+  parOutputFile << indent <<"\"imgPlaneSize\": " << _imgPlaneSize << ",\n";
+  parOutputFile << indent <<"\"imgPlaneSizeDouble\": " << _imgPlaneSizeDouble << ",\n";
+  parOutputFile << indent <<"\"bottomLeftCornerImgX\": " << _bottomLeftCornerImg.real() << ",\n";
+  parOutputFile << indent <<"\"bottomLeftCornerImgY\": " << _bottomLeftCornerImg.imag()<< ",\n";
+  parOutputFile << indent <<"\"topRightCornerImgX\": " << _topRightCornerImg.real() << ",\n";
+  parOutputFile << indent <<"\"topRightCornerImgY\": " << _topRightCornerImg.imag()<< ",\n";
 
-  parOutputFile << "a = " << a << '\n';
-  parOutputFile << "b =" << b << '\n';
-  parOutputFile << "th = " << th << '\n';
-  parOutputFile << "m1 = " << m1 << '\n';
-  parOutputFile << "m2 = " << m2 << '\n';
-  parOutputFile << "m3 = " << m2 << '\n';
+  parOutputFile << indent <<"\"a\": " << a << ",\n";
+  parOutputFile << indent <<"\"b\": " << b << ",\n";
+  parOutputFile << indent <<"\"th\": " << th << ",\n";
+  parOutputFile << indent <<"\"m1\": " << m1 << ",\n";
+  parOutputFile << indent <<"\"m2\": " << m2 << ",\n";
+  parOutputFile << indent <<"\"m3\": " << m2 << ",\n";
 
-  parOutputFile << "z1 = (" << z1.real() <<
-                   "," << z1.imag()<< ")\n";
-  parOutputFile << "z2 = (" << z2.real() <<
-                   "," << z2.imag()<< ")\n";
-  parOutputFile << "z3 = (" << z3.real() <<
-                   "," << z3.imag()<< ")\n";
+  parOutputFile << indent <<"\"z1x\": " << z1.real() << ",\n";
+  parOutputFile << indent <<"\"z1y\": " << z1.imag() << ",\n";
+  parOutputFile << indent <<"\"z2x\": " << z2.real() << ",\n";
+  parOutputFile << indent <<"\"z2y\": " << z2.imag() << ",\n";
+  parOutputFile << indent <<"\"z3x\": " << z3.real() << ",\n";
+  parOutputFile << indent <<"\"z3y\": " << z3.imag() << "\n";
+
+  parOutputFile << "}";
 
   parOutputFile.close();
 }
