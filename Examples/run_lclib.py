@@ -2,6 +2,7 @@
 # It creates a simple object with critical curve and caustic and then plots it as an png.
 
 import ctypes
+from ctypes import *
 import time
 import numpy as np
 from numpy.ctypeslib import ndpointer
@@ -84,13 +85,18 @@ pos_fin_y = 0.7
 
 # number of steps
 lc_steps = 200
-source_size = 1e-5
-points_per_radius = 300
+source_size = 8e-3
+points_per_radius = 100
 
 lc_point_array = np.zeros(lc_steps, np.double)
 lc_irs_array   = np.zeros(lc_steps, np.double)
 
 lc_irs = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
+
+amoeba_filename_buffer = create_string_buffer(b"Amoeba_")
+param_filename_buffer = create_string_buffer(b"Pars.dat")
+
+lc_irs.set_amoeba_printout(amoeba_filename_buffer,param_filename_buffer)
 
 lc_irs.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
 lc_irs.copy_lc(lc_irs_array)

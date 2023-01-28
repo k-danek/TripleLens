@@ -10,7 +10,7 @@ LightCurveCUDA::LightCurveCUDA(
                              unsigned int lcLength = 100,
                              long int     pointsPerRadius = 300
                               ): LightCurveIRS(a, b, th, m2, m3, sourceSize, lcLength, pointsPerRadius),
-                                 ccc(lensPar, 500),
+                                 ccc(lensPar, 1500),
                                  amoebae(pointsPerRadius)
 {
   std::cout << "Initializing LCCuda";
