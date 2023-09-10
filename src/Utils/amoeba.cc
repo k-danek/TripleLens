@@ -86,3 +86,23 @@ void Amoeba::resize(long int size)
   _size = size;
 }
 
+
+void Amoeba::printOut(const std::string& fileName)
+{
+  long int ny, nL, nR;
+
+  std::ofstream amoebaOutputFile;
+  amoebaOutputFile.open (fileName);
+  
+  for (auto i = amoebae.begin(); i != amoebae.end(); i++)
+  {
+    ny = i->first;
+    for(auto j = i->second.begin(); j != i->second.end(); j++)
+    {
+      amoebaOutputFile << ny << "," << j->xleft << "," << j->xright << "\n";
+    }    
+  }
+  
+  amoebaOutputFile.close();
+
+}

@@ -23,8 +23,7 @@
 #include<imgpoint.h>
 #include<lens.h>
 #include<amoeba.h>
-
-
+#include<limbdarkeningmodel.h>
 
 template<class T>
 using pair = std::pair<T, T>;
@@ -74,10 +73,18 @@ class LightCurveIRS: public LightCurveBase
                            complex<double>& trialPoint
                           );
 
+    void setLimbDarkeningModel(LimbDarkeningModel ldm);
+
+    void setAmoebaPrintOut(bool amoebaPrintOut,
+                           std::string parFilename,
+                           std::string amoebaFilename);
+
+    void printOutLCParameters();
+
     CriticalCurveCaustic ccc;
     Amoeba amoebae;
 
-  private:
+  protected:
     unsigned int _lcLength;
     double _sourceRadius;
     double _amplification;
@@ -105,10 +112,17 @@ class LightCurveIRS: public LightCurveBase
     const double _vFactor = 0.4;
     const double _OneMvFactor = 1.0 - _vFactor;
 
+    // Pars for Amoeba analysis of images
+    bool _amoebaPrintOut = false;
+    std::string _amoebaFilename = "";
+    std::string _parFilename = "";
+
     void _getCaBoxes();
  
     // sets Image plane to be square enveloping all the Critical Curve
     void _getImgPlanePars(); 
+
+    LimbDarkeningModel _limbDarkeningModel;
 };
 
 #endif                

@@ -7,6 +7,7 @@ import time
 import numpy as np
 from numpy.ctypeslib import ndpointer
 import matplotlib.pyplot as plt
+import os
 from ctypes_classes import CCC
 from ctypes_classes import LC_irs
 
@@ -84,29 +85,48 @@ pos_fin_y = 0.7
 #pos_fin_y = 0.13848
 
 # number of steps
-lc_steps = 200
-source_size = 8e-3
+lc_steps = 500
+source_size = 1e-2
 points_per_radius = 100
 
-lc_point_array = np.zeros(lc_steps, np.double)
-lc_irs_array   = np.zeros(lc_steps, np.double)
+lc_point_array    = np.zeros(lc_steps, np.double)
+lc_irs_array      = np.zeros(lc_steps, np.double)
+lc_irs_array_02   = np.zeros(lc_steps, np.double)
+lc_irs_array_04   = np.zeros(lc_steps, np.double)
+lc_irs_array_06   = np.zeros(lc_steps, np.double)
+lc_irs_array_08   = np.zeros(lc_steps, np.double)
 
 lc_irs = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
 
-amoeba_filename_buffer = create_string_buffer(b"Amoeba_")
-param_filename_buffer = create_string_buffer(b"Pars.dat")
-
-lc_irs.set_amoeba_printout(amoeba_filename_buffer,param_filename_buffer)
-
-lc_irs.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
-lc_irs.copy_lc(lc_irs_array)
+# https://docs.python.org/3/library/ctypes.html#fundamental-data-types
+stringBuffer = create_string_buffer(b"linear")
 
 lc_irs.get_lc(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
 lc_irs.copy_lc(lc_point_array)
 
+lc_irs.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
+lc_irs.copy_lc(lc_irs_array)
+
+lc_irs.set_limb_darkening(stringBuffer, 0.2)
+lc_irs.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
+lc_irs.copy_lc(lc_irs_array_02)
+
+lc_irs.set_limb_darkening(stringBuffer, 0.4)
+lc_irs.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
+lc_irs.copy_lc(lc_irs_array_04)
+
+lc_irs.set_limb_darkening(stringBuffer, 0.6)
+lc_irs.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
+lc_irs.copy_lc(lc_irs_array_06)
+
+lc_irs.set_limb_darkening(stringBuffer, 0.99)
+lc_irs.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
+lc_irs.copy_lc(lc_irs_array_08)
+
+
 print("Copied LC")
 
-# Plotting
+# Plotting 0
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
 ax1.set_title("Source Trajectory")
@@ -116,15 +136,58 @@ ax1.scatter(ca_real, ca_imag, s = 0.1)
 ax1.scatter(lenses_real, lenses_imag, s=200.0, marker = 'o')
 ax1.plot([pos_ini_x,pos_fin_x],[pos_ini_y,pos_fin_y])
 
-ax2.set_title("Light Curve")
+ax2.set_title("Light Curve Point")
 
 ax2.plot(lc_point_array, color='cyan', label='point')
 ax2.plot(lc_irs_array, color='red', label='irs')
 
 ax3.set_title("Ratio Curve")
 
-ax3.plot(lc_irs_array/lc_point_array, color='cyan', label='point')
+ax3.plot((lc_irs_array-lc_point_array)/lc_point_array, color='cyan', label='point')
 #ax3.set_ylim([1.0, 1.5])
-fig.savefig("LightCurvePoint.png", dpi=300)
+fig.savefig("LightCurvePoint0.png", dpi=300)
+
+
+
+# Plotting 1
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+
+ax1.set_title("Source Trajectory")
+
+ax1.axis(xmin=cc_min.real, xmax=cc_max.real, ymin=cc_min.imag, ymax=cc_max.imag)
+ax1.scatter(ca_real, ca_imag, s = 0.1)
+ax1.scatter(lenses_real, lenses_imag, s=200.0, marker = 'o')
+ax1.plot([pos_ini_x,pos_fin_x],[pos_ini_y,pos_fin_y])
+
+ax2.set_title("Light Curve Point")
+
+ax2.plot(lc_irs_array_02, color='cyan', label='point')
+ax2.plot(lc_irs_array, color='red', label='irs')
+
+ax3.set_title("Ratio Curve")
+
+ax3.plot((lc_irs_array-lc_irs_array_02)/lc_irs_array_02, color='cyan', label='point')
+#ax3.set_ylim([1.0, 1.5])
+fig.savefig("LightCurvePoint1.png", dpi=300)
+
+# Plotting 2
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+
+ax1.set_title("Source Trajectory")
+
+ax1.axis(xmin=cc_min.real, xmax=cc_max.real, ymin=cc_min.imag, ymax=cc_max.imag)
+ax1.scatter(ca_real, ca_imag, s = 0.1)
+ax1.scatter(lenses_real, lenses_imag, s=200.0, marker = 'o')
+ax1.plot([pos_ini_x,pos_fin_x],[pos_ini_y,pos_fin_y])
+
+ax2.set_title("Light Curve Point")
+
+ax2.plot(lc_irs_array_08, color='cyan', label='point')
+ax2.plot(lc_irs_array_02, color='red', label='irs')
+
+ax3.set_title("Ratio Curve")
+
+ax3.plot((lc_irs_array_08-lc_irs_array)/lc_irs_array, color='cyan', label='point')
+fig.savefig("LightCurvePoint2.png", dpi=300)
 
 print("Time to initialise and calculate the images (s): ",time.time()-start_time)

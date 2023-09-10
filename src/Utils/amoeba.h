@@ -7,10 +7,14 @@
 #include <unordered_map>
 #include <utility>
 #include <iostream>
+#include <fstream>
 
 using std::vector;
 using std::list;
 
+
+#ifndef XRANGE
+#define XRANGE
 /* xright - leftmost x coordinate occupied by the lensed image
    xleft - rightmost x coordinate occupied by the lensed image
 */
@@ -32,6 +36,7 @@ struct XRange
   }
 
 };
+#endif
 
 /* main data structure - amoebas as a vector of lists of XRanges */
 
@@ -57,6 +62,8 @@ class Amoeba
 
     void resize(long int size
                );
+
+    void printOut(const std::string& fileName);
 
     // Image plane grid filled with amoebae
     //vector< list<XRange> > amoebae;   

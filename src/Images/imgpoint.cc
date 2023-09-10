@@ -15,6 +15,21 @@ ImgPoint::ImgPoint(
   setPos(posX,posY);
 };
 
+ImgPoint::ImgPoint(
+                   double       a,
+                   double       b,
+                   double       th,
+                   double       m2,
+                   double       m3,
+                   double       sourceSize,
+                   double       posX,
+                   double       posY
+                  ): Lens(a, b, th, m2, m3)
+{
+  setPos(posX,posY);
+  setSourceSize(sourceSize);
+};
+
 ImgPoint::ImgPoint(const LensPar &lensParam): Lens(lensParam.a,
                                                    lensParam.b,
                                                    lensParam.th,
@@ -110,6 +125,56 @@ void ImgPoint::getRoots(bool forceNewRoots = false,
   _rootsAvailable = true;
 };
 
+// Given all the image candidates, we establish which one is a real root.
+// Uses simplification when we calculate parts of coeffs independent of zeta
+// at first and then zeta-depentent on every change of source position.
+// This is for triple lens only
+void ImgPoint::getRootsPrecalculated(bool forceNewRoots = false)
+{
+
+  vector<complex<double>> imgCoeffSourceDependent = getCoeffsOptJustZ();
+  
+  if(!_areZetaFreeCoeffsAvailable || forceNewRoots)
+  { 
+    _zetaFreeCoeffs = getCoeffsOptNoZ();
+    _areZetaFreeCoeffsAvailable = true;
+  }
+  
+  vector<complex<double>> imgCoeff(11);
+
+  for(unsigned int i = 0; i < imgCoeff.size(); i++)
+  {
+    imgCoeff[i] = _zetaFreeCoeffs[i] + imgCoeffSourceDependent[i];
+  }
+  
+  Laguerre laguerre(imgCoeff);
+
+  //This part decides whether to polish previous or calculate new roots.
+  //Doing just polishing should speed up the process cca twice.
+  //Also, it leaves the roots in the same order as in the previous step.
+  //<10 condition is there to check whether tempRoots holds all 10 roots    
+  if(_tempRoots.size() < (imgCoeff.size()-1) || forceNewRoots)
+  {
+    _tempRoots = laguerre.solveRoots();
+  }
+  else
+  {
+    // Solve the roots with initial guess set to previous solution
+    _tempRoots = laguerre.solveRoots(_tempRoots);  
+
+    if(!laguerre.checkRoots(_tempRoots))
+    {
+      cout << "Roots off for img " << "\n";
+      _tempRoots = laguerre.solveRoots();
+    }        
+  };  
+
+  // no cleaning of roots as we just assing the roots
+  roots = _tempRoots;
+
+  // Calculation finished, the critical curve is now available.
+  _rootsAvailable = true; 
+};
 
 // Given all the image candidates, we establish which one is a real root.
 void ImgPoint::getImages()
@@ -117,17 +182,18 @@ void ImgPoint::getImages()
   // clears all the elements of the vector
   imgs.clear();
   isImg.clear();
-  double err = 1.0e-6;
 
   if(!_rootsAvailable)
   {
     // for m3 == 0.0 this is a Binary Lens
-    getRoots();
+    //getRoots();
+    //getRoots();
+    getRootsPrecalculated();
   }
 
   for(auto root: roots)
   {
-    if(imgCheck(root, err))
+    if(imgCheck(root, _imgErr))
     {
       imgs.push_back(root);
       isImg.push_back(true);
@@ -145,14 +211,16 @@ void ImgPoint::getImages()
      ((imgs.size() % 2 != 1 || imgs.size() < 3) &&  isBinaryLens))
   { 
     
-    getRoots(true);
+    //getRoots(true);
+    getRootsPrecalculated(true);
+    
     // clears all the elements of the vector
     imgs.clear();
     isImg.clear();
     
     for(auto root: roots)
     {
-      if(imgCheck(root, err))
+      if(imgCheck(root, _imgErr))
       {
         imgs.push_back(root);
         isImg.push_back(true);
@@ -179,12 +247,26 @@ void ImgPoint::getImages()
   _imgsAvailable = true;
 };
 
+void ImgPoint::setSourceSize(double sourceSize)
+{
+  _imgErr = sourceSize;
+}
+
 vector<complex<double>> ImgPoint::getImages(complex<double> pos)
 {
   setPos(pos);
   getImages();
   return imgs;
 };  
+
+vector<complex<double>> ImgPoint::getImages(complex<double> pos,
+                                            double          sourceSize)
+{
+  setSourceSize(sourceSize);
+  setPos(pos);
+  getImages();
+  return imgs;
+}; 
 
 // Python Wrapper for ctypes module
 extern "C"

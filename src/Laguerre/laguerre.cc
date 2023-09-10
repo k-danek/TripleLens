@@ -79,7 +79,7 @@ bool Laguerre::laguerre(const vector<complex<double> > poly, complex<double> &x)
 
     x1 = x - dx;
 
-    // Reapeated until it converges or exceeds the maximum number of iterations
+    // Repeated until it converges or exceeds the maximum number of iterations
     if ((x.real() == x1.real()) && (x.imag() == x1.imag())) 
       return true;
 
@@ -94,7 +94,7 @@ bool Laguerre::laguerre(const vector<complex<double> > poly, complex<double> &x)
     }
   }
 
-  std::cout << "Laguerre: maximum number of iterations exceeded for pol. order " << poly.size()-1 << "\n";
+  //std::cout << "Laguerre: maximum number of iterations exceeded for pol. order " << poly.size()-1 << "\n";
   return false;
 }
 
@@ -110,7 +110,7 @@ vector<complex<double> > Laguerre::solveRoots(
   tempPoly = _polyCoeffs;
   const bool isInitialised = initRoots.size()+1 == size;
   
-  // Unsing function assignemt of lambda fuctions in a ternary operator
+  // Using function assignemt of lambda fuctions in a ternary operator
   std::function<complex<double>(int i)> getInit =
     (isInitialised
      ? std::function<complex<double>(int i)>( [&](int i)
@@ -136,8 +136,8 @@ vector<complex<double> > Laguerre::solveRoots(
       // if it wasn't initialised, try again starting from zero
       if(isInitialised)
       { x = complex<double>(EPS,EPS);
-        if(!laguerre(tempPoly,x))
-          std::cout << "WARNING: deflating with unconverged root!!!";
+        //if(!laguerre(tempPoly,x))
+        //  std::cout << "WARNING: deflating with unconverged root!!!";
       }
       roots.push_back(x); 
     }

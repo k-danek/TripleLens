@@ -1,4 +1,5 @@
 #include<lcirs.h>
+#include <string.h>
 
 LightCurveIRS::LightCurveIRS(
                              double       a,
@@ -19,6 +20,7 @@ LightCurveIRS::LightCurveIRS(
   ccc.getCa();
   _getCaBoxes();
   _getImgPlanePars();
+  _limbDarkeningModel = LimbDarkeningModel();
 };
 
 void LightCurveIRS::_getCaBoxes()
@@ -35,7 +37,7 @@ void LightCurveIRS::_getCaBoxes()
 
 void LightCurveIRS::_getImgPlanePars()
 {
-  const double resizingFactor = 1.2;
+  const double resizingFactor = 3.0;
   complex<double> min = {0.0,0.0}, max = {0.0,0.0};
   complex<double> centre;
   double halfEdge;
@@ -60,7 +62,7 @@ void LightCurveIRS::_getImgPlanePars()
   _bottomLeftCornerImg.imag(centre.imag() - halfEdge);
 
 
-  _imgPlaneSize = static_cast<long int>(halfEdge/_sourceRadius*_pointsPerRadius);
+  _imgPlaneSize = static_cast<long int>(2*halfEdge/_sourceRadius*_pointsPerRadius);
   amoebae.resize(_imgPlaneSize);
 
   _imgPlaneSizeDouble = 2*halfEdge;
@@ -68,7 +70,8 @@ void LightCurveIRS::_getImgPlanePars()
   // Set the ampScale as number of grid point of the image plane that would fit
   // in the source radius. Also divide by a factor from source brightness
   // integration (for source of radius 1).
-  _ampScale = 1.0/M_PI/pow(_pointsPerRadius,2.0)/(1.0-_vFactor/3.0);
+  //_ampScale = 1.0/M_PI/pow(_pointsPerRadius,2.0)/(1.0-_vFactor/3.0);
+  _ampScale = _limbDarkeningModel.intensityCoeff/M_PI/pow(_pointsPerRadius,2.0);
 
   //cout << "Image plane parameters:\n";
   //cout << "_imgPlaneSize:" << _imgPlaneSize << "\n";
@@ -80,12 +83,25 @@ void LightCurveIRS::_getImgPlanePars()
 
 };
 
+void LightCurveIRS::setLimbDarkeningModel(LimbDarkeningModel ldm)
+{
+  _limbDarkeningModel = ldm;
+  // Needs to re-calculate scalling amp parameter according to limb-darkening model
+  _ampScale = _limbDarkeningModel.intensityCoeff/M_PI/pow(_pointsPerRadius,2.0);
+
+  // I should also update IRS function.
+};
 
 void LightCurveIRS::getLCIRS(complex<double> startPoint,
                              complex<double> endPoint
                             )
 {
-  
+
+  if(_amoebaPrintOut) 
+  {
+    printOutLCParameters();
+  }
+
   cout << "IRS called with imgPlaneSize:" << _imgPlaneSize << "\n";
   complex<double> pos = startPoint;
 
@@ -140,20 +156,26 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
       }  
     }
 
-    //cout << "number of trial seeds: " << imgPos.size() << "\n"; 
-
     // Add up amplification from all the images/seeds
     _amplification = 0.0;
     _irsCount = 0;
+
     for(auto imgSeed: imgPos)
     {
       lineFloodFill(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
-    cout << "amplification: " << _amplification*_ampScale << " and the count " << _irsCount << "\n";
+
+    cout << "irs amplification: " << _amplification*_ampScale << " and the count " << _irsCount
+         << " and amp scale " << _ampScale << "\n";
 
     // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
     // we use looping over the indices rather than push_back.
     lcVec[i] = _amplification*_ampScale;
+
+    if(_amoebaPrintOut)
+    {
+      amoebae.printOut(_amoebaFilename+std::to_string(i));
+    }
 
   }
 
@@ -233,15 +255,17 @@ double LightCurveIRS::irs(double imgX,
    // Computationally heavy part, optimise as much as possible!
    complex<double> img(imgX,imgY);  
    complex<double> testSourcePos=img-m1/conj(img-z1)-m2/conj(img-z2)-m3/conj(img-z3);
-   double R = std::abs(testSourcePos-sourcePos);
+   double r = std::abs(testSourcePos-sourcePos);
 
-   if( R < _sourceRadius)
+   if( r < _sourceRadius)
    {
-     double r = R/_sourceRadius; 
-     return sourceBrightness(r);
+     double rn = r/_sourceRadius; 
+     return _limbDarkeningModel.sourceBrightness(rn);
    }  
    else
+   {
      return 0.0;
+   }
 };
 
 
@@ -276,13 +300,6 @@ long int LightCurveIRS::yToNy(double y)
       (y - _bottomLeftCornerImg.imag())*_imgPlaneSize/_imgPlaneSizeDouble+0.5);
 }
 
-
-double LightCurveIRS::sourceBrightness(double r)
-{
-  return _OneMvFactor+_vFactor*sqrt(1.0-r*r);
-}
-
-
 void LightCurveIRS::lineFloodFill(long int nx,
                                   long int ny,
                                   complex<double> sPos,
@@ -307,7 +324,10 @@ void LightCurveIRS::lineFloodFill(long int nx,
     // need to get the y only once as the fill stays withing a line
     double y = nyToY(ny), amp = irs(nxToX(nx), y, sPos); 
 
-    if (amp <= 0.0) return;
+    if (amp <= 0.0)
+    {
+      return;
+    }
     else
     {
       _amplification += amp;
@@ -379,6 +399,50 @@ void LightCurveIRS::lineFloodFill(long int nx,
     return;
 }
 
+void LightCurveIRS::setAmoebaPrintOut(
+                                  bool printOutAmoebae,
+                                  std::string amoebaFilename,
+                                  std::string parFilename)
+{
+  _amoebaPrintOut = printOutAmoebae;
+  _amoebaFilename = amoebaFilename;
+  _parFilename =    parFilename;
+}
+
+void LightCurveIRS::printOutLCParameters()
+{
+  std::ofstream parOutputFile;
+  parOutputFile.open(_parFilename);
+  std::string indent = "\t"; 
+
+  parOutputFile << "{" << '\n';
+  parOutputFile << indent << "\"sourceRadius\": " << _sourceRadius << ",\n";
+  parOutputFile << indent <<"\"pointsPerRadius\": " << _pointsPerRadius << ",\n";
+  parOutputFile << indent <<"\"imgPlaneSize\": " << _imgPlaneSize << ",\n";
+  parOutputFile << indent <<"\"imgPlaneSizeDouble\": " << _imgPlaneSizeDouble << ",\n";
+  parOutputFile << indent <<"\"bottomLeftCornerImgX\": " << _bottomLeftCornerImg.real() << ",\n";
+  parOutputFile << indent <<"\"bottomLeftCornerImgY\": " << _bottomLeftCornerImg.imag()<< ",\n";
+  parOutputFile << indent <<"\"topRightCornerImgX\": " << _topRightCornerImg.real() << ",\n";
+  parOutputFile << indent <<"\"topRightCornerImgY\": " << _topRightCornerImg.imag()<< ",\n";
+
+  parOutputFile << indent <<"\"a\": " << a << ",\n";
+  parOutputFile << indent <<"\"b\": " << b << ",\n";
+  parOutputFile << indent <<"\"th\": " << th << ",\n";
+  parOutputFile << indent <<"\"m1\": " << m1 << ",\n";
+  parOutputFile << indent <<"\"m2\": " << m2 << ",\n";
+  parOutputFile << indent <<"\"m3\": " << m2 << ",\n";
+
+  parOutputFile << indent <<"\"z1x\": " << z1.real() << ",\n";
+  parOutputFile << indent <<"\"z1y\": " << z1.imag() << ",\n";
+  parOutputFile << indent <<"\"z2x\": " << z2.real() << ",\n";
+  parOutputFile << indent <<"\"z2y\": " << z2.imag() << ",\n";
+  parOutputFile << indent <<"\"z3x\": " << z3.real() << ",\n";
+  parOutputFile << indent <<"\"z3y\": " << z3.imag() << "\n";
+
+  parOutputFile << "}";
+
+  parOutputFile.close();
+}
 
 // Python Wrapper for ctypes module
 extern "C"
@@ -443,5 +507,36 @@ extern "C"
       lcArray[i] = lc->lcVec[i];
     }
   }
-}
 
+  // Api to set limb darkening model.
+  void set_limb_darkening(LightCurveIRS* lc,
+                          const char*    model,
+                          double         v        
+                         )
+  {
+    LimbDarkeningModel ldm;
+
+    if(strcmp(model, "linear") == 0) 
+    {
+      std::cout<< "model is linear\n";
+      ldm = LimbDarkeningModel(v);
+    }
+    else 
+    {
+      std::cout<< "model is default\n";
+      ldm = LimbDarkeningModel();
+    }
+
+    lc->setLimbDarkeningModel(ldm);
+  }
+
+  // Api to set limb darkening model.
+  void set_amoeba_printout(LightCurveIRS* lc,
+                           const char*    amoebaFilename,
+                           const char*    parFilename        
+                          )
+  {
+    lc->setAmoebaPrintOut(true, (std::string)amoebaFilename, (std::string)parFilename);
+  }
+
+}

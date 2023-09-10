@@ -47,12 +47,12 @@ struct LensPar
 class Lens
 {
   public:
-	  double a; 
-	  double b;
-	  double th;
+	double a; 
+	double b;
+	double th;
     double m1;
     double m2;
-	  double m3;
+	double m3;
     complex<double> z1;
     complex<double> z2;
     complex<double> z3;
