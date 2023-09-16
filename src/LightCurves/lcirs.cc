@@ -16,6 +16,7 @@ LightCurveIRS::LightCurveIRS(
 {
   _lcLength = lcLength;
   _sourceRadius = sourceSize;
+  _sourceRadiusSq = sourceSize*sourceSize;
   _pointsPerRadius = pointsPerRadius;
   ccc.getCa();
   _getCaBoxes();
@@ -268,6 +269,29 @@ double LightCurveIRS::irs(double imgX,
    }
 };
 
+double LightCurveIRS::irsOptimized(double imgX,
+                                   double imgY,
+                                   complex<double> sourcePos)
+{
+   std::complex<double> z(imgX, imgY);
+   // Computationally heavy part, optimise as much as possible!
+   std::complex<double> z1s = z1 - z;
+   std::complex<double> z2s = z2 - z;
+   std::complex<double> z3s = z3 - z;
+   sourcePos -= z; 
+   double rsq = std::norm(sourcePos-m1*z1s/std::norm(z1s)-m2*z2s/std::norm(z2s)-m3*z3s/std::norm(z3s));
+
+   if( rsq < _sourceRadiusSq)
+   {
+     rsq = rsq/_sourceRadiusSq; 
+     return _limbDarkeningModel.sourceBrightnessRSq(rsq);
+   }  
+   else
+   {
+     return 0.0;
+   }
+}
+
 
 double LightCurveIRS::nxToX(long int nx)
 {
@@ -322,7 +346,7 @@ void LightCurveIRS::lineFloodFill(long int nx,
       }
     }
     // need to get the y only once as the fill stays withing a line
-    double y = nyToY(ny), amp = irs(nxToX(nx), y, sPos); 
+    double y = nyToY(ny), amp = irsOptimized(nxToX(nx), y, sPos); 
 
     if (amp <= 0.0)
     {
@@ -339,7 +363,7 @@ void LightCurveIRS::lineFloodFill(long int nx,
     // scan right
     for (nR = nx+1; nR < _imgPlaneSize; nR++)
     {
-      amp = irs(nxToX(nR), y, sPos);
+      amp = irsOptimized(nxToX(nR), y, sPos);
       
       if (amp <= 0.0)
       {
@@ -356,7 +380,7 @@ void LightCurveIRS::lineFloodFill(long int nx,
     // scan left
     for (nL = nx-1; nL > 0; nL--)
     {
-      amp = irs(nxToX(nL), y, sPos);
+      amp = irsOptimized(nxToX(nL), y, sPos);
       
       if (amp <= 0.0)
       {

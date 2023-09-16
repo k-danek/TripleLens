@@ -52,6 +52,11 @@ class LightCurveIRS: public LightCurveBase
                complex<double> sPos
               );
 
+    double irsOptimized(double imgX,
+                        double imgY,
+                        complex<double> sPos
+              );
+
     // grid point to a position    
     double nxToX(long int nx);
     double nyToY(long int ny);
@@ -87,6 +92,7 @@ class LightCurveIRS: public LightCurveBase
   protected:
     unsigned int _lcLength;
     double _sourceRadius;
+    double _sourceRadiusSq;
     double _amplification;
     unsigned long int _irsCount = 0;
 

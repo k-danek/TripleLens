@@ -14,6 +14,7 @@ class LimbDarkeningModel {
     LimbDarkeningModel(double i0,double v);
 
     double sourceBrightness(double r);
+    double sourceBrightnessRSq(double rsq);
 
     enum limbDarkeningModel {linear, linearNormalized, kurucz};
     limbDarkeningModel model;
