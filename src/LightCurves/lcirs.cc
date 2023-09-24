@@ -1,5 +1,7 @@
 #include<lcirs.h>
 #include <string.h>
+#include <immintrin.h>
+
 
 LightCurveIRS::LightCurveIRS(
                              double       a,
@@ -292,6 +294,71 @@ double LightCurveIRS::irsOptimized(double imgX,
    }
 }
 
+double LightCurveIRS::irsSIMD(double imgX,
+                              double imgY,
+                              complex<double> sourcePos)
+{
+  __m256d m0123 = _mm256_set_pd(1.0, m1, m2, m3);
+
+  __m256d zetaz123R = _mm256_set_pd(sourcePos.real(), z1.real(), z2.real(), z3.real());
+  __m256d zetaz123I = _mm256_set_pd(sourcePos.imag(), z1.imag(), z2.imag(), z3.imag());
+  __m256d imgR      = _mm256_set1_pd(imgX);
+  __m256d imgI      = _mm256_set1_pd(imgY);
+
+  // Work with subtracteed values  
+  zetaz123R = _mm256_sub_pd(zetaz123R, imgR);
+  zetaz123I = _mm256_sub_pd(zetaz123I, imgI);
+
+  // Try to get normalization
+
+  // Multiplication, 3/4 effective
+  __m256d zetaz123Rsq = _mm256_mul_pd(zetaz123R, zetaz123R);
+  __m256d zetaz123Isq = _mm256_mul_pd(zetaz123I, zetaz123I);
+
+  // Now, I will need to sum re-im pairs. 3/4 effective
+  __m256d realConstants = _mm256_add_pd(zetaz123Rsq, zetaz123Isq);
+  // Normalize first element after multiplication. Please note the negative signs to fix the formula
+  realConstants[3] = -1.0;
+  // Divide masses with obtained sum-vector. 3/4 effective
+  realConstants = _mm256_div_pd(m0123, realConstants);
+
+  // Multiply complex numbers with real-number contants.
+  zetaz123R = _mm256_mul_pd(zetaz123R, realConstants);
+  zetaz123I = _mm256_mul_pd(zetaz123I, realConstants);
+
+  // https://stackoverflow.com/questions/13422747/reverse-a-avx-register-containing-doubles-using-a-single-avx-intrinsic
+  // https://stackoverflow.com/questions/6996764/fastest-way-to-do-horizontal-sse-vector-sum-or-other-reduction
+
+  __m128d zetaz123Rlo = _mm256_extractf128_pd(zetaz123R, 0); // Latenct/throughput 3/1
+  __m128d zetaz123Rhi = _mm256_extractf128_pd(zetaz123R, 1); // 3/1
+  __m128d zetaz123Ilo = _mm256_extractf128_pd(zetaz123I, 0); // 3/1
+  __m128d zetaz123Ihi = _mm256_extractf128_pd(zetaz123I, 1); // 3/1
+
+  double tempR[2];
+  double tempI[2];
+
+  __m128d rSumR = _mm_add_pd(zetaz123Rlo, zetaz123Rhi); // 3/1 
+  __m128d rSumI = _mm_add_pd(zetaz123Ilo, zetaz123Ihi); // 3/1
+
+  _mm_storeu_pd(tempR, rSumR); // 1/1
+  _mm_storeu_pd(tempI, rSumI); // 1/1
+
+  //return (tempR[0]+tempR[1])*(tempR[0]+tempR[1])+(tempI[0]+tempI[1])*(tempI[0]+tempI[1]); // 21/1
+
+  // distance from source
+  double rsq = (tempR[0]+tempR[1])*(tempR[0]+tempR[1])+(tempI[0]+tempI[1])*(tempI[0]+tempI[1]);
+
+  if( rsq < _sourceRadiusSq)
+  {
+    rsq = rsq/_sourceRadiusSq; 
+    return _limbDarkeningModel.sourceBrightnessRSq(rsq);
+  }  
+  else
+  {
+    return 0.0;
+  }
+}
+
 
 double LightCurveIRS::nxToX(long int nx)
 {
@@ -346,7 +413,7 @@ void LightCurveIRS::lineFloodFill(long int nx,
       }
     }
     // need to get the y only once as the fill stays withing a line
-    double y = nyToY(ny), amp = irsOptimized(nxToX(nx), y, sPos); 
+    double y = nyToY(ny), amp = irsSIMD(nxToX(nx), y, sPos); 
 
     if (amp <= 0.0)
     {
@@ -363,7 +430,7 @@ void LightCurveIRS::lineFloodFill(long int nx,
     // scan right
     for (nR = nx+1; nR < _imgPlaneSize; nR++)
     {
-      amp = irsOptimized(nxToX(nR), y, sPos);
+      amp = irsSIMD(nxToX(nR), y, sPos);
       
       if (amp <= 0.0)
       {
@@ -380,7 +447,7 @@ void LightCurveIRS::lineFloodFill(long int nx,
     // scan left
     for (nL = nx-1; nL > 0; nL--)
     {
-      amp = irsOptimized(nxToX(nL), y, sPos);
+      amp = irsSIMD(nxToX(nL), y, sPos);
       
       if (amp <= 0.0)
       {

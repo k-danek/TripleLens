@@ -3,11 +3,14 @@ CC=g++
 # Flag -fPIC makes o files usable in the shared library
 CFLAGS= -Wl,--no-undefined -fPIC -Ofast -g -std=c++17
 CPROFFLAGS= -pg -no-pie -fno-builtin
+
+# SIMD flags to enable intel intrinsics
+CFLAGS_SIMD= -mavx -march=native
+
 # This flag determines that cuda should be included
 CFLAGS_CUDA= -DCUDA
 CFLAGS_SHARED= -shared
 
-CFCOMPATIBLE=
 
 # CUDA root dir:
 CUDA_ROOT_DIR=/usr/local/cuda
@@ -74,7 +77,7 @@ cudalc.o: $(INC_CUDA)/cudalc.h cudalink.o
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/cudalc.o $(INC_CUDA)/cudalc.cc
 
 lcirs.o: $(INC_LC)/lcirs.h
-	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/lcirs.o $(INC_LC)/lcirs.cc
+	$(CC) -c $(INCLUDES) $(CFLAGS) $(CFLAGS_SIMD) -o $(BUILD_TARGET)/lcirs.o $(INC_LC)/lcirs.cc
 
 amoeba.o: $(INC_UTILS)/amoeba.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/amoeba.o $(INC_UTILS)/amoeba.cc 
