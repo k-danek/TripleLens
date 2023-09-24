@@ -55,7 +55,13 @@ class LightCurveIRS: public LightCurveBase
     double irsOptimized(double imgX,
                         double imgY,
                         complex<double> sPos
-              );
+                       );
+
+    double irsSIMD(double imgX,
+                   double imgY,
+                   complex<double> sPos
+                  );
+
 
     // grid point to a position    
     double nxToX(long int nx);
