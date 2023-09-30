@@ -109,6 +109,9 @@ class LightCurveIRS: public LightCurveBase
     long int _imgPlaneSize;
     // lenght of the edge of the image-plane (storing for convenience)
     double _imgPlaneSizeDouble;
+    // Size of a grid point in image plane
+    double _imgGridPointSize;
+    
     // corners of the image plane
     complex<double> _bottomLeftCornerImg = {-1.0, -1.0};
     complex<double> _topRightCornerImg = {1.0, 1.0};

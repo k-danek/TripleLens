@@ -76,13 +76,8 @@ void LightCurveIRS::_getImgPlanePars()
   //_ampScale = 1.0/M_PI/pow(_pointsPerRadius,2.0)/(1.0-_vFactor/3.0);
   _ampScale = _limbDarkeningModel.intensityCoeff/M_PI/pow(_pointsPerRadius,2.0);
 
-  //cout << "Image plane parameters:\n";
-  //cout << "_imgPlaneSize:" << _imgPlaneSize << "\n";
-  //cout << "_imgPlaneSizeDouble:" << _imgPlaneSizeDouble << "\n";
-  //cout << "topRightCornerImg:(" << _topRightCornerImg.real() << ","
-  //     << _topRightCornerImg.imag() << ")\n"; 
-  //cout << "bottomLeftCornerImg:(" << _bottomLeftCornerImg.real() << ","
-  //     << _bottomLeftCornerImg.imag() << ")\n"; 
+  // Size of a grid point in image plane
+  _imgGridPointSize = _imgPlaneSizeDouble/double(_imgPlaneSize-1.0);
 
 };
 
@@ -362,19 +357,13 @@ double LightCurveIRS::irsSIMD(double imgX,
 
 double LightCurveIRS::nxToX(long int nx)
 {
-  double xFrac = nx/double(_imgPlaneSize-1.0);
-  double pos = _bottomLeftCornerImg.real();
-  pos += xFrac*_imgPlaneSizeDouble;
-  return pos;
+  return _bottomLeftCornerImg.real()+_imgGridPointSize*double(nx);
 }
 
 
 double LightCurveIRS::nyToY(long int ny)
 {
-  double yFrac = ny/double(_imgPlaneSize-1.0);
-  double pos = _bottomLeftCornerImg.imag();
-  pos += yFrac*_imgPlaneSizeDouble;
-  return pos;
+  return _bottomLeftCornerImg.imag()+_imgGridPointSize*double(ny);
 }
 
 
