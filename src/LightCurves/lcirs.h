@@ -62,6 +62,11 @@ class LightCurveIRS: public LightCurveBase
                    complex<double> sPos
                   );
 
+    double irsSIMDBranchless(double imgX,
+                             double imgY,
+                             complex<double> sPos
+                            );
+
 
     // grid point to a position    
     double nxToX(long int nx);
