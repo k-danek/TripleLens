@@ -17,8 +17,9 @@ LightCurveCUDA::LightCurveCUDA(
 
   _lcLength = lcLength;
   _sourceRadius = sourceSize;
+  _sourceRadiusSq = sourceSize*sourceSize;
   _pointsPerRadius = pointsPerRadius;
-  _envelopeRadius = sourceSize * 1.2;
+  _envelopeRadiusSq = _sourceRadiusSq * 1.4;
   ccc.getCa();
   _getCaBoxes();
   _getImgPlanePars();
@@ -229,16 +230,11 @@ bool LightCurveCUDA::irsCheck(double imgX,
    // Computationally heavy part, optimise as much as possible!
    complex<double> img(imgX,imgY);  
    complex<double> testSourcePos=img-m1/conj(img-z1)-m2/conj(img-z2)-m3/conj(img-z3);
-   double r = std::abs(testSourcePos-sourcePos);
+   double rSq = std::norm(testSourcePos-sourcePos);
 
    // Beware.Evelope radius is used instead of source radius.
    // Resulting amoeba correspons to images of the envelope size.   
-   if( r <= _envelopeRadius)
-   {
-     return true;
-   }  
-
-   return false;
+   return rSq <= _envelopeRadiusSq;
 };
 
 void LightCurveCUDA::lineFloodFillIRS(long int nx,

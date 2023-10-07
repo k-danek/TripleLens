@@ -376,7 +376,6 @@ void LightCurveIRS::lineFloodFill(long int nx,
     rsq = rsq/_sourceRadiusSq;
     _amplification += _limbDarkeningModel.sourceBrightnessRSq(rsq);
     _irsCount++;
-    
 
     long int nL, nR, nn;
 

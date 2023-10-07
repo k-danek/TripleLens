@@ -72,7 +72,7 @@ class LightCurveCUDA: public LightCurveIRS
     // Whole point of using an envelope is to make sure that 
     // thin parts of the image are included in the amoeba that
     // is given to cuda filling.
-    double _envelopeRadius;
+    double _envelopeRadiusSq;
 
     double _cpuSeeds = 0.0;
     double _cpuFloodFill = 0.0;
