@@ -47,6 +47,8 @@ class LightCurveIRS: public LightCurveBase
                   complex<double> endPos 
                  );
 
+    // All IRS shooting function return square of distance between
+    // the hit and center of the source.
     double irs(double imgX,
                double imgY,
                complex<double> sPos
@@ -56,16 +58,12 @@ class LightCurveIRS: public LightCurveBase
                         double imgY,
                         complex<double> sPos
                        );
-
+    
+    // IRS optimized for Intel CPUs with AVX 256 bit registers 
     double irsSIMD(double imgX,
                    double imgY,
                    complex<double> sPos
                   );
-
-    double irsSIMDBranchless(double imgX,
-                             double imgY,
-                             complex<double> sPos
-                            );
 
 
     // grid point to a position    
