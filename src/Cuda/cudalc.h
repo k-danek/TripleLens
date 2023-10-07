@@ -54,6 +54,12 @@ class LightCurveCUDA: public LightCurveIRS
                   complex<double> sPos
                  );
 
+    // IRS optimized for Intel CPUs with AVX 256 bit registers 
+    bool irsCheckSIMD(double imgX,
+                      double imgY,
+                      complex<double> sPos
+                     );
+
     void lineFloodFillCUDA(long int        nx,
                            long int        ny,
                            complex<double> sPos,

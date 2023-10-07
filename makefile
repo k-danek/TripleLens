@@ -77,7 +77,7 @@ maincuda.o: cudalc.o
 	$(CC) -c $(INCLUDES) $(CFLAGS) $(CFLAGS_CUDA) -o $(BUILD_TARGET)/maincuda.o $(SOURCE_DIR)/main.cc
 
 cudalc.o: $(INC_CUDA)/cudalc.h cudalink.o
-	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/cudalc.o $(INC_CUDA)/cudalc.cc
+	$(CC) -c $(INCLUDES) $(CFLAGS) $(CFLAGS_SIMD) -o $(BUILD_TARGET)/cudalc.o $(INC_CUDA)/cudalc.cc
 
 lcirs.o: $(INC_LC)/lcirs.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) $(CFLAGS_SIMD) -o $(BUILD_TARGET)/lcirs.o $(INC_LC)/lcirs.cc
