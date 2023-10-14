@@ -8,7 +8,7 @@
 #include "cudairs.cuh"
 
 
-__constant__ cudaFloat params[17];
+__constant__ cudaFloat params[18];
 __constant__ cudaFloat sourcePosParams[2];
 // Subgrid size
 __constant__ int       sgSize[1];
@@ -78,17 +78,18 @@ void SyncerCUDA::setConstantPars()
   _tempParams[5]  = cudaFloat(_m3);         // m3
   _tempParams[6]  = cudaFloat(_sourceSize); // sourceSize
   _tempParams[7]  = cudaFloat(_imgPixSize);  // size of pixel
-  _tempParams[8] = cudaFloat(_a);           // z2x
-  _tempParams[9] = cudaFloat(0.0);          // z2y
+  _tempParams[8]  = cudaFloat(_a);           // z2x
+  _tempParams[9]  = cudaFloat(0.0);          // z2y
   _tempParams[10] = cudaFloat(_b*cos(_th));  // z3x
   _tempParams[11] = cudaFloat(_b*sin(_th));  // z3y
   _tempParams[12] = cudaFloat(_imgPixSize/double(subgridSize)); // subgrid increment
   _tempParams[13] = cudaFloat(_imgPlaneOrigin.real()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // x-origin of coordinates in image plane 
   _tempParams[14] = cudaFloat(_imgPlaneOrigin.imag()-_imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // y-origin of coordinates in image plane
   _tempParams[15] = cudaFloat(_linLimbDarkeningA);
-  _tempParams[16] = cudaFloat(_linLimbDarkeningB);
+  _tempParams[16] = cudaFloat(_linLimbDarkeningB/_sourceSize);
+  _tempParams[17] = cudaFloat(_sourceSize*_sourceSize);
 
-  cudaMemcpyToSymbol(params, _tempParams, sizeof(cudaFloat)*17);
+  cudaMemcpyToSymbol(params, _tempParams, sizeof(cudaFloat)*18);
   // putting subgridsize to constant memory
   cudaMemcpyToSymbol(sgSize, (const void*)&subgridSize, sizeof(int)); 
   endTime = clock();
@@ -409,7 +410,7 @@ float SyncerCUDA::getAmpSync(
 
   beginTime = clock();
 
-  cudaFloat* tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*17);
+  cudaFloat* tempParams = (cudaFloat*)malloc(sizeof(cudaFloat)*18);
 
   tempParams[0]  = cudaFloat(a);          // a
   tempParams[1]  = cudaFloat(b);          // b
@@ -428,8 +429,9 @@ float SyncerCUDA::getAmpSync(
   tempParams[14] = cudaFloat(imgPixSize/double(subgridSize)); // subgrid increment
   tempParams[15] = cudaFloat(imgPlaneOrigin.real()-imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // x-origin of coordinates in image plane 
   tempParams[16] = cudaFloat(imgPlaneOrigin.imag()-imgPixSize*(0.5-0.5/cudaFloat(subgridSize))); // y-origin of coordinates in image plane
+  tempParams[17] = cudaFloat(sourceSize*sourceSize); // y-origin of coordinates in image plane
 
-  cudaMemcpyToSymbol(params, tempParams, sizeof(cudaFloat)*17);
+  cudaMemcpyToSymbol(params, tempParams, sizeof(cudaFloat)*18);
 
   endTime = clock();
   _gpuConstMemTime += double(endTime-beginTime);
@@ -659,24 +661,32 @@ cudaFloat irs(const thrust::complex<cudaFloat>& z2,
               const thrust::complex<cudaFloat>& sourcePos)
 {
 
-    thrust::complex<cudaFloat> impact = img-params[3]/conj(img)
+    //thrust::complex<cudaFloat> impact = img-params[3]/conj(img)
+    //                                -params[4]/conj(img-z2)
+    //                                -params[5]/conj(img-z3);
+
+    //cudaFloat r = thrust::abs(impact-sourcePos)/params[6];
+
+    //cudaFloat step = cudaFloat(r<=1.0);
+    //return (params[15]+params[16]*sqrt(1-r*r*step))*step;
+
+    //thrust::complex<cudaFloat> rC = img-sourcePos-params[3]/conj(img)
+    //                                -params[4]/conj(img-z2)
+    //                                -params[5]/conj(img-z3);
+
+    //cudaFloat rSq = (rC.real()*rC.real()+rC.imag()*rC.imag())/params[17];
+
+    //cudaFloat step = cudaFloat(rSq<=1.0);
+    //return (params[15]+params[16]*sqrt(1-rSq*step))*step;
+
+    thrust::complex<cudaFloat> rC = img-sourcePos-params[3]/conj(img)
                                     -params[4]/conj(img-z2)
                                     -params[5]/conj(img-z3);
 
-    cudaFloat r = thrust::abs(impact-sourcePos)/params[6];
+    cudaFloat rSq = (rC.real()*rC.real()+rC.imag()*rC.imag());
 
-    //if(r <= 1.0)
-    //{
-    //    return 0.6+0.4*sqrt(1.0-r*r); 
-    //}
-    //else
-    //{
-    //    return 0.0;
-    //}
-    cudaFloat step = cudaFloat(r<=1.0);
-    return (params[15]+params[16]*sqrt(1-r*r*step))*step;
-    //return params[15]+params[16];
-    //return (0.6+0.4*sqrt(1-r*r*step))*step;
+    cudaFloat step = cudaFloat(rSq<=params[17]);
+    return (params[15]+params[16]*sqrt(params[17]-rSq*step))*step;
 };
 
 double irsCPU(const double*                  params,
