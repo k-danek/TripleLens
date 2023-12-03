@@ -42,6 +42,16 @@ class ImgPoint: public Lens
              double posY
             );
 
+    // Binary only version
+    ImgPoint(double a,
+             double th,
+             double m,
+             double accuracy,
+             double posX,
+             double posY
+            );
+
+
     ImgPoint(const LensPar &lensParam);
 
 
@@ -91,13 +101,14 @@ class ImgPoint: public Lens
     void setSourceSize(double sourceSize);
 
   private:
-    bool _rootsAvailable = false;
-    bool _imgsAvailable = false;
-    bool _areZetaFreeCoeffsAvailable = false;
     complex<double> _sourcePos;
     vector<complex<double>> _tempRoots;
     vector<complex<double>> _zetaFreeCoeffs;
     double _imgErr = 1.0e-6;
+    bool _rootsAvailable = false;
+    bool _imgsAvailable = false;
+    bool _areZetaFreeCoeffsAvailable = false;
+    bool _isBinary = false;
 };
 
 #endif

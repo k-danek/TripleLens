@@ -41,7 +41,6 @@ void LightCurveBase::getLC(complex<double> startPoint,
                            complex<double> endPoint
                           )
 {
-
   complex<double> pos;
   for(unsigned int i = 0; i < _lcLength; i++)
   {

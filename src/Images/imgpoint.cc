@@ -13,6 +13,10 @@ ImgPoint::ImgPoint(
                   ): Lens(a, b, th, m2, m3)
 {
   setPos(posX,posY);
+  if(a == 0.0 || b == 0.0 || m3 == 0.0)
+  {
+    _isBinary = true;
+  } 
 };
 
 ImgPoint::ImgPoint(
@@ -28,7 +32,26 @@ ImgPoint::ImgPoint(
 {
   setPos(posX,posY);
   setSourceSize(sourceSize);
+  if(a == 0.0 || b == 0.0 || m3 == 0.0)
+  {
+    _isBinary = true;
+  } 
 };
+
+ImgPoint::ImgPoint(
+                   double       a,
+                   double       th,
+                   double       m,
+                   double       sourceSize,
+                   double       posX,
+                   double       posY
+                  ): Lens(a, 0.0, th, m2, 0.0)
+{
+  setPos(posX,posY);
+  setSourceSize(sourceSize);
+  _isBinary = true;
+};
+
 
 ImgPoint::ImgPoint(const LensPar &lensParam): Lens(lensParam.a,
                                                    lensParam.b,
@@ -38,6 +61,10 @@ ImgPoint::ImgPoint(const LensPar &lensParam): Lens(lensParam.a,
                                                   )
 {
   setPos(0.0, 0.0);
+  if(a == 0.0 || b == 0.0 || m3 == 0.0)
+  {
+    _isBinary = true;
+  } 
 };
 
 // Normal check if an image falls within a source radius. 
@@ -88,13 +115,14 @@ void ImgPoint::getRoots(bool forceNewRoots = false,
 {
 
   // zero m3 is always taken to be Binary Lens
-  if(m3==0.0)
+  if(m3 != 0.0)
   {
-    isBinaryLens = true;
+    _isBinary = true;
+    return getRootsPrecalculated(forceNewRoots);
   }  
 
-  vector<complex<double>> imgCoef = isBinaryLens ? getCoeffsBinOpt():
-                                                   getCoeffs();
+  vector<complex<double>> imgCoef = _isBinary ? getCoeffsBinOpt():
+                                                getCoeffs();
 
   Laguerre laguerre(imgCoef);
 
@@ -202,13 +230,11 @@ void ImgPoint::getImages()
       isImg.push_back(false);
   }  
 
-  bool isBinaryLens = (m3 == 0.0);
-
   // This is an important check for correct number of images
   // Unfortunatelly, this fails a way too often!
   // Come back to this after full testing of other functionality.
-  if(((imgs.size() % 2 != 0 || imgs.size() < 4) && !isBinaryLens) ||
-     ((imgs.size() % 2 != 1 || imgs.size() < 3) &&  isBinaryLens))
+  if(((imgs.size() % 2 != 0 || imgs.size() < 4) && !_isBinary) ||
+     ((imgs.size() % 2 != 1 || imgs.size() < 3) &&  _isBinary))
   { 
     
     //getRoots(true);
@@ -229,8 +255,8 @@ void ImgPoint::getImages()
         isImg.push_back(false);
     }    
 
-    if(((imgs.size() % 2 != 0 || imgs.size() < 4) && !isBinaryLens) ||
-       ((imgs.size() % 2 != 1 || imgs.size() < 3) &&  isBinaryLens))
+    if(((imgs.size() % 2 != 0 || imgs.size() < 4) && !_isBinary) ||
+       ((imgs.size() % 2 != 1 || imgs.size() < 3) &&  _isBinary))
     { 
       vector<complex<double>>  coeffs = getCoeffsOpt();
       cout << "Wrong number of images after the check: " << imgs.size() << "\n";
