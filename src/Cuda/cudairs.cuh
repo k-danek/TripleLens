@@ -162,6 +162,12 @@ cudaFloat irs(const thrust::complex<cudaFloat>& z2,
               const thrust::complex<cudaFloat>& img,
               const thrust::complex<cudaFloat>& sourcePos);
 
+__device__
+cudaFloat irsBinary(const thrust::complex<cudaFloat>& z2,
+                    const thrust::complex<cudaFloat>& z3,
+                    const thrust::complex<cudaFloat>& img,
+                    const thrust::complex<cudaFloat>& sourcePos);
+
 float irsCPU(const float*                  params,
              const thrust::complex<float>& z2,
              const thrust::complex<float>& z3,

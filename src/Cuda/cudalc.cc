@@ -26,6 +26,16 @@ LightCurveCUDA::LightCurveCUDA(
   _getImgPlanePars();
   _limbDarkeningModel = LimbDarkeningModel();
 
+  // Choose if to use triple lens or binary IRS 
+  if(m3 == 0.0)
+  {
+    _irsCheck = &LightCurveCUDA::irsCheckBinary;
+  }
+  else
+  {
+    _irsCheck = &LightCurveCUDA::irsCheckSIMD;
+  };
+
   // Make spurious images check based on actual source size
   _pointImages.setSourceSize(sourceSize);
   std::cout << " Initializing LCCuda - finished\n";
@@ -176,20 +186,6 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
 
   cout << "LC completed" << "\n";
 
-  //  // Kernel
-  //  float getAmpSync(amoebae_t&                 amoebae,
-  //                   double                     a,
-  //                   double                     b,
-  //                   double                     th,
-  //                   double                     m2,
-  //                   double                     m3,
-  //                   double                     sourceSize,
-  //                   double                     sourcePosX,
-  //                   double                     sourcePosY,
-  //                   double                     imgPixSize,
-  //                   std::complex<double>       imgPlaneOrigin);
-
-
   beginTime = clock(); 
   _amplification = cudaSyncer.syncAndReturn(_lcLength);
 
@@ -227,6 +223,16 @@ void LightCurveCUDA::getLCCUDA(complex<double> startPoint,
 bool LightCurveCUDA::irsCheck(double imgX,
                               double imgY,
                               complex<double> sourcePos)
+{
+  return (this->*_irsCheck)(imgX, imgY, sourcePos);
+};
+
+
+// Check whether source position is hit 
+// In context of the point source, that source radius is just an error term.
+bool LightCurveCUDA::irsCheckBase(double imgX,
+                                  double imgY,
+                                  complex<double> sourcePos)
 {
    // Computationally heavy part, optimise as much as possible!
    complex<double> img(imgX,imgY);  
@@ -290,6 +296,18 @@ bool LightCurveCUDA::irsCheckSIMD(double imgX,
   // distance from source
   return (tempR[0]+tempR[1])*(tempR[0]+tempR[1])+(tempI[0]+tempI[1])*(tempI[0]+tempI[1]) <= _envelopeRadiusSq;
 }
+
+// Check whether source position is hit 
+// In context of the point source, that source radius is just an error term.
+bool LightCurveCUDA::irsCheckBinary(double imgX,
+                                    double imgY,
+                                    complex<double> sourcePos)
+{
+   // Computationally heavy part, optimise as much as possible!
+   complex<double> img(imgX,imgY);  
+   complex<double> testSourcePos=img-m1/conj(img-z1)-m2/conj(img-z2);
+   return (std::norm(testSourcePos-sourcePos) <= _envelopeRadiusSq);
+};
 
 void LightCurveCUDA::lineFloodFillIRS(long int nx,
                                   long int ny,
@@ -406,7 +424,7 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
     double x = nxToX(nx);
     double y = nyToY(ny);
 
-    if (!irsCheckSIMD(x,y,sPos)) {
+    if (!irsCheck(x,y,sPos)) {
       return;
     }
 
@@ -417,7 +435,7 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
     {
       x = nxToX(nR); 
       
-      if (!irsCheckSIMD(x,y,sPos))
+      if (!irsCheck(x,y,sPos))
       {
         nR--;
         break;
@@ -429,7 +447,7 @@ void LightCurveCUDA::lineFloodFillCUDA(long int nx,
     {
       x = nxToX(nL); 
       
-      if (!irsCheckSIMD(x,y,sPos))
+      if (!irsCheck(x,y,sPos))
       {
         nL++;
         break;

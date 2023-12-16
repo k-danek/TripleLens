@@ -638,7 +638,6 @@ void arrangeShootingAmoeba(Node*     nodes,
 
   for(long int gridX = gridXl; gridX <= gridXr; gridX++)
   {
-
     thrust::complex<double> imgPos = thrust::complex<double>(
       // origin + position of the pixel + position of subpixel
       xShift + __ll2double_rn(gridX)*params[7],
@@ -660,28 +659,24 @@ cudaFloat irs(const thrust::complex<cudaFloat>& z2,
               const thrust::complex<cudaFloat>& img,
               const thrust::complex<cudaFloat>& sourcePos)
 {
-
-    //thrust::complex<cudaFloat> impact = img-params[3]/conj(img)
-    //                                -params[4]/conj(img-z2)
-    //                                -params[5]/conj(img-z3);
-
-    //cudaFloat r = thrust::abs(impact-sourcePos)/params[6];
-
-    //cudaFloat step = cudaFloat(r<=1.0);
-    //return (params[15]+params[16]*sqrt(1-r*r*step))*step;
-
-    //thrust::complex<cudaFloat> rC = img-sourcePos-params[3]/conj(img)
-    //                                -params[4]/conj(img-z2)
-    //                                -params[5]/conj(img-z3);
-
-    //cudaFloat rSq = (rC.real()*rC.real()+rC.imag()*rC.imag())/params[17];
-
-    //cudaFloat step = cudaFloat(rSq<=1.0);
-    //return (params[15]+params[16]*sqrt(1-rSq*step))*step;
-
     thrust::complex<cudaFloat> rC = img-sourcePos-params[3]/conj(img)
                                     -params[4]/conj(img-z2)
                                     -params[5]/conj(img-z3);
+
+    cudaFloat rSq = (rC.real()*rC.real()+rC.imag()*rC.imag());
+
+    cudaFloat step = cudaFloat(rSq<=params[17]);
+    return (params[15]+params[16]*sqrt(params[17]-rSq*step))*step;
+};
+
+__device__
+cudaFloat irsBinary(const thrust::complex<cudaFloat>& z2,
+                    const thrust::complex<cudaFloat>& z3,
+                    const thrust::complex<cudaFloat>& img,
+                    const thrust::complex<cudaFloat>& sourcePos)
+{
+    thrust::complex<cudaFloat> rC = img-sourcePos-params[3]/conj(img)
+                                    -params[4]/conj(img-z2);
 
     cudaFloat rSq = (rC.real()*rC.real()+rC.imag()*rC.imag());
 
