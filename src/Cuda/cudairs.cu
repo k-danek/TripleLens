@@ -653,6 +653,50 @@ void arrangeShootingAmoeba(Node*     nodes,
   //atomicAdd(&amps[blockIdx.x], __double2float_rn(sourcePosParams[0]));
 };
 
+// Dobule lens version
+// TODO: Remove code duplication without cost to performance
+__global__
+void arrangeShootingAmoebaBinary(Node*     nodes,
+                                 float*    amps)
+{
+  const thrust::complex<cudaFloat> z2 = thrust::complex<cudaFloat>(params[8],params[9]);
+  const thrust::complex<cudaFloat> z3 = thrust::complex<cudaFloat>(params[10],params[11]);
+
+  // use blockIdx.x as a node index
+  Node locNode = nodes[blockIdx.x];
+  const long int gridY  = locNode.y;
+  const long int gridXl = locNode.xL;
+  const long int gridXr = locNode.xR; 
+
+  // actual index of a thread
+  //int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+
+  // Make sure these are already shifted to the bottom left corner of a pixel! 
+  //
+  //threadIdx.x % subgridSize; that is subgrid x
+  //threadIdx.x / subgridSize; that is subgrid y
+  double xShift = params[13] + __int2double_rn(threadIdx.x % sgSize[0])*params[12];
+  double yShift = params[14] + __ll2double_rn(gridY)*params[7] + __int2double_rn(threadIdx.x / sgSize[0])*params[12];
+
+  thrust::complex<cudaFloat> sourcePos = thrust::complex<cudaFloat>(sourcePosParams[0], sourcePosParams[1]);
+
+  double tempAmp = 0.0;
+
+  for(long int gridX = gridXl; gridX <= gridXr; gridX++)
+  {
+    thrust::complex<double> imgPos = thrust::complex<double>(
+      // origin + position of the pixel + position of subpixel
+      xShift + __ll2double_rn(gridX)*params[7],
+      yShift
+    );
+
+    tempAmp += irsBinary(z2, imgPos, sourcePos);
+  }
+
+  atomicAdd(&amps[blockIdx.x], __double2float_rn(tempAmp));
+};
+
+
 __device__
 cudaFloat irs(const thrust::complex<cudaFloat>& z2,
               const thrust::complex<cudaFloat>& z3,
@@ -670,13 +714,12 @@ cudaFloat irs(const thrust::complex<cudaFloat>& z2,
 };
 
 __device__
-cudaFloat irsBinary(const thrust::complex<cudaFloat>& z2,
-                    const thrust::complex<cudaFloat>& z3,
+cudaFloat irsBinary(const thrust::complex<cudaFloat>& z,
                     const thrust::complex<cudaFloat>& img,
                     const thrust::complex<cudaFloat>& sourcePos)
 {
     thrust::complex<cudaFloat> rC = img-sourcePos-params[3]/conj(img)
-                                    -params[4]/conj(img-z2);
+                                    -params[4]/conj(img-z);
 
     cudaFloat rSq = (rC.real()*rC.real()+rC.imag()*rC.imag());
 
@@ -707,8 +750,6 @@ double irsCPU(const double*                  params,
         return 0.0;
     }
 };
-
-
 
 void arrangeShootingCPU(std::vector<Node>     nodes,
                         double*               amps,

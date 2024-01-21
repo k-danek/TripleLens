@@ -149,12 +149,18 @@ class SyncerCUDA
     double               _gpuSyncTime = 0.0; 
     double               _gpuQueryTime = 0.0; 
     double               _gpuFreeTime = 0.0; 
-    double               _gpuConstMemTime = 0.0; 
+    double               _gpuConstMemTime = 0.0;
+
+    bool _isBinary = false; 
 };
 
 __global__
 void arrangeShootingAmoeba(Node*     nodes,
                            float*    amps);
+
+__global__
+void arrangeShootingAmoebaBinary(Node*     nodes,
+                                 float*    amps);
 
 __device__
 cudaFloat irs(const thrust::complex<cudaFloat>& z2,
@@ -163,8 +169,7 @@ cudaFloat irs(const thrust::complex<cudaFloat>& z2,
               const thrust::complex<cudaFloat>& sourcePos);
 
 __device__
-cudaFloat irsBinary(const thrust::complex<cudaFloat>& z2,
-                    const thrust::complex<cudaFloat>& z3,
+cudaFloat irsBinary(const thrust::complex<cudaFloat>& z,
                     const thrust::complex<cudaFloat>& img,
                     const thrust::complex<cudaFloat>& sourcePos);
 
