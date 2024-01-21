@@ -45,13 +45,14 @@ a = 1.0
 b = 1.0
 theta = 1.047197551
 m2 = 1/3
-m3 = 1/3000
+m3 = 1/30
 length = 500
 
 
 # Initialise the CriticalCurveCaustic object.
 
 ccc_triple, cc_real, cc_imag, ca_real, ca_imag = getCCC(a,b,theta,m2,m3,length)
+_, cc_real_double, cc_imag_double, ca_real_double, ca_imag_double = getCCC(a,b,theta,m2,0.0,length)
 
 # copy the bounding box
 cc_min = np.zeros(1, np.cdouble)
@@ -70,8 +71,6 @@ lenses_imag = []
 for lens in lens_pos:
   lenses_real.append(lens.real)
   lenses_imag.append(lens.imag)
-
-ccc_double, cc_real, cc_imag, ca_real, ca_imag = getCCC(a,b,theta,m2,0.0,length)
 
 # imgs
 pos_ini_x = 0.0
@@ -116,13 +115,14 @@ time_double_point = time.time()-start_time
 print("Copied LC")
 
 # Plotting
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+fig, (ax2, ax2, ax3) = plt.subplots(1, 3)
 
 ax1.set_title("Source Trajectory")
 
 ax1.axis(xmin=cc_min.real, xmax=cc_max.real, ymin=cc_min.imag, ymax=cc_max.imag)
-ax1.scatter(ca_real, ca_imag, s = 0.1)
 ax1.scatter(lenses_real, lenses_imag, s=200.0, marker = 'o')
+ax1.scatter(ca_real_double, ca_imag_double, s = 0.2)
+ax1.scatter(ca_real, ca_imag, s = 0.1)
 ax1.plot([pos_ini_x,pos_fin_x],[pos_ini_y,pos_fin_y])
 
 
