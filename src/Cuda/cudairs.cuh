@@ -151,7 +151,24 @@ class SyncerCUDA
     double               _gpuFreeTime = 0.0; 
     double               _gpuConstMemTime = 0.0;
 
-    bool _isBinary = false; 
+    bool _isBinary = false;
+
+  //  // invoking the kernel
+  //  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamA>>>(_nodesDeviceA,
+  //                                                                        _ampsDeviceA);
+
+  //  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamB>>>(_nodesDeviceB,
+  //                                                                        _ampsDeviceB);
+
+  //  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamC>>>(_nodesDeviceC,
+  //                                                                        _ampsDeviceC);
+
+    // Define function pointer to store pointer
+    typedef void (SyncerCUDA::*_invKernel)(int threadsPerBlock);
+    _invKernel _invokeKernel;
+    
+    void _invokeKernelDouble(int threadsPerBlock);
+    void _invokeKernelTriple(int threadsPerBlock);
 };
 
 __global__

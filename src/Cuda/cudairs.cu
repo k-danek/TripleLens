@@ -36,6 +36,14 @@ SyncerCUDA::SyncerCUDA(double                     a,
   setConstantPars();
   _linLimbDarkeningA = 0.6;
   _linLimbDarkeningB = 0.8;
+  if(m3 == 0.0)
+  {
+    _isBinary = true;
+    _invokeKernel = &SyncerCUDA::_invokeKernelDouble;
+  } else {
+    _isBinary = false;
+    _invokeKernel = &SyncerCUDA::_invokeKernelTriple;
+  }
 };
 
 SyncerCUDA::SyncerCUDA(double                     a,
@@ -60,6 +68,14 @@ SyncerCUDA::SyncerCUDA(double                     a,
   _numOfNodes = 0;
   _linLimbDarkeningA = limbDarkeningA;
   _linLimbDarkeningB = limbDarkeningB;
+  if(m3 == 0.0)
+  {
+    _isBinary = true;
+    _invokeKernel = &SyncerCUDA::_invokeKernelDouble;
+  } else {
+    _isBinary = false;
+    _invokeKernel = &SyncerCUDA::_invokeKernelTriple;
+  }
   allocateHost(_numberOfNodesBufferSize);
   allocateCuda();
   setConstantPars();
@@ -237,8 +253,6 @@ double SyncerCUDA::syncAndReturn(int lcStep)
   endTime = clock();
   _gpuFreeTime += double(endTime-beginTime);
   
-  //std::cout << "Everything destroyed\n";
-
   return totalAmpCUDA/cudaFloat(subgridSize*subgridSize);
 }
 
@@ -351,14 +365,7 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
     cudaMemsetAsync(_ampsDeviceC,0,sizeof(float)*_numOfBlocks,_streamC);
 
     // invoking the kernel
-    arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamA>>>(_nodesDeviceA,
-                                                                          _ampsDeviceA);
-
-    arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamB>>>(_nodesDeviceB,
-                                                                          _ampsDeviceB);
-
-    arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamC>>>(_nodesDeviceC,
-                                                                          _ampsDeviceC);
+    (this->*_invokeKernel)(threadsPerBlock);
 
     // copy device -> host
     cudaMemcpyAsync(_ampsHost+i               ,_ampsDeviceA,_numOfBlocks*sizeof(float),cudaMemcpyDeviceToHost,_streamA);
@@ -369,6 +376,30 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   _gpuQueryTime += double(endTime-beginTime);
   //std::cout << "Queues filled\n";
 
+}
+
+void SyncerCUDA::_invokeKernelDouble(int threadsPerBlock)
+{
+  arrangeShootingAmoebaBinary<<<_numOfBlocks, threadsPerBlock, 0, _streamA>>>(_nodesDeviceA,
+                                                                              _ampsDeviceA);
+
+  arrangeShootingAmoebaBinary<<<_numOfBlocks, threadsPerBlock, 0, _streamB>>>(_nodesDeviceB,
+                                                                              _ampsDeviceB);
+
+  arrangeShootingAmoebaBinary<<<_numOfBlocks, threadsPerBlock, 0, _streamC>>>(_nodesDeviceC,
+                                                                              _ampsDeviceC);
+}
+
+void SyncerCUDA::_invokeKernelTriple(int threadsPerBlock)
+{
+  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamA>>>(_nodesDeviceA,
+                                                                        _ampsDeviceA);
+
+  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamB>>>(_nodesDeviceB,
+                                                                        _ampsDeviceB);
+
+  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamC>>>(_nodesDeviceC,
+                                                                        _ampsDeviceC);
 }
 
 
