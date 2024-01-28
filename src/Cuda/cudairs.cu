@@ -323,7 +323,6 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
     allocateHost(numOfNodesExtended);
   }
 
-
   // creating the streams
   cudaStreamCreateWithFlags(&_streamA,cudaStreamNonBlocking);
   cudaStreamCreateWithFlags(&_streamB,cudaStreamNonBlocking);

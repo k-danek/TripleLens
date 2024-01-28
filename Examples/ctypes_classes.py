@@ -214,6 +214,15 @@ class LC_cuda(object):
                                             ]
         self.lib_cuda.lccuda_new.restype = ctypes.c_void_p
 
+        self.lib_cuda.get_lc.argtypes = [ctypes.c_void_p,
+                                         ctypes.c_double,
+                                         ctypes.c_double,
+                                         ctypes.c_double,
+                                         ctypes.c_double
+                                        ] 
+        self.lib_cuda.get_lc.restypes = ctypes.c_void_p
+
+
         self.lib_cuda.get_lc_cuda.argtypes = [ctypes.c_void_p,
                                               ctypes.c_double,
                                               ctypes.c_double,

@@ -9,6 +9,7 @@ from numpy.ctypeslib import ndpointer
 import matplotlib.pyplot as plt
 from ctypes_classes import CCC
 from ctypes_classes import LC_irs
+from ctypes_classes import LC_cuda
 
 # Create a structure for complex numbers
 class Complex(ctypes.Structure):
@@ -89,6 +90,7 @@ lc_irs_array_double   = np.zeros(lc_steps, np.double)
 lc_point_array_triple = np.zeros(lc_steps, np.double)
 lc_irs_array_triple   = np.zeros(lc_steps, np.double)
 
+# Change to LC_cuda if full CUDA testing is needed
 lc_irs_triple = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
 lc_irs_double = LC_irs(a,b,theta, m2, 0.0, source_size, lc_steps, points_per_radius)
 
@@ -115,7 +117,7 @@ time_double_point = time.time()-start_time
 print("Copied LC")
 
 # Plotting
-fig, (ax2, ax2, ax3) = plt.subplots(1, 3)
+fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
 
 ax1.set_title("Source Trajectory")
 
@@ -138,10 +140,9 @@ ax3.set_title("Ratio Curve")
 
 ax3.plot((lc_irs_array_triple-lc_point_array_triple)/lc_point_array_triple, color='cyan', label='point')
 ax3.plot((lc_irs_array_double-lc_point_array_double)/lc_point_array_double, color='green', label='point')
-#ax3.set_ylim([1.0, 1.5])
 fig.savefig("LightCurveBinary.png", dpi=300)
 
-print("Time to initialise and light curve for triple lens with point source (s): ", time_triple_point)
-print("Time to initialise and light curve for triple lens with extended source (s): ", time_triple_irs)
-print("Time to initialise and light curve for double lens with point source (s): ", time_double_point)
-print("Time to initialise and light curve for double lens with extended source (s): ", time_double_irs)
+print("Time to get light curve for triple lens with point source (s): ", time_triple_point)
+print("Time to get light curve for triple lens with extended source (s): ", time_triple_irs)
+print("Time to get light curve for double lens with point source (s): ", time_double_point)
+print("Time to get light curve for double lens with extended source (s): ", time_double_irs)
