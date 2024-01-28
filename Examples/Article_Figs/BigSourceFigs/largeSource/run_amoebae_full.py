@@ -89,7 +89,7 @@ pos_fin_y = 0.25
 
 # number of steps
 lc_steps = 200
-source_size = 1e-2
+source_size = 3e-2
 points_per_radius = 20
 
 #lc_irs_array   = np.zeros(lc_steps, np.double)
