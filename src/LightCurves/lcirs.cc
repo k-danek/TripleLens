@@ -24,6 +24,16 @@ LightCurveIRS::LightCurveIRS(
   _getCaBoxes();
   _getImgPlanePars();
   _limbDarkeningModel = LimbDarkeningModel();
+
+  // Choose if to use triple lens or binary IRS 
+  if(m3 == 0.0)
+  {
+    _irs = &LightCurveIRS::irsBinary;
+  }
+  else
+  {
+    _irs = &LightCurveIRS::irsSIMD;
+  };
 };
 
 void LightCurveIRS::_getCaBoxes()
@@ -250,6 +260,14 @@ double LightCurveIRS::irs(double imgX,
                           double imgY,
                           complex<double> sourcePos)
 {
+  return (this->*_irs)(imgX, imgY, sourcePos);
+};
+
+// Unoptimized triple-lens inverse-ray shot
+double LightCurveIRS::irsBase(double imgX,
+                              double imgY,
+                              complex<double> sourcePos)
+{
    // Computationally heavy part, optimise as much as possible!
    complex<double> img(imgX,imgY);  
    complex<double> testSourcePos=img-m1/conj(img-z1)-m2/conj(img-z2)-m3/conj(img-z3);
@@ -322,6 +340,18 @@ double LightCurveIRS::irsSIMD(double imgX,
   return (tempR[0]+tempR[1])*(tempR[0]+tempR[1])+(tempI[0]+tempI[1])*(tempI[0]+tempI[1]);
 }
 
+// Check whether source position is hit 
+// In context of the point source, that source radius is just an error term.
+double LightCurveIRS::irsBinary(double imgX,
+                                double imgY,
+                                complex<double> sourcePos)
+{
+   // Computationally heavy part, optimise as much as possible!
+   complex<double> img(imgX,imgY);  
+   complex<double> testSourcePos=img-m1/conj(img-z1)-m2/conj(img-z2);
+   return std::norm(testSourcePos-sourcePos);
+};
+
 double LightCurveIRS::nxToX(long int nx)
 {
   return _bottomLeftCornerImg.real()+_imgGridPointSize*double(nx);
@@ -367,7 +397,7 @@ void LightCurveIRS::lineFloodFill(long int nx,
     }
 
     // need to get the y only once as the fill stays withing a line
-    double y = nyToY(ny), rsq = irsSIMD(nxToX(nx), y, sPos); 
+    double y = nyToY(ny), rsq = irs(nxToX(nx), y, sPos); 
 
     if (!(rsq < _sourceRadiusSq))
     {
@@ -382,7 +412,7 @@ void LightCurveIRS::lineFloodFill(long int nx,
     // scan right
     for (nR = nx+1; nR < _imgPlaneSize; nR++)
     {
-      rsq = irsSIMD(nxToX(nR), y, sPos);
+      rsq = irs(nxToX(nR), y, sPos);
 
       if (!(rsq < _sourceRadiusSq))
       {
@@ -397,7 +427,7 @@ void LightCurveIRS::lineFloodFill(long int nx,
     // scan left
     for (nL = nx-1; nL > 0; nL--)
     {
-      rsq = irsSIMD(nxToX(nL), y, sPos);
+      rsq = irs(nxToX(nL), y, sPos);
       
       if (!(rsq < _sourceRadiusSq))
       {

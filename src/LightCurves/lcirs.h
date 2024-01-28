@@ -53,6 +53,11 @@ class LightCurveIRS: public LightCurveBase
                double imgY,
                complex<double> sPos
               );
+    
+    double irsBase(double imgX,
+                   double imgY,
+                   complex<double> sPos
+                  );
 
     double irsOptimized(double imgX,
                         double imgY,
@@ -64,6 +69,12 @@ class LightCurveIRS: public LightCurveBase
                    double imgY,
                    complex<double> sPos
                   );
+
+    // IRS optimized for Intel CPUs with AVX 256 bit registers 
+    double irsBinary(double imgX,
+                     double imgY,
+                     complex<double> sPos
+                    );
 
 
     // grid point to a position    
@@ -141,6 +152,10 @@ class LightCurveIRS: public LightCurveBase
     void _getImgPlanePars(); 
 
     LimbDarkeningModel _limbDarkeningModel;
+    
+    // Define function pointer to store pointer
+    typedef double (LightCurveIRS::*_irsEr)(double, double, complex<double>);
+    _irsEr _irs;
 };
 
 #endif                

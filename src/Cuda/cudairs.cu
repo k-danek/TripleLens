@@ -36,6 +36,14 @@ SyncerCUDA::SyncerCUDA(double                     a,
   setConstantPars();
   _linLimbDarkeningA = 0.6;
   _linLimbDarkeningB = 0.8;
+  if(m3 == 0.0)
+  {
+    _isBinary = true;
+    _invokeKernel = &SyncerCUDA::_invokeKernelDouble;
+  } else {
+    _isBinary = false;
+    _invokeKernel = &SyncerCUDA::_invokeKernelTriple;
+  }
 };
 
 SyncerCUDA::SyncerCUDA(double                     a,
@@ -60,6 +68,14 @@ SyncerCUDA::SyncerCUDA(double                     a,
   _numOfNodes = 0;
   _linLimbDarkeningA = limbDarkeningA;
   _linLimbDarkeningB = limbDarkeningB;
+  if(m3 == 0.0)
+  {
+    _isBinary = true;
+    _invokeKernel = &SyncerCUDA::_invokeKernelDouble;
+  } else {
+    _isBinary = false;
+    _invokeKernel = &SyncerCUDA::_invokeKernelTriple;
+  }
   allocateHost(_numberOfNodesBufferSize);
   allocateCuda();
   setConstantPars();
@@ -237,8 +253,6 @@ double SyncerCUDA::syncAndReturn(int lcStep)
   endTime = clock();
   _gpuFreeTime += double(endTime-beginTime);
   
-  //std::cout << "Everything destroyed\n";
-
   return totalAmpCUDA/cudaFloat(subgridSize*subgridSize);
 }
 
@@ -309,7 +323,6 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
     allocateHost(numOfNodesExtended);
   }
 
-
   // creating the streams
   cudaStreamCreateWithFlags(&_streamA,cudaStreamNonBlocking);
   cudaStreamCreateWithFlags(&_streamB,cudaStreamNonBlocking);
@@ -351,14 +364,7 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
     cudaMemsetAsync(_ampsDeviceC,0,sizeof(float)*_numOfBlocks,_streamC);
 
     // invoking the kernel
-    arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamA>>>(_nodesDeviceA,
-                                                                          _ampsDeviceA);
-
-    arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamB>>>(_nodesDeviceB,
-                                                                          _ampsDeviceB);
-
-    arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamC>>>(_nodesDeviceC,
-                                                                          _ampsDeviceC);
+    (this->*_invokeKernel)(threadsPerBlock);
 
     // copy device -> host
     cudaMemcpyAsync(_ampsHost+i               ,_ampsDeviceA,_numOfBlocks*sizeof(float),cudaMemcpyDeviceToHost,_streamA);
@@ -369,6 +375,30 @@ void SyncerCUDA::trigger(amoebae_t& amoeba,
   _gpuQueryTime += double(endTime-beginTime);
   //std::cout << "Queues filled\n";
 
+}
+
+void SyncerCUDA::_invokeKernelDouble(int threadsPerBlock)
+{
+  arrangeShootingAmoebaBinary<<<_numOfBlocks, threadsPerBlock, 0, _streamA>>>(_nodesDeviceA,
+                                                                              _ampsDeviceA);
+
+  arrangeShootingAmoebaBinary<<<_numOfBlocks, threadsPerBlock, 0, _streamB>>>(_nodesDeviceB,
+                                                                              _ampsDeviceB);
+
+  arrangeShootingAmoebaBinary<<<_numOfBlocks, threadsPerBlock, 0, _streamC>>>(_nodesDeviceC,
+                                                                              _ampsDeviceC);
+}
+
+void SyncerCUDA::_invokeKernelTriple(int threadsPerBlock)
+{
+  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamA>>>(_nodesDeviceA,
+                                                                        _ampsDeviceA);
+
+  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamB>>>(_nodesDeviceB,
+                                                                        _ampsDeviceB);
+
+  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamC>>>(_nodesDeviceC,
+                                                                        _ampsDeviceC);
 }
 
 
@@ -638,7 +668,6 @@ void arrangeShootingAmoeba(Node*     nodes,
 
   for(long int gridX = gridXl; gridX <= gridXr; gridX++)
   {
-
     thrust::complex<double> imgPos = thrust::complex<double>(
       // origin + position of the pixel + position of subpixel
       xShift + __ll2double_rn(gridX)*params[7],
@@ -654,34 +683,73 @@ void arrangeShootingAmoeba(Node*     nodes,
   //atomicAdd(&amps[blockIdx.x], __double2float_rn(sourcePosParams[0]));
 };
 
+// Dobule lens version
+// TODO: Remove code duplication without cost to performance
+__global__
+void arrangeShootingAmoebaBinary(Node*     nodes,
+                                 float*    amps)
+{
+  const thrust::complex<cudaFloat> z2 = thrust::complex<cudaFloat>(params[8],params[9]);
+  const thrust::complex<cudaFloat> z3 = thrust::complex<cudaFloat>(params[10],params[11]);
+
+  // use blockIdx.x as a node index
+  Node locNode = nodes[blockIdx.x];
+  const long int gridY  = locNode.y;
+  const long int gridXl = locNode.xL;
+  const long int gridXr = locNode.xR; 
+
+  // actual index of a thread
+  //int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
+
+  // Make sure these are already shifted to the bottom left corner of a pixel! 
+  //
+  //threadIdx.x % subgridSize; that is subgrid x
+  //threadIdx.x / subgridSize; that is subgrid y
+  double xShift = params[13] + __int2double_rn(threadIdx.x % sgSize[0])*params[12];
+  double yShift = params[14] + __ll2double_rn(gridY)*params[7] + __int2double_rn(threadIdx.x / sgSize[0])*params[12];
+
+  thrust::complex<cudaFloat> sourcePos = thrust::complex<cudaFloat>(sourcePosParams[0], sourcePosParams[1]);
+
+  double tempAmp = 0.0;
+
+  for(long int gridX = gridXl; gridX <= gridXr; gridX++)
+  {
+    thrust::complex<double> imgPos = thrust::complex<double>(
+      // origin + position of the pixel + position of subpixel
+      xShift + __ll2double_rn(gridX)*params[7],
+      yShift
+    );
+
+    tempAmp += irsBinary(z2, imgPos, sourcePos);
+  }
+
+  atomicAdd(&amps[blockIdx.x], __double2float_rn(tempAmp));
+};
+
+
 __device__
 cudaFloat irs(const thrust::complex<cudaFloat>& z2,
               const thrust::complex<cudaFloat>& z3,
               const thrust::complex<cudaFloat>& img,
               const thrust::complex<cudaFloat>& sourcePos)
 {
-
-    //thrust::complex<cudaFloat> impact = img-params[3]/conj(img)
-    //                                -params[4]/conj(img-z2)
-    //                                -params[5]/conj(img-z3);
-
-    //cudaFloat r = thrust::abs(impact-sourcePos)/params[6];
-
-    //cudaFloat step = cudaFloat(r<=1.0);
-    //return (params[15]+params[16]*sqrt(1-r*r*step))*step;
-
-    //thrust::complex<cudaFloat> rC = img-sourcePos-params[3]/conj(img)
-    //                                -params[4]/conj(img-z2)
-    //                                -params[5]/conj(img-z3);
-
-    //cudaFloat rSq = (rC.real()*rC.real()+rC.imag()*rC.imag())/params[17];
-
-    //cudaFloat step = cudaFloat(rSq<=1.0);
-    //return (params[15]+params[16]*sqrt(1-rSq*step))*step;
-
     thrust::complex<cudaFloat> rC = img-sourcePos-params[3]/conj(img)
                                     -params[4]/conj(img-z2)
                                     -params[5]/conj(img-z3);
+
+    cudaFloat rSq = (rC.real()*rC.real()+rC.imag()*rC.imag());
+
+    cudaFloat step = cudaFloat(rSq<=params[17]);
+    return (params[15]+params[16]*sqrt(params[17]-rSq*step))*step;
+};
+
+__device__
+cudaFloat irsBinary(const thrust::complex<cudaFloat>& z,
+                    const thrust::complex<cudaFloat>& img,
+                    const thrust::complex<cudaFloat>& sourcePos)
+{
+    thrust::complex<cudaFloat> rC = img-sourcePos-params[3]/conj(img)
+                                    -params[4]/conj(img-z);
 
     cudaFloat rSq = (rC.real()*rC.real()+rC.imag()*rC.imag());
 
@@ -712,8 +780,6 @@ double irsCPU(const double*                  params,
         return 0.0;
     }
 };
-
-
 
 void arrangeShootingCPU(std::vector<Node>     nodes,
                         double*               amps,

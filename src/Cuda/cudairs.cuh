@@ -149,18 +149,46 @@ class SyncerCUDA
     double               _gpuSyncTime = 0.0; 
     double               _gpuQueryTime = 0.0; 
     double               _gpuFreeTime = 0.0; 
-    double               _gpuConstMemTime = 0.0; 
+    double               _gpuConstMemTime = 0.0;
+
+    bool _isBinary = false;
+
+  //  // invoking the kernel
+  //  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamA>>>(_nodesDeviceA,
+  //                                                                        _ampsDeviceA);
+
+  //  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamB>>>(_nodesDeviceB,
+  //                                                                        _ampsDeviceB);
+
+  //  arrangeShootingAmoeba<<<_numOfBlocks, threadsPerBlock, 0, _streamC>>>(_nodesDeviceC,
+  //                                                                        _ampsDeviceC);
+
+    // Define function pointer to store pointer
+    typedef void (SyncerCUDA::*_invKernel)(int threadsPerBlock);
+    _invKernel _invokeKernel;
+    
+    void _invokeKernelDouble(int threadsPerBlock);
+    void _invokeKernelTriple(int threadsPerBlock);
 };
 
 __global__
 void arrangeShootingAmoeba(Node*     nodes,
                            float*    amps);
 
+__global__
+void arrangeShootingAmoebaBinary(Node*     nodes,
+                                 float*    amps);
+
 __device__
 cudaFloat irs(const thrust::complex<cudaFloat>& z2,
               const thrust::complex<cudaFloat>& z3,
               const thrust::complex<cudaFloat>& img,
               const thrust::complex<cudaFloat>& sourcePos);
+
+__device__
+cudaFloat irsBinary(const thrust::complex<cudaFloat>& z,
+                    const thrust::complex<cudaFloat>& img,
+                    const thrust::complex<cudaFloat>& sourcePos);
 
 float irsCPU(const float*                  params,
              const thrust::complex<float>& z2,

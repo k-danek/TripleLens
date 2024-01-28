@@ -49,16 +49,30 @@ class LightCurveCUDA: public LightCurveIRS
 
     std::vector<complex<double>> getSeeds(complex<double> pos);
 
+    // All inverse-ray-shooting functions bool whether ray hit the source
     bool irsCheck(double imgX,
                   double imgY,
                   complex<double> sPos
                  );
+
+    // Basic check without optimization
+    bool irsCheckBase(double imgX,
+                      double imgY,
+                      complex<double> sPos
+                     );
 
     // IRS optimized for Intel CPUs with AVX 256 bit registers 
     bool irsCheckSIMD(double imgX,
                       double imgY,
                       complex<double> sPos
                      );
+
+    // IRS optimized for Intel CPUs with AVX 256 bit registers 
+    bool irsCheckBinary(double imgX,
+                        double imgY,
+                        complex<double> sPos
+                       );
+
 
     void lineFloodFillCUDA(long int        nx,
                            long int        ny,
@@ -85,7 +99,10 @@ class LightCurveCUDA: public LightCurveIRS
     double _gpuTrigger = 0.0;
     double _gpuSync = 0.0;
     double _gpuInit = 0.0;
-    
+
+    // Define function pointer to store pointer
+    typedef bool (LightCurveCUDA::*_irsChecker)(double, double, complex<double>);
+    _irsChecker _irsCheck;
 };
 
 #endif                
