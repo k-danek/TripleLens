@@ -79,7 +79,7 @@ b = 1.22
 theta = 1.047197551
 m2 = 0.1
 m3 = 0.0
-length = 500
+ccc_length = 2000
 
 # imgs
 pos_ini_x = -0.04
@@ -89,7 +89,7 @@ pos_fin_y = 0.25
 
 # number of steps
 lc_steps = 200
-source_size = 1e-2
+source_size = 3e-2
 points_per_radius = 20
 
 #lc_irs_array   = np.zeros(lc_steps, np.double)
@@ -118,20 +118,17 @@ lc_irs.set_amoeba_printout(amoeba_filename_buffer, param_filename_buffer)
 lc_irs.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
 #lc_irs.copy_lc(lc_irs_array)
 
-length = 500
 # Initialise the CriticalCurveCaustic object.
-ccc = CCC(a,b,theta,m2,m3,length)
+ccc = CCC(a,b,theta,m2,m3,ccc_length)
 ccc.get_ca()
 
 # Print out Critical Curve & Caustics
 ccc.print_ccc(ctypes.c_char_p(("./test.dat").encode('utf-8')))
 
 # Copy the data-points from CCC object to numpy arrays
-cc_array = np.zeros(3000, np.cdouble)
-ca_array = np.zeros(3000, np.cdouble)
+cc_array = np.zeros(6*ccc_length, np.cdouble)
+ca_array = np.zeros(6*ccc_length, np.cdouble)
 ccc.copy_cc_ca(cc_array, ca_array)
-
-
 
 gc.collect()
 print("copied lc")
@@ -169,7 +166,7 @@ print("copied cc 2")
 
 
 #source_indices = [50, 78, 79, 185, 190, 191,192,193, 194, 195, 199]
-source_indices = [10,20,25,30,40,160,170, 174,175,176, 177, 185]
+source_indices = [164, 165]
 #source_indices = [100]
 
 for source_index in source_indices:

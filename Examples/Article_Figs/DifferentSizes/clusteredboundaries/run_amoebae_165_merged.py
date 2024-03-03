@@ -127,10 +127,10 @@ for ca in ca_array:
   ca_real.append(ca.real)
   ca_imag.append(ca.imag)
 
-par_manager_big = ParManager("Pars_big_164.dat")
-par_manager_small = ParManager("Pars_small_164.dat")
+par_manager_big = ParManager("Pars_Big.dat")
+par_manager_small = ParManager("Pars_Small.dat")
 
-source_index = 164
+source_index = 165
 
 clustered_boundaries_big = []
 clustered_boundaries_small = []
@@ -143,9 +143,9 @@ for cluster_index in range(0,6):
     # Adding spurious elements because of inferior knowledge of Python.
     clustered_boundaries_big.append([LineSegment(0,0,0)])
     clustered_boundaries_big[cluster_index].pop(0)
-    #print("file opened")
+    print("file opened")
     spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
-    #print("streamrider")
+    print("streamrider")
     for row in spamreader:
       clustered_boundaries_big[cluster_index].append(LineSegment(
                                                     float(row[0]),
@@ -153,31 +153,31 @@ for cluster_index in range(0,6):
                                                     float(row[2])))
     clustered_boundaries_big[cluster_index].pop(0)
 
-# clustered_boundaries_small_164_4
-for cluster_index in range(0,5):
+# clustered_boundaries_small_165_3
+for cluster_index in range(0,4):
   filename = "clustered_boundaries_small_"+str(source_index)+"_"+str(cluster_index)
   with open(filename, newline='') as csvfile:
     # Adding spurious elements because of inferior knowledge of Python.
     clustered_boundaries_small.append([LineSegment(0,0,0)])
     clustered_boundaries_small[cluster_index].pop(0)
-    #print("file opened")
+    print("file opened")
     spamreader = csv.reader(csvfile, delimiter=',', quotechar='|')
-    #print("streamrider")
+    print("streamrider")
     for row in spamreader:
       clustered_boundaries_small[cluster_index].append(LineSegment(
-                                                       float(row[0]),
-                                                       float(row[1]),
-                                                       float(row[2])))
+                                                    float(row[0]),
+                                                    float(row[1]),
+                                                    float(row[2])))
     clustered_boundaries_small[cluster_index].pop(0)
 
 
 print("Clustered boundaries:"+str(len(clustered_boundaries_small)))
 
-filename = "clustered_boundaries_"+str(source_index)+"_merged"
+filename = "clustered_boundaries_small_"+str(source_index)+"_merged"
 
 # Plotting
 #subplot_list = [(2,1),(3,1),(0,2),(1,2),(2,2),(3,2),(0,3),(1,3),(2,3),(3,3)]
-#subplot_list = [(1,2),(0,3),(1,3)]
+subplot_list = [(1,2),(0,3),(1,3)]
 axis_list = []
 #color_list = ["blue", "green", "red", "cyan", "magenta", "yellow", '#0080ff', '#aa0511', '#0f0f0f', '#123456'] 
 color_list = ["blue","blue", "blue","blue","blue","blue","blue","blue"] 
@@ -185,16 +185,15 @@ plt.rcParams.update({'font.size': 8, 'font.family': 'font.arial', 'svg.fonttype'
 
 #https://stackoverflow.com/questions/14600948/matplotlib-plot-outputs-text-as-paths-and-cannot-be-converted-to-latex-by-inks
 plt.rcParams['svg.fonttype'] = 'none'
-plt.rcParams['figure.figsize'] = [10, 5]
+plt.rcParams['figure.figsize'] = [12, 5]
 
 
-fig = plt.figure(figsize=(12, 5))
+fig = plt.figure()
 dx = 2/72.; dy = 2/72.
 scale_trans = fig.dpi_scale_trans
 x_tic_offset = matplotlib.transforms.ScaledTranslation(0, dy, scale_trans)
 y_tic_offset = matplotlib.transforms.ScaledTranslation(dx, 0, scale_trans)
-ax1 = plt.subplot2grid((2, 2), (0, 0), rowspan=2) 
-#ax1 = fig.add_subplot(221)
+ax1 = plt.subplot(121)
 ax1.set_aspect('equal')
 ax1.scatter(ca_real, ca_imag, color='red', s=0.01)
 ax1.scatter(cc_real, cc_imag, color='blue', s=0.01)
@@ -206,25 +205,24 @@ for cb_index in range(0, len(clustered_boundaries_big)):
   for segment in clustered_boundaries_big[cb_index]:
     ax1.plot([segment.nL,segment.nR],[segment.nY,segment.nY], color="grey")
 for cb_index in range(0, len(clustered_boundaries_small)):
-  for segment in clustered_boundaries_small[cb_index]:
-    ax1.plot([segment.nL,segment.nR],[segment.nY,segment.nY], color="grey")
+  for segment in clustered_boundaries_big[cb_index]:
+    ax1.plot([segment.nL,segment.nR],[segment.nY,segment.nY], color="green")
 for tick in ax1.xaxis.get_majorticklabels():
   tick.set_transform(tick.get_transform() + x_tic_offset)
 for tick in ax1.yaxis.get_majorticklabels():
   tick.set_transform(tick.get_transform() + y_tic_offset)
 
 # plotting detail of the source
-ax2 = plt.subplot2grid((2, 2), (0, 1))   
-#ax2 = fig.add_subplot(222)
+ax2 = plt.subplot2grid((2,4), (0,2))
 dx = 2/72.; dy = 2/72. 
 x_tic_offset = matplotlib.transforms.ScaledTranslation(0, dy, scale_trans)
 y_tic_offset = matplotlib.transforms.ScaledTranslation(dx, 0, scale_trans)
-source_circle_big = plt.Circle((source_pos[source_index][0], source_pos[source_index][1]), source_size_big, color='grey')
-ax2.add_patch(source_circle_big)
+#source_circle_big = plt.Circle((source_pos[source_index][0], source_pos[source_index][1]), source_size_big, color='grey')
+#ax2.add_patch(source_circle_big)
 source_circle_small = plt.Circle((source_pos[source_index][0], source_pos[source_index][1]), source_size_small, color='green')
 ax2.add_patch(source_circle_small)
-ax2.scatter(ca_real, ca_imag, color='red', s=0.02, zorder=2)
-source_detail_halfsize = source_size_big * 3
+ax2.scatter(ca_real, ca_imag, color='red', s=0.02)
+source_detail_halfsize = source_size * 3
 ax2.set_aspect('equal')
 ax2.set_xlim([source_pos[source_index][0]-source_detail_halfsize, source_pos[source_index][0]+source_detail_halfsize])
 ax2.set_ylim([source_pos[source_index][1]-source_detail_halfsize, source_pos[source_index][1]+source_detail_halfsize]) 
@@ -233,35 +231,26 @@ for tick in ax2.xaxis.get_majorticklabels():
 for tick in ax2.yaxis.get_majorticklabels():
   tick.set_transform(tick.get_transform() + y_tic_offset)
 
-## Combination of images
-#axis_list.append(plt.subplot2grid((3, 2), (1, 1)))
+##axis_list.append(plt.subplot(subplot_list[i]))
+for i in range(0,1):
+  axis_list.append(plt.subplot2grid((2,4), subplot_list[i]))
 
-#ax3 = fig.add_subplot(212)
-ax3 = plt.subplot2grid((2, 2), (1, 1))
+  for tick in axis_list[i].xaxis.get_majorticklabels():
+    tick.set_verticalalignment("top")
+  bounding_box = Get_bounding_box_segments(clustered_boundaries_big[i], 1.15)
+  for segment in clustered_boundaries_big[i]:
+    axis_list[i].plot([segment.nL,segment.nR],[segment.nY,segment.nY], color='grey')
+  for segment in clustered_boundaries_small[i]:
+    axis_list[i].plot([segment.nL,segment.nR],[segment.nY,segment.nY], color='green')
 
-for tick in ax3.xaxis.get_majorticklabels():
-  tick.set_verticalalignment("top")
-bounding_box = Get_bounding_box_segments(clustered_boundaries_big[0], 1.15)
-for segment in clustered_boundaries_big[0]:
-  ax3.plot([segment.nL,segment.nR],[segment.nY,segment.nY], color='grey')
-for segment in clustered_boundaries_small[0]:
-  ax3.plot([segment.nL,segment.nR],[segment.nY,segment.nY], color='green')
-for segment in clustered_boundaries_small[1]:
-  ax3.plot([segment.nL,segment.nR],[segment.nY,segment.nY], color='green')
-
-
-ax3.scatter(cc_real, cc_imag, color='blue', s=0.02)
-ax3.set_aspect('equal')
-ax3.set_xlim([bounding_box[0], bounding_box[1]])
-ax3.set_ylim([bounding_box[2], bounding_box[3]])
-for tick in ax3.xaxis.get_majorticklabels():
-  tick.set_transform(tick.get_transform() + x_tic_offset)
-for tick in ax3.yaxis.get_majorticklabels():
-  tick.set_transform(tick.get_transform() + y_tic_offset)
-
-plt.tight_layout()
-
-#plt.subplots_adjust(wspace=0.0, hspace=0.3)
+  axis_list[i].scatter(cc_real, cc_imag, color='blue', s=0.02)
+  axis_list[i].set_aspect('equal')
+  axis_list[i].set_xlim([bounding_box[0], bounding_box[1]])
+  axis_list[i].set_ylim([bounding_box[2], bounding_box[3]])
+  for tick in axis_list[i].xaxis.get_majorticklabels():
+    tick.set_transform(tick.get_transform() + x_tic_offset)
+  for tick in axis_list[i].yaxis.get_majorticklabels():
+    tick.set_transform(tick.get_transform() + y_tic_offset)
 
 plt.savefig(filename+".pdf", dpi=600)
 plt.clf()
