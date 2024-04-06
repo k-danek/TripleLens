@@ -71,8 +71,10 @@ private:
 
 // Solver with initial estimate on start of the iteration
 __device__
-void solveRootsCUDA(const thrust::complex<double>*       roots,
-                    const thrust::complex<double>* const coeffs); 
+bool solveRootsCUDA(thrust::complex<double>*             roots,
+                    const thrust::complex<double>* const coeffs,
+                    const size_t                         polOrder,
+                    const size_t                         maxIt);
 
 // A simple root polisher - can in principle merge two roots into one
 __device__
@@ -81,8 +83,12 @@ void polishRootsCUDA(const thrust::complex<double>*       roots,
 
 // The main routine setting x to a root of a polynomial
 __device__
-bool laguerre(const thrust::complex<double>&       root,
-              const thrust::complex<double>* const coeffs);
+bool laguerreCUDA(thrust::complex<double>&             x,
+                  const thrust::complex<double>* const coeffs,
+                  const size_t                         size,
+                  const size_t                         maxIt)
+
+
 
 
 #endif

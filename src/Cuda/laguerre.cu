@@ -87,3 +87,68 @@ bool laguerre(thrust::complex<double>&             x,
 
 
 
+__device__
+bool solveRootsCUDA(thrust::complex<double>*             roots,
+                    const thrust::complex<double>* const coeffs,
+                    const size_t                         polOrder,
+                    const size_t                         maxIt)
+{
+  size_t coeffSize = polOrder+1;
+  
+  // indicates whether all the laguerre call have succeeded
+  bool success = true;
+  
+  thrust::complex<double> x, b, c;
+  thrust::complex<double> tempPoly[coeffSize];
+  for(uint32_t i=0; i <= coeffSize; i++)
+  {
+    tempPoly[i] = coeffs[i];
+  } 
+  
+  //thrust::complex<double> roots[11];
+  //int size = _polyCoeffs.size();
+
+  for (int j = polOrder; j >= 1; j--)
+  {
+    x = thrust::complex<double>(1.0e-8,1.0e-8);
+    
+    success = success && laguerre(x, tempPoly, polOrder, maxIt);
+    roots[polOrder-j] = x; 
+
+    b = tempPoly[j];
+
+    // Deflating the polynomial by removing the root.
+    for (int jj = j-1; jj >= 0; jj--)
+    {
+      c = tempPoly[jj];
+      tempPoly[jj] = b;
+      b = x*b + c;
+    }
+    
+    // Zero-ing the highest order coefficiend from the polynomial.
+    tempPoly[j] = thrust::complex<double>(0.0, 0.0);
+
+  }
+
+  // Polishing omitted as it is done with different function
+
+  return success;
+}
+
+__device__
+void polishRootsCUDA(thrust::complex<double>*            roots,
+                     const thrust::complex<double>* const coeffs,
+                     const size_t                         polOrder,
+                     const size_t                         maxIt)
+{
+  bool success = true; 
+  thrust::complex<double> tempRoot;
+
+  for (uint32_t i = 0; i < polOrder; i++)
+  {
+    tempRoot = roots[i];
+    success = laguerre(tempRoot, coeffs, polOrder, maxIt);
+    roots[i] = tempRoot*double(success)+roots[i]*double(!success); 
+  };
+}
+
