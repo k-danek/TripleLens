@@ -1,6 +1,5 @@
 #include <thrust/complex.h>
 
-#include "cudaimg.cuh"
 #include "cudaimg.cu"
 
 // In order to improve readability of the .cc files the calculation of the coeffs is stored in a separate file.

@@ -44,8 +44,8 @@ cpu: libimgpoint.so libccc.so liblcirs.so ccc_cpu
 profile: libimgpoint.so libccc.so liblcirs.so ccc_cuda_profile
 
 # Executables
-ccc_cuda: maincuda.o libccc.so libimgpoint.so liblcirs.so laguerre.o limbdarkeningmodel.o cudalink.o cudalc.o
-	$(CC) $(CFLAGS) $(CFLAGS_CUDA) -o $(BUILD_TARGET)/ccc_cuda $(BUILD_TARGET)/maincuda.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/limbdarkeningmodel.o $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
+ccc_cuda: maincuda.o libccc.so libimgpoint.so liblcirs.so laguerre.o limbdarkeningmodel.o cudalink.o cudalc.o cudaimg.o cudalaguerre.o
+	$(CC) $(CFLAGS) $(CFLAGS_CUDA) -o $(BUILD_TARGET)/ccc_cuda $(BUILD_TARGET)/maincuda.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/limbdarkeningmodel.o $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o $(BUILD_TARGET)/cudaimg.o $(BUILD_TARGET)/cudalaguerre.o -lcudadevrt -lcudart
 
 ccc_cuda_profile: maincuda.o libimgpoint.so liblcirs.so laguerre.o cudalink.o cudalc.o
 	$(CC) $(CFLAGS) $(CPROFFLAGS) $(CFLAGS_CUDA) -o $(BUILD_TARGET)/ccc_profile $(BUILD_TARGET)/maincuda.o $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/limbdarkeningmodel.o $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
@@ -58,7 +58,7 @@ ccc_cpu: main.o libimgpoint.so liblcirs.so laguerre.o
 
 # Shared libraries
 liblccuda.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o laguerre.o cudalink.o cudalc.o limbdarkeningmodel.o
-	$(CC) $(CFLAGS_SHARED) $(CFLAGS) $(CFLAGS_CUDA) -o $(BUILD_TARGET)/liblccuda.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/limbdarkeningmodel.o  $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
+	$(CC) $(CFLAGS_SHARED) $(CFLAGS) $(CFLAGS_CUDA) -o $(BUILD_TARGET)/liblccuda.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/limbdarkeningmodel.o  $(BUILD_TARGET)/cudalc.o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o $(BUILD_TARGET)/cudaimg.o $(BUILD_TARGET)/cudalaguerre.o -lcudadevrt -lcudart
 
 liblcirs.so: amoeba.o lens.o ccc.o imgpoint.o lcbase.o lcirs.o laguerre.o limbdarkeningmodel.o
 	$(CC) $(CFLAGS_SHARED) $(CFLAGS) -o $(BUILD_TARGET)/liblcirs.so $(BUILD_TARGET)/amoeba.o $(BUILD_TARGET)/lens.o $(BUILD_TARGET)/ccc.o $(BUILD_TARGET)/imgpoint.o $(BUILD_TARGET)/lcbase.o $(BUILD_TARGET)/lcirs.o $(BUILD_TARGET)/laguerre.o $(BUILD_TARGET)/limbdarkeningmodel.o
@@ -88,8 +88,14 @@ amoeba.o: $(INC_UTILS)/amoeba.h
 limbdarkeningmodel.o: $(INC_LIMBDARKENING)/limbdarkeningmodel.h
 	$(CC) -c $(INCLUDES) $(CFLAGS) -o $(BUILD_TARGET)/limbdarkeningmodel.o $(INC_LIMBDARKENING)/limbdarkeningmodel.cc 
 
-cudalink.o: cudairs.o
-	$(NVCC) $(CUDAFLAGS) -dlink --compiler-options '-fPIC' -o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o -lcudadevrt -lcudart
+cudalink.o: cudairs.o cudaimg.o cudalaguerre.o
+	$(NVCC) $(CUDAFLAGS) -dlink --compiler-options '-fPIC' -o $(BUILD_TARGET)/cudalink.o $(BUILD_TARGET)/cudairs.o  $(BUILD_TARGET)/cudaimg.o $(BUILD_TARGET)/cudalaguerre.o -lcudadevrt -lcudart
+
+cudaimg.o: $(INC_CUDA)/cudaimg.cuh cudalaguerre.o
+	$(NVCC) -c $(CUDAFLAGS) -dc -o $(BUILD_TARGET)/cudaimg.o $(INC_CUDA)/cudaimg.cu
+
+cudalaguerre.o: $(INC_CUDA)/laguerre.cuh
+	$(NVCC) -c $(CUDAFLAGS) -dc -o $(BUILD_TARGET)/cudalaguerre.o $(INC_CUDA)/laguerre.cu
 
 cudairs.o: $(INC_CUDA)/cudairs.cuh
 	$(NVCC) -c $(CUDAFLAGS) -dc -o $(BUILD_TARGET)/cudairs.o $(INC_CUDA)/cudairs.cu

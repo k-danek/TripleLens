@@ -9,24 +9,32 @@
 
 #include "laguerre.cuh"
 
+const int MAX_POL_ORDER = 10; // Example maximum polynomial order
+
 LaguerreCUDA::LaguerreCUDA(const std::vector<complex<double>>& coeffs) :
   _size(coeffs.size())
 {
   // Check if vector size exceeds maximum size
-  if (_size > MAX_SIZE) {
+  if (_size > MAX_COEFF_SIZE) {
       throw std::runtime_error("Vector size exceeds maximum size");
   }
   
   // Initialize data array using elements of vec
-  std::copy(coeffs.begin(), coeffs.end(), _polyCoeffs);
+  //std::copy(coeffs.begin(), coeffs.end(), _polyCoeffs);
+
+  // Copy and convert each element
+  for (size_t i = 0; i < coeffs.size(); ++i) {
+      _polyCoeffs[i] = thrust::complex<double>(coeffs[i].real(), coeffs[i].imag());
+  }
+
 }
 
 
 __device__
-bool laguerre(thrust::complex<double>&             x,
-              const thrust::complex<double>* const coeffs,
-              const size_t                         size,
-              const size_t                         maxIt)
+bool laguerreCUDA(thrust::complex<double>&             x,
+                  const thrust::complex<double>* const coeffs,
+                  const size_t                         size,
+                  const size_t                         maxIt)
 {
   const int m = size-1;
   const double md = static_cast<double>(m); // having double version for complex library
@@ -68,7 +76,7 @@ bool laguerre(thrust::complex<double>&             x,
     else
     {
       // In the rare case that denominator would be zero
-      dx = (1.+thrust::abs(x))*complex<double>(cos(1.*i), sin(1.*i));
+      dx = (1.0+thrust::abs(x))*thrust::complex<double>(cos(1.0*i), sin(1.0*i));
     }
 
     x1 = x - dx;
@@ -93,13 +101,15 @@ bool solveRootsCUDA(thrust::complex<double>*             roots,
                     const size_t                         polOrder,
                     const size_t                         maxIt)
 {
-  size_t coeffSize = polOrder+1;
+  const size_t coeffSize(polOrder+1);
   
   // indicates whether all the laguerre call have succeeded
   bool success = true;
   
   thrust::complex<double> x, b, c;
-  thrust::complex<double> tempPoly[coeffSize];
+  
+  // BEWARE: missing check coeffSize <= MAX_POL_ORDER
+  thrust::complex<double> tempPoly[MAX_POL_ORDER+1];
   for(uint32_t i=0; i <= coeffSize; i++)
   {
     tempPoly[i] = coeffs[i];
@@ -112,7 +122,7 @@ bool solveRootsCUDA(thrust::complex<double>*             roots,
   {
     x = thrust::complex<double>(1.0e-8,1.0e-8);
     
-    success = success && laguerre(x, tempPoly, polOrder, maxIt);
+    success = success && laguerreCUDA(x, tempPoly, polOrder, maxIt);
     roots[polOrder-j] = x; 
 
     b = tempPoly[j];
@@ -147,7 +157,7 @@ void polishRootsCUDA(thrust::complex<double>*            roots,
   for (uint32_t i = 0; i < polOrder; i++)
   {
     tempRoot = roots[i];
-    success = laguerre(tempRoot, coeffs, polOrder, maxIt);
+    success = laguerreCUDA(tempRoot, coeffs, polOrder, maxIt);
     roots[i] = tempRoot*double(success)+roots[i]*double(!success); 
   };
 }

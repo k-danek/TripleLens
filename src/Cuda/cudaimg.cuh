@@ -11,7 +11,7 @@
 #include <thrust/complex.h>
 #include <thrust/device_reference.h>
 
-#include "lens.h"
+//#include "lens.h"
 #include "laguerre.cuh"
 
 #ifndef GRIDLINE
@@ -21,16 +21,17 @@
 */
 struct GridLine
 {
+  // Actual first point on the trajectory
   thrust::complex<double> start;
+  // Actual end on the rajectory
   thrust::complex<double> end;
-  unsigned int steps;
+  //unsigned int steps; // commenting out as steps need to be _threadsPerBlock
 };
 #endif
 
 
 #ifndef POINTIMAGE_CUH
 #define POINTIMAGE_CUH
-
 class ImgPointCUDA
 {
   public:
@@ -53,10 +54,9 @@ class ImgPointCUDA
 
     void freeAll();
 
-    double syncAndReturn(int lcStep);
+    void trigger(std::vector<GridLine> trajectories);
 
-    void trigger(double      sourcePosX,
-                 double      sourcePosY);
+    std::vector<std::vector<double>> syncAndReturn();
 
     // Image position caulculation
     void getRoots(bool forceNewRoots,
@@ -65,22 +65,26 @@ class ImgPointCUDA
     // update and return images in one functional call
     void getRootsPrecalculated(bool forceNewRoots);
 
-    void allocateHost(int size);
+    void allocateHost();
     void allocateCuda();
     void setConstantPars();
 
   private:
-    const int _numOfBlocks = 128;
+    // correspond to number to trajectories to run in one call
+    const int _numOfBlocks = 16;
+
+    // correspond to number of steps per trajectory 
+    const int _threadsPerBlock = 128;
 
     double *_tempParams;
-    double *_ampsHost, *_ampsDeviceA, *_ampsDeviceB, *_ampsDeviceC;
+    float  *_ampsHost, *_ampsDeviceA, *_ampsDeviceB, *_ampsDeviceC;
     GridLine *_trajectoryHost, *_trajectoryDeviceA, *_trajectoryDeviceB, *_trajectoryDeviceC;
     double _a, _b, _th, _m2, _m3, _sourceSize;
     void _setConstantPar();
     void _invokeKernelDouble(double* amps, std::vector<GridLine> trajectories); 
-    void _invokeKernelTriple(double* amps, std::vector<GridLine> trajectories);
+    void _invokeKernelTriple();
 };
-
+#endif
 
 __global__
 void getAmps(double* amps, GridLine* trajectories);
@@ -93,6 +97,3 @@ void getCoeffs(thrust::complex<double>* coeffs, thrust::complex<double> zeta);
 
 __device__
 void getCoeffsBinOpt(thrust::complex<double>* coeffs, thrust::complex<double> zeta);
-
-
-#endif

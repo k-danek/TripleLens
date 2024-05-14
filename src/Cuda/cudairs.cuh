@@ -55,6 +55,8 @@ typedef std::unordered_map<long int, std::list<XRange>> amoebae_t;
 // This is to be able between single and double precision
 typedef float cudaFloat;
 
+#ifndef IRSSYNCER
+#define IRSSYNCER
 class SyncerCUDA
 {
   public:
@@ -170,6 +172,7 @@ class SyncerCUDA
     void _invokeKernelDouble(int threadsPerBlock);
     void _invokeKernelTriple(int threadsPerBlock);
 };
+#endif
 
 __global__
 void arrangeShootingAmoeba(Node*     nodes,

@@ -48,8 +48,9 @@ class LaguerreCUDA
 public:
   LaguerreCUDA(const std::vector<complex<double>>& coeffs);//Class constructor
 
-  static constexpr size_t MAX_SIZE = 11; // Maximum number of coeffitients
-  thrust::complex<double> data[MAX_SIZE];
+  static constexpr size_t MAX_POL_ORDER = 10; // Maximum number of coeffitients
+  static constexpr size_t MAX_COEFF_SIZE = MAX_POL_ORDER + 1; // Maximum number of coeffitients
+  thrust::complex<double> data[MAX_COEFF_SIZE];
 
   //// Checks each root individually by substituing it into original polynomial
   //bool checkRootsOneByOne(const vector<complex<double>>& roots);
@@ -66,7 +67,7 @@ public:
 
 private:
   size_t _size;
-  const thrust::complex<double>* _polyCoeffs;// Polynomial coefficients
+  thrust::complex<double> _polyCoeffs[MAX_COEFF_SIZE];// Polynomial coefficients
 };
 
 // Solver with initial estimate on start of the iteration
@@ -86,9 +87,6 @@ __device__
 bool laguerreCUDA(thrust::complex<double>&             x,
                   const thrust::complex<double>* const coeffs,
                   const size_t                         size,
-                  const size_t                         maxIt)
-
-
-
+                  const size_t                         maxIt);
 
 #endif
