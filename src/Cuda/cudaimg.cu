@@ -32,6 +32,41 @@ ImgPointCUDA::ImgPointCUDA(double a,
 };    
 
 
+std::vector<GridLine> ImgPointCUDA::getPolarTrajectories(
+                      std::vector<double> impactParameters,
+                      std::vector<double> angles)
+{
+  // for the treajectory x = cos(alpha)*t-q*sin(alpha)
+  //                     y = sin(alpha)*t+q*sin(alpha)
+  //  t goes from -1 to 1 to cover 2 Einstein Radii. That is about to get changed 
+  
+  int trajectoryCounter = 0;
+  std::vector<GridLine> outputTrajectories;
+  const double iniTime = -1.0;
+  const double finTime =  1.0;
+  
+  for(auto q: impactParameters)
+  {
+    for(auto alpha: angles)
+    {
+      complex<double> ini(cos(alpha)*iniTime-q*sin(alpha), sin(alpha)*iniTime+q*cos(alpha));
+      complex<double> fin(cos(alpha)*finTime-q*sin(alpha), sin(alpha)*finTime+q*cos(alpha));
+      GridLine trajectory = {ini, fin};
+      outputTrajectories.push_back(trajectory);
+      trajectoryCounter++;
+      if(trajectoryCounter == _numOfBlocks)
+      {
+        break;
+      }
+    }
+  }
+
+  return outputTrajectories;
+}
+
+
+
+
 void ImgPointCUDA::_setConstantPar()
 {
   double _tempParams[8];
@@ -59,7 +94,7 @@ void ImgPointCUDA::allocateCuda()
   cudaMalloc((void**)&_trajectoryDeviceA, _numOfBlocks*sizeof(GridLine));
 
   // Allocatin device buffers
-  cudaMalloc((void**)&_ampsDeviceA, _numOfBlocks*sizeof(double));
+  cudaMalloc((void**)&_ampsDeviceA, sizeof(float)*_numOfBlocks*_threadsPerBlock);
   //endTime = clock();
   //_gpuMallocTime += double(endTime-beginTime);
 };
@@ -77,7 +112,7 @@ void ImgPointCUDA::allocateHost()
   // Allocating pinned memory for output amplifications
   // Always check whether these need to be initialized correctly. 
   cudaHostAlloc((void**)&_ampsHost,
-                sizeof(double)*_numOfBlocks*_threadsPerBlock,
+                sizeof(float)*_numOfBlocks*_threadsPerBlock,
                 cudaHostAllocDefault);
 
   _tempParams = (double*)malloc(sizeof(double)*8);
@@ -128,7 +163,7 @@ void trajectoriesToAmps(GridLine* gridLine,
   const thrust::complex<double> stop = locLine.end;
   
   // Steps now serve as threads-per-block as block index is per one trajectory.
-  const double stepRatio = __int2double_rn(threadIdx.x/(blockDim.x- 1));
+  const double stepRatio = __int2double_rn(threadIdx.x)/__int2double_rn(blockDim.x- 1);
   // actual index of a thread
   //int threadIndex = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -151,12 +186,16 @@ void trajectoriesToAmps(GridLine* gridLine,
   // In the first stage stop after coeff generation
   for(unsigned int i = 0; i <= 10; i++)
   {
-    tempAmps = tempAmps + coeffs[i].real()*coeffs[i].real()+coeffs[i].imag()*coeffs[i].imag(); 
+    tempAmps += coeffs[i].real()*coeffs[i].real()+coeffs[i].imag()*coeffs[i].imag(); 
   }
 
   // For sm_30 there is no atomicAdd that would accept doubles.
   // Change this if you evet lay your hands on sm_60.
-  atomicAdd(&amps[blockIdx.x], __double2float_rn(tempAmps));
+  //atomicAdd(&amps[blockIdx.x], __double2float_rn(tempAmps));
+  atomicAdd(&amps[blockIdx.x * blockDim.x + threadIdx.x], __double2float_rn(tempAmps));
+  //atomicAdd(&amps[blockIdx.x * blockDim.x + threadIdx.x], __double2float_rn(coeffs[0].real()));
+  //atomicAdd(&amps[blockIdx.x * blockDim.x + threadIdx.x], 1.0*threadIdx.x);
+  //atomicAdd(&amps[blockIdx.x * blockDim.x + threadIdx.x], sourcePos.real());
 };
 
 
@@ -168,20 +207,37 @@ void ImgPointCUDA::_invokeKernelTriple()
                                                               _ampsDeviceA);
 };
 
-std::vector<std::vector<double>> ImgPointCUDA::syncAndReturn()
+std::vector<std::vector<float>> ImgPointCUDA::syncAndReturn()
 {
-  std::vector<std::vector<double>> amps(_numOfBlocks, std::vector<double>(_threadsPerBlock, 0.0));
+  std::cout << "syncAndReturn visited \n";
+  std::vector<std::vector<float>> amps(_numOfBlocks, std::vector<float>(_threadsPerBlock, 0.0));
 
-    // Transfer the data from the 1D array to the 2D vector
+  std::cout << "syncAndReturn sizes; amps: " 
+            << amps.size() << ", each amp: "
+            << amps[0].size() << ", _ampHost: "
+            << sizeof(_ampsHost)/sizeof(float) << "\n"
+            << "some ampHost values:" << " " << _ampsHost[0] << " " << _ampsHost[100] << "\n";
+
+  // Transfer the data from the 1D array to the 2D vector
   for (int i = 0; i < _numOfBlocks; ++i)
   {
-        std::move(_ampsHost+i*_threadsPerBlock, _ampsHost+(i+1)*_threadsPerBlock, amps[i].begin());
+    std::copy(_ampsHost+i*_threadsPerBlock, _ampsHost+(i+1)*_threadsPerBlock, amps[i].begin());
   }
 
+  freeAll();
+
+  std::cout << "syncAndReturn all moved \n";
   return amps;
 }
 
 void ImgPointCUDA::trigger(std::vector<GridLine> trajectories)
+{
+  _storedTrajectories = trajectories;
+  trigger();
+  return;
+}
+
+void ImgPointCUDA::trigger()
 {
   // I might easily run out of available blocks per grid.
   // Supposed size of the number of blocks is 65535.
@@ -210,29 +266,28 @@ void ImgPointCUDA::trigger(std::vector<GridLine> trajectories)
   allocateCuda();
   allocateHost();
 
-
-  if(trajectories.size() != _numOfBlocks)
+  if(_storedTrajectories.size() != _numOfBlocks)
   {
-    std::cout << "ERROR:: wrong size of trajectories vector; _numOfBlocks" << _numOfBlocks
-              << " ; trajectories.size() " << trajectories.size();
+    std::cout << "ERROR:: wrong size of trajectories vector; _numOfBlocks " << _numOfBlocks
+              << " ; trajectories.size() " << _storedTrajectories.size() << "\n";
   }
 
-  // move the vector to pinned host array 
-  std::move(trajectories.begin(), trajectories.end(), _trajectoryHost);
+  // copy the vector to pinned host array 
+  std::copy(_storedTrajectories.begin(), _storedTrajectories.end(), _trajectoryHost);
 
   // copy from host to device
   cudaMemcpy(_trajectoryDeviceA,_trajectoryHost, sizeof(GridLine)*_numOfBlocks,cudaMemcpyHostToDevice);
 
   // initialize outputs
-  cudaMemset(_ampsDeviceA,0,sizeof(float)*_numOfBlocks);
+  cudaMemset(_ampsDeviceA,0,sizeof(float)*_numOfBlocks*_threadsPerBlock);
 
   // invoke kernel
   _invokeKernelTriple();
 
   // copy from device to host
-  cudaMemcpy(_ampsHost,_ampsDeviceA, sizeof(GridLine)*_numOfBlocks,cudaMemcpyDeviceToHost);
+  cudaMemcpy(_ampsHost,_ampsDeviceA, sizeof(float)*_numOfBlocks*_threadsPerBlock,cudaMemcpyDeviceToHost);
 
-  freeAll();
+  //freeAll();
 
 };
 

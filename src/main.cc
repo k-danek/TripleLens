@@ -17,6 +17,7 @@
 
 #if CUDA
 #include <cudalc.h>
+#include <cudaimg.cuh>
 #else
 #include <lcirs.h>
 #endif
@@ -142,45 +143,79 @@ int main()
   int lcLength = 100;
   int pointsPerRadius = 50;
 
-  // Extended source IRS
+  // irs on cuda test
   #if CUDA
-  LightCurveCUDA lcCUDA(a,b,th,m2,m3, 0.0001, lcLength, pointsPerRadius);
+  ImgPointCUDA imgCUDA(a,b,th,m2,m3, 0.0001);
+  cout << "Initialized\n";
+  std::vector<double> impactParams = {1.0e-1, 0.2};
+  std::vector<double> alphas =  {0.0,
+                                 0.3926990817,
+                                 0.7853981634,
+                                 1.178097245,
+                                 1.570796327,
+                                 1.963495408,
+                                 2.35619449,
+                                 2.748893572,
+                                 3.141592654};
+  
+  imgCUDA.trigger(imgCUDA.getPolarTrajectories(impactParams,alphas));
+  cout << "triggered\n";
 
-  clock_t beginCUDA = clock();  
-  for(unsigned int i = 0; i < numberOfAngles; i++)
+  std::vector<std::vector<float>> lightCurves = imgCUDA.syncAndReturn();
+  cout << "sync and returned\n";
+
+  cout << "Printing amplifications:\n";
+  for(auto lightCurve: lightCurves)
   {
-    cout << "running with step " << i << "\n";
-    angle = (double)i/2.0/float(numberOfAngles)*3.14159;
-    endPoint = {1.0001*cos(angle), 0.9999*sin(angle)};  
-    startPoint = {-0.9999*cos(angle), -1.0001*sin(angle)}; 
-    lcCUDA.getLCCUDA(startPoint, endPoint);
+    cout << "\n";
+    for(auto amp: lightCurve)
+    {
+      cout << double(amp) << ", ";
+    }
   }
-  clock_t endCUDA = clock();
 
-  cout << "Img plane size was: " << lcCUDA.amoebae.amoebae.size() << "\n";  
-  cout << numberOfAngles*lcLength << " positions CUDA-IRS lightcurve:" 
-       << double(endCUDA - beginCUDA) / CLOCKS_PER_SEC 
-       << "s\n\n";
-  #else  
-  LightCurveIRS  lcIRS(a,b,th,m2,m3, 0.001, lcLength, pointsPerRadius);
-
-  begin = clock();  
-  for(unsigned int i = 0; i < numberOfAngles; i++)
-  {
-    cout << "running with step " << i << "\n";
-    angle = (double)i/2.0/float(numberOfAngles)*3.14159;
-    endPoint = {1.0001*cos(angle), 0.9999*sin(angle)};  
-    startPoint = {-0.9999*cos(angle), -1.0001*sin(angle)}; 
-    lcIRS.getLCIRS(startPoint, endPoint);
-    lightCurve = lcIRS.lcVec; 
-  }
-  end = clock();
-
-  cout << "Img plane size was: " << lcIRS.amoebae.amoebae.size() << "\n";  
-  cout << numberOfAngles*lcLength << " positions IRS lightcurve:" 
-       << double(end - begin) / CLOCKS_PER_SEC 
-       << "s\n\n";
   #endif
+  //
+
+ // // Extended source IRS
+ // #if CUDA
+ // LightCurveCUDA lcCUDA(a,b,th,m2,m3, 0.0001, lcLength, pointsPerRadius);
+
+ // clock_t beginCUDA = clock();  
+ // for(unsigned int i = 0; i < numberOfAngles; i++)
+ // {
+ //   cout << "running with step " << i << "\n";
+ //   angle = (double)i/2.0/float(numberOfAngles)*3.14159;
+ //   endPoint = {1.0001*cos(angle), 0.9999*sin(angle)};  
+ //   startPoint = {-0.9999*cos(angle), -1.0001*sin(angle)}; 
+ //   lcCUDA.getLCCUDA(startPoint, endPoint);
+ // }
+ // clock_t endCUDA = clock();
+
+ // cout << "Img plane size was: " << lcCUDA.amoebae.amoebae.size() << "\n";  
+ // cout << numberOfAngles*lcLength << " positions CUDA-IRS lightcurve:" 
+ //      << double(endCUDA - beginCUDA) / CLOCKS_PER_SEC 
+ //      << "s\n\n";
+ // #else  
+ // LightCurveIRS  lcIRS(a,b,th,m2,m3, 0.001, lcLength, pointsPerRadius);
+
+ // begin = clock();  
+ // for(unsigned int i = 0; i < numberOfAngles; i++)
+ // {
+ //   cout << "running with step " << i << "\n";
+ //   angle = (double)i/2.0/float(numberOfAngles)*3.14159;
+ //   endPoint = {1.0001*cos(angle), 0.9999*sin(angle)};  
+ //   startPoint = {-0.9999*cos(angle), -1.0001*sin(angle)}; 
+ //   lcIRS.getLCIRS(startPoint, endPoint);
+ //   lightCurve = lcIRS.lcVec; 
+ // }
+ // end = clock();
+
+ // cout << "Img plane size was: " << lcIRS.amoebae.amoebae.size() << "\n";  
+ // cout << numberOfAngles*lcLength << " positions IRS lightcurve:" 
+ //      << double(end - begin) / CLOCKS_PER_SEC 
+ //      << "s\n\n";
+ // #endif
 
 //  // Laguerre Test
 //  

@@ -55,8 +55,11 @@ class ImgPointCUDA
     void freeAll();
 
     void trigger(std::vector<GridLine> trajectories);
+    
+    // Version that uses locally stored trajectories
+    void trigger();
 
-    std::vector<std::vector<double>> syncAndReturn();
+    std::vector<std::vector<float>> syncAndReturn();
 
     // Image position caulculation
     void getRoots(bool forceNewRoots,
@@ -69,6 +72,9 @@ class ImgPointCUDA
     void allocateCuda();
     void setConstantPars();
 
+    std::vector<GridLine> getPolarTrajectories(std::vector<double> impactParameters,
+                                               std::vector<double> angles);
+
   private:
     // correspond to number to trajectories to run in one call
     const int _numOfBlocks = 16;
@@ -79,6 +85,7 @@ class ImgPointCUDA
     double *_tempParams;
     float  *_ampsHost, *_ampsDeviceA, *_ampsDeviceB, *_ampsDeviceC;
     GridLine *_trajectoryHost, *_trajectoryDeviceA, *_trajectoryDeviceB, *_trajectoryDeviceC;
+    std::vector<GridLine> _storedTrajectories;
     double _a, _b, _th, _m2, _m3, _sourceSize;
     void _setConstantPar();
     void _invokeKernelDouble(double* amps, std::vector<GridLine> trajectories); 
