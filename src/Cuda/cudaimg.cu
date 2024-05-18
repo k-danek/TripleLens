@@ -78,7 +78,7 @@ void ImgPointCUDA::_setConstantPar()
   _tempParams[4] = double(0.0);          // z2y
   _tempParams[5] = double(_b*cos(_th));  // z3x
   _tempParams[6] = double(_b*sin(_th));  // z3y
-  _tempParams[7] = double(_sourceSize); // sourceSize
+  _tempParams[7] = double(_sourceSize*_sourceSize); // sourceSize squared
 
   cudaMemcpyToSymbol(paramsImg, _tempParams, sizeof(double)*8);
 }
@@ -174,11 +174,21 @@ void trajectoriesToAmps(GridLine* gridLine,
   //double xShift = paramsImg[13] + __int2double_rn(threadIdx.x % sgSize[0])*paramsImg[12];
   //double yShift = paramsImg[14] + __ll2double_rn(gridY)*paramsImg[7] + __int2double_rn(threadIdx.x / sgSize[0])*paramsImg[12];
   
-  thrust::complex<double> sourcePos = start*(1.0-stepRatio)+stop*stepRatio;
+  const thrust::complex<double> sourcePos = start*(1.0-stepRatio)+stop*stepRatio;
 
   thrust::complex<double> coeffs[11];
 
   getCoeffs(coeffs, sourcePos);
+
+  thrust::complex<double> roots[10];
+
+  // roots, coeffs, order, max iterations
+  solveRootsCUDA(roots, coeffs, 10, 30);
+
+  double imgAmps[10];
+
+  // amps, roots
+  rootsToAmps(imgAmps, roots, sourcePos, z2, z3);
 
   double tempAmps = 0.0;
 
@@ -186,7 +196,7 @@ void trajectoriesToAmps(GridLine* gridLine,
   // In the first stage stop after coeff generation
   for(unsigned int i = 0; i <= 10; i++)
   {
-    tempAmps += coeffs[i].real()*coeffs[i].real()+coeffs[i].imag()*coeffs[i].imag(); 
+    tempAmps += imgAmps[i]; 
   }
 
   // For sm_30 there is no atomicAdd that would accept doubles.
@@ -291,8 +301,31 @@ void ImgPointCUDA::trigger()
 
 };
 
+__device__
+void rootsToAmps(double* amps, 
+                 thrust::complex<double>* roots,
+                 const thrust::complex<double> &sourcePos,
+                 const thrust::complex<double> &z2,
+                 const thrust::complex<double> &z3)
+{
+  for(unsigned int i = 0; i < 10; i++)
+  {
+    thrust::complex<double> testSourcePos = conj(roots[i])
+                                            -conj(sourcePos)
+                                            -paramsImg[3]/(roots[i])
+                                            -paramsImg[4]/(roots[i]-z2)
+                                            -paramsImg[5]/(roots[i]-z3);
+  
+    double detJac = thrust::norm(paramsImg[3]/(roots[i])/(roots[i]) +
+                                 paramsImg[4]/(roots[i]-z2)/(roots[i]-z2)+ 
+                                 paramsImg[5]/(roots[i]-z3)/(roots[i]-z3));
 
+    amps[i] = double(thrust::norm(testSourcePos) < paramsImg[7])/sqrt(detJac); 
+    //amps[i] = 1.0/sqrt(detJac); 
+  }
 
+  return;
+}
 
 
 // In order to improve readability of the .cc files the calculation of the coeffs is stored in a separate file.
@@ -356,3 +389,5 @@ void getCoeffsBinOpt(thrust::complex<double>* coeffs, thrust::complex<double> ze
   coeffs[4] = a4;
   coeffs[5] = a5;
 }
+
+

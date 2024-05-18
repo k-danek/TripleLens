@@ -97,6 +97,13 @@ __global__
 void getAmps(double* amps, GridLine* trajectories);
 
 __device__
+void rootsToAmps(double* amps,
+                 thrust::complex<double>* roots,
+                 const thrust::complex<double> &sourcePos,
+                 const thrust::complex<double> &z2,
+                 const thrust::complex<double> &z3);
+
+__device__
 void getImageMask(thrust::complex<double>* coeffs);
 
 __device__
