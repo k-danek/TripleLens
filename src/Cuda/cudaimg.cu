@@ -183,7 +183,7 @@ void trajectoriesToAmps(GridLine* gridLine,
   thrust::complex<double> roots[10];
 
   // roots, coeffs, order, max iterations
-  solveRootsCUDA(roots, coeffs, 10, 30);
+  solveRootsCUDA(roots, coeffs, 10, 80);
 
   double imgAmps[10];
 
@@ -196,7 +196,7 @@ void trajectoriesToAmps(GridLine* gridLine,
   // In the first stage stop after coeff generation
   for(unsigned int i = 0; i <= 10; i++)
   {
-    tempAmps += imgAmps[i]; 
+    tempAmps += imgAmps[i]*double(imgAmps[i] > 0.0); 
   }
 
   // For sm_30 there is no atomicAdd that would accept doubles.
@@ -316,11 +316,11 @@ void rootsToAmps(double* amps,
                                             -paramsImg[4]/(roots[i]-z2)
                                             -paramsImg[5]/(roots[i]-z3);
   
-    double detJac = thrust::norm(paramsImg[3]/(roots[i])/(roots[i]) +
-                                 paramsImg[4]/(roots[i]-z2)/(roots[i]-z2)+ 
-                                 paramsImg[5]/(roots[i]-z3)/(roots[i]-z3));
+    double detJac = 1.0-thrust::norm(paramsImg[3]/(roots[i])/(roots[i]) +
+                                     paramsImg[4]/(roots[i]-z2)/(roots[i]-z2)+ 
+                                     paramsImg[5]/(roots[i]-z3)/(roots[i]-z3));
 
-    amps[i] = double(thrust::norm(testSourcePos) < paramsImg[7])/sqrt(detJac); 
+    amps[i] = double(thrust::norm(testSourcePos) < paramsImg[7])/(detJac); 
     //amps[i] = 1.0/sqrt(detJac); 
   }
 

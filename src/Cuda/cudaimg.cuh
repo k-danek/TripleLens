@@ -77,7 +77,7 @@ class ImgPointCUDA
 
   private:
     // correspond to number to trajectories to run in one call
-    const int _numOfBlocks = 16;
+    const int _numOfBlocks = 64;
 
     // correspond to number of steps per trajectory 
     const int _threadsPerBlock = 128;

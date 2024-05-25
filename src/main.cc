@@ -139,15 +139,15 @@ int main()
 //       << "s\n\n";
 
 
-  int numberOfAngles = 1;
-  int lcLength = 100;
-  int pointsPerRadius = 50;
 
-  // irs on cuda test
-  #if CUDA
-  ImgPointCUDA imgCUDA(a,b,th,m2,m3, 0.0001);
-  cout << "Initialized\n";
-  std::vector<double> impactParams = {1.0e-1, 0.2};
+/*
+****************************************************
+             Testing Laguerre on CUDA
+****************************************************
+*/
+
+
+  std::vector<double> impactParams = { 5.0e-2,1.0e-1, 2.0e-1, 3.0e-1, 4.0e-1, 5.0e-1, 0.1, 0.2};
   std::vector<double> alphas =  {0.0,
                                  0.3926990817,
                                  0.7853981634,
@@ -157,7 +157,16 @@ int main()
                                  2.35619449,
                                  2.748893572,
                                  3.141592654};
-  
+
+  double gpuPointAmpTime = 0.0;
+  double cpuPointAmpTime = 0.0;
+
+  // irs on cuda test
+  #if CUDA
+  begin = clock(); 
+  ImgPointCUDA imgCUDA(a,b,th,m2,m3, 0.0001);
+  cout << "Initialized\n";
+
   imgCUDA.trigger(imgCUDA.getPolarTrajectories(impactParams,alphas));
   cout << "triggered\n";
 
@@ -174,8 +183,56 @@ int main()
     }
   }
 
+  end = clock();
+  gpuPointAmpTime = double(end - begin) / CLOCKS_PER_SEC; 
   #endif
-  //
+
+  // CPU algorithm for comparison
+  begin = clock();  
+  LightCurveBase  lcBase(a,b,th,m2,m3, 128);
+  double iniTime = -1.0; 
+  double finTime = 1.0;
+
+  cout << "Printing CPU point amps \n";
+
+  for(auto q: impactParams)
+  {
+    for(auto alpha: alphas)
+    {
+      complex<double> ini(cos(alpha)*iniTime-q*sin(alpha), sin(alpha)*iniTime+q*cos(alpha));
+      complex<double> fin(cos(alpha)*finTime-q*sin(alpha), sin(alpha)*finTime+q*cos(alpha));
+
+      lcBase.getLC(ini, fin);
+      lightCurve = lcBase.lcVec; 
+      cout << "\n";
+      for(auto amp: lightCurve)
+      {
+        cout << double(amp) << ", ";
+      }
+    }
+  }
+
+
+  end = clock();
+  cpuPointAmpTime = double(end - begin) / CLOCKS_PER_SEC; 
+  
+  cout << "CPU-based point amps:" 
+       << cpuPointAmpTime
+       << "\n" 
+       << "GPU-based point amps:" 
+       << gpuPointAmpTime 
+       << "s\n\n";
+
+
+/*
+****************************************************
+             Extended source IRS
+****************************************************
+*/
+
+  //int numberOfAngles = 1;
+  //int lcLength = 100;
+  //int pointsPerRadius = 50;
 
  // // Extended source IRS
  // #if CUDA
