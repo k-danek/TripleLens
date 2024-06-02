@@ -19,22 +19,22 @@ def getTrajectory(q, alpha, iniTime, finTime, steps):
 
 # Define lens parameters.
 a = 1.0
-b = 5.0
+b = 1.0
 theta = 1.047197551
-m2 = 1.0e-2
-m3 = 1.0e-8
+m2 = 5.0e-2
+m3 = 1.0e-3
 
 # number of steps
-lc_steps = 128
-source_size = 8e-3
+lc_steps = 256
+source_size = 1e-5
 points_per_radius = 10
 
 ini_time = -1.0
 fin_time =  1.0
 
 
-qs = np.arange(0.01, 1, 0.3)
-alphas = np.arange(0, 2 * np.pi, np.pi / 8)
+qs = np.arange(0.1, 0.31, 0.2)
+alphas = np.arange(0, 6 * np.pi, np.pi / 4+0.01)
 data = []
 
 lc_irs = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
@@ -90,22 +90,43 @@ print("\nSorted distances (value, i, j):")
 for distance, i, j in all_distances:
     print(f"{distance:.4f} ({i},{j})")
 
-# Get the 9 pairs with the smallest distances
-top_9_pairs = all_distances[:9]
+## Get the 9 pairs with the smallest distances
+#top_9_pairs = all_distances[:9]
 
-# Plot the 9 pairs
-fig, axes = plt.subplots(3, 3, figsize=(15, 15))
+## Plot the 9 pairs
+#fig, axes = plt.subplots(3, 3, figsize=(15, 15))
+#
+#for k, (dist, i, j) in enumerate(top_9_pairs):
+#    ax = axes[k // 3, k % 3]
+#    ax.plot(data[i], label=f"Series {i}")
+#    ax.plot(data[j], label=f"Series {j}")
+#    ax.set_title(f"Pair {i}, {j} (Distance: {dist:.4f})")
+#    ax.legend()
+#
+#plt.tight_layout()
+#plt.savefig("top_9_pairs.png")
+#plt.show()
 
-for k, (dist, i, j) in enumerate(top_9_pairs):
-    ax = axes[k // 3, k % 3]
-    ax.plot(data[i], label=f"Series {i}")
-    ax.plot(data[j], label=f"Series {j}")
-    ax.set_title(f"Pair {i}, {j} (Distance: {dist:.4f})")
-    ax.legend()
+# Function to plot 9 pairs
+def plot_9_pairs(pairs, plot_num):
+    fig, axes = plt.subplots(3, 3, figsize=(15, 15))
+    for k, (dist, i, j) in enumerate(pairs):
+        ax = axes[k // 3, k % 3]
+        ax.plot(data[i], label=f"Series {i}")
+        ax.plot(data[j], label=f"Series {j}")
+        ax.set_title(f"Pair {i}, {j} (Distance: {dist:.4f})")
+        ax.legend()
+    plt.tight_layout()
+    plt.savefig(f"top_9_pairs_{plot_num}.png")
+    plt.close()
 
-plt.tight_layout()
-plt.savefig("top_9_pairs.png")
-plt.show()
+# Plot all pairs in chunks of 9
+num_pairs = len(all_distances)
+#for plot_num in range((num_pairs + 8) // 27):  # +8 to ensure we cover all pairs
+for plot_num in range((num_pairs + 8) // 9):  # +8 to ensure we cover all pairs
+    start_index = plot_num * 9
+    end_index = min(start_index + 9, num_pairs)
+    plot_9_pairs(all_distances[start_index:end_index], plot_num)
 
 #class Coor:
 #    def __init__(self, i, j):
