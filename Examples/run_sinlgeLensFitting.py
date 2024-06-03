@@ -5,8 +5,133 @@ import time
 import numpy as np
 from numpy.ctypeslib import ndpointer
 import matplotlib.pyplot as plt
+from scipy.signal import find_peaks
+from scipy.optimize import curve_fit
+import math
+
 from ctypes_classes import CCC
 from ctypes_classes import LC_irs
+
+## simplified metropolis algorithm
+#class MetropolisSingleLens:
+#    def __init__(self, obs, errs, model):
+#        self.obs = obs
+#        self.errs = errs
+#        self.model = model
+#        self.trial_model = copy.deepcopy(model)  # TODO: think of better way how to represent trial data!
+#        self.chi_sequence = []
+#        self.chi_trial_sequence = []
+#        self.chi_re_sequence = []
+#        self.q = model["q"].value
+#        self.time_ini = model["time_ini"].value
+#        self.time_fin = model["time_fin"].value
+#        self.lc_list = []
+#        self.chi_sq = 0.0
+#        self.q_sequence = []
+#        self.time_ini_sequence = []
+#        self.time_fin_sequence = []
+#
+#
+#    def get_chi_sq(self, ests):
+#        chi = 0.0
+#        for ob, err, est in zip(self.obs, self.errs, ests):
+#            chi += ((ob - est)/err)**2
+#        return chi
+#
+#    def get_trial(self, model_name, sigma):
+#        if model_name in self.trial_model:
+#            trial_sigma = sigma * abs(self.trial_model[model_name].max_value - self.trial_model[model_name].min_value)
+#            trial_value = self.model[model_name].value + np.random.normal(0.0, trial_sigma, None)
+#            if trial_value > self.trial_model[model_name].max_value or\
+#               trial_value < self.trial_model[model_name].min_value:
+#                return copy.copy(self.model[model_name].value)
+#            else:
+#                return trial_value
+#        else:
+#            print("WARNING: did not find variable: "+model_name)
+#
+#    def iterate(self, iters):
+#        sigma = 0.2
+#
+#        self.lc_list = np.zeros(len(self.obs), np.double)
+#        lc_list_trial = np.zeros(len(self.obs), np.double)
+#
+#        trajectory = get_trajectory(self.model["q"], 0.0, self.model["iniTime"], self.model["finTime"], self.model["steps"])
+#        self.lc_list = get_sigle_lens(trajectory)
+#
+#        self.chi_sq = self.get_chi_sq(self.lc_list)
+#        number_of_accepted = 0
+#
+#        # picks a list of keys that have varied parameters
+#        varied_params = [key for key in model if model[key].vary]
+#
+#        for ite in range(0, iters):
+#            for param_name in varied_params:
+#                self.trial_model[param_name].value = self.get_trial(param_name, sigma)
+#                # checking the type before inserting into ctypes functions
+#                if not isinstance(self.trial_model[param_name].value, float):
+#                    print("WARNING: wrong type for a model parameter: " + param_name + " is "
+#                          + str(type(self.trial_model[param_name].value)))
+#
+#
+#                trajectory = get_trajectory(self.model["q"], 0.0, self.model["iniTime"], self.model["finTime"], self.model["steps"])
+#                self.lc_list = get_sigle_lens(trajectory)
+#
+#                self.chi_sq = self.get_chi_sq(self.lc_list)
+#                number_of_accepted = 0
+#
+#
+#            lc_obj_trial = LC_irs(self.trial_model["a"].value,
+#                                  self.trial_model["b"].value,
+#                                  self.trial_model["theta"].value,
+#                                  self.trial_model["m2"].value,
+#                                  self.trial_model["m3"].value,
+#                                  source_size,
+#                                  len(self.obs),
+#                                  5)
+#
+#            lc_obj_trial.get_lc(self.trial_model["pos_ini_x"].value,
+#                                self.trial_model["pos_ini_y"].value,
+#                                self.trial_model["pos_fin_x"].value,
+#                                self.trial_model["pos_fin_y"].value)
+#
+#            lc_obj_trial.copy_lc(lc_list_trial)
+#            chi_sq_trial = self.get_chi_sq(lc_list_trial)
+#            if chi_sq_trial < self.chi_sq:
+#                # accept the jump
+#                for param_name in varied_params:
+#                    self.model[param_name].value = copy.copy(self.trial_model[param_name].value)
+#
+#                # ad-hoc of tuning of sigma
+#                sigma *= max(math.exp((chi_sq_trial-self.chi_sq)), 0.95)
+#                self.chi_sq = copy.copy(chi_sq_trial)
+#                self.chi_sequence.append(self.chi_sq)
+#                self.lc_list = copy.copy(lc_list_trial)
+#                number_of_accepted += 1
+#
+#            else:
+#                # conditionally accept the jump with probability equal to ratio
+#                # trial likelihood over current-step likelihood
+#                # for most of the use this never happens as differences in chi_sq tend to be huge
+#                if np.random.uniform() < math.exp(self.chi_sq-chi_sq_trial):
+#                    # accept the jump
+#                    for param_name in varied_params:
+#                        self.model[param_name].value = copy.copy(self.trial_model[param_name].value)
+#
+#                    self.chi_sq = copy.copy(chi_sq_trial)
+#                    self.lc_list = copy.copy(lc_list_trial)
+#                    self.chi_sequence.append(self.chi_sq)
+#                    number_of_accepted += 1
+#                    self.chi_re_sequence.append(self.get_chi_sq(self.lc_list))
+#                    self.chi_trial_sequence.append(self.get_chi_sq(lc_list_trial))
+#
+#        for param in varied_params:
+#            print("Varied params: " + param)
+#        for key in self.model:
+#            print(str(key)+"="+str(self.model[key].value))
+#
+#        print("final chi sq = "+str(self.chi_sq))
+#        print(self.chi_sequence)
 
 # Create a structure for complex numbers
 class Complex(ctypes.Structure):
@@ -14,10 +139,7 @@ class Complex(ctypes.Structure):
                ("imag", ctypes.c_double)
               ]
 
-def getSingleLens(impactParameter, steps, tE, tI):
-    
-    
-def getTrajectory(q, alpha, iniTime, finTime, steps):
+def get_trajectory(q, alpha, iniTime, finTime, steps):
   trajectory = []
 
   for i in range (0, steps):
@@ -27,139 +149,13 @@ def getTrajectory(q, alpha, iniTime, finTime, steps):
 
   return trajectory
 
-def getSingleAmp(complexPos):
+def get_single_amp(complex_pos, t_0, scale):
   # A(u) = (u^2+2)/u/sqrt(u^2+4)
   # Distance from the single lens (in the origin of coordinates)
-  u = complexPos.real()+complexPos.imag()
-  return (u^2+2.0)/u/sqrt(u^2+4.0)
+  u = complex_pos.real()*complex_pos.real()+complex_pos.imag()*complex_pos.imag() - t_0
+  return scale*(u^2+2.0)/u/sqrt(u^2+4.0)
 
 
-# simplified metropolis algorithm
-class MetropolisSingleLens:
-    def __init__(self, obs, errs, model):
-        self.obs = obs
-        self.errs = errs
-        self.model = model
-        self.trial_model = copy.deepcopy(model)  # TODO: think of better way how to represent trial data!
-        self.chi_sequence = []
-        self.chi_trial_sequence = []
-        self.chi_re_sequence = []
-        self.q = model["q"].value
-        self.time_ini = model["time_ini"].value
-        self.time_fin = model["time_fin"].value
-        self.lc_list = []
-        self.chi_sq = 0.0
-        self.q_sequence = []
-        self.time_ini_sequence = []
-        self.time_fin_sequence = []
-
-
-    def get_chi_sq(self, ests):
-        chi = 0.0
-        for ob, err, est in zip(self.obs, self.errs, ests):
-            chi += ((ob - est)/err)**2
-        return chi
-
-    def get_trial(self, model_name, sigma):
-        if model_name in self.trial_model:
-            trial_sigma = sigma * abs(self.trial_model[model_name].max_value - self.trial_model[model_name].min_value)
-            trial_value = self.model[model_name].value + np.random.normal(0.0, trial_sigma, None)
-            if trial_value > self.trial_model[model_name].max_value or\
-               trial_value < self.trial_model[model_name].min_value:
-                return copy.copy(self.model[model_name].value)
-            else:
-                return trial_value
-        else:
-            print("WARNING: did not find variable: "+model_name)
-
-    def iterate(self, iters):
-        sigma = 0.2
-
-        self.lc_list = np.zeros(len(self.obs), np.double)
-        lc_list_trial = np.zeros(len(self.obs), np.double)
-
-        trajectory = get_trajectory(self.model["q"], 0.0, self.model["iniTime"], self.model["finTime"], self.model["steps"])
-        self.lc_list = get_sigle_lens(trajectory)
-
-        self.chi_sq = self.get_chi_sq(self.lc_list)
-        number_of_accepted = 0
-
-        # picks a list of keys that have varied parameters
-        varied_params = [key for key in model if model[key].vary]
-
-        for ite in range(0, iters):
-            for param_name in varied_params:
-                self.trial_model[param_name].value = self.get_trial(param_name, sigma)
-                # checking the type before inserting into ctypes functions
-                if not isinstance(self.trial_model[param_name].value, float):
-                    print("WARNING: wrong type for a model parameter: " + param_name + " is "
-                          + str(type(self.trial_model[param_name].value)))
-
-
-                trajectory = get_trajectory(self.model["q"], 0.0, self.model["iniTime"], self.model["finTime"], self.model["steps"])
-                self.lc_list = get_sigle_lens(trajectory)
-
-                self.chi_sq = self.get_chi_sq(self.lc_list)
-                number_of_accepted = 0
-
-
-            lc_obj_trial = LC_irs(self.trial_model["a"].value,
-                                  self.trial_model["b"].value,
-                                  self.trial_model["theta"].value,
-                                  self.trial_model["m2"].value,
-                                  self.trial_model["m3"].value,
-                                  source_size,
-                                  len(self.obs),
-                                  5)
-
-            lc_obj_trial.get_lc(self.trial_model["pos_ini_x"].value,
-                                self.trial_model["pos_ini_y"].value,
-                                self.trial_model["pos_fin_x"].value,
-                                self.trial_model["pos_fin_y"].value)
-
-            lc_obj_trial.copy_lc(lc_list_trial)
-            chi_sq_trial = self.get_chi_sq(lc_list_trial)
-            if chi_sq_trial < self.chi_sq:
-                # accept the jump
-                for param_name in varied_params:
-                    self.model[param_name].value = copy.copy(self.trial_model[param_name].value)
-
-                # ad-hoc of tuning of sigma
-                sigma *= max(math.exp((chi_sq_trial-self.chi_sq)), 0.95)
-                self.chi_sq = copy.copy(chi_sq_trial)
-                self.chi_sequence.append(self.chi_sq)
-                self.lc_list = copy.copy(lc_list_trial)
-                number_of_accepted += 1
-
-            else:
-                # conditionally accept the jump with probability equal to ratio
-                # trial likelihood over current-step likelihood
-                # for most of the use this never happens as differences in chi_sq tend to be huge
-                if np.random.uniform() < math.exp(self.chi_sq-chi_sq_trial):
-                    # accept the jump
-                    for param_name in varied_params:
-                        self.model[param_name].value = copy.copy(self.trial_model[param_name].value)
-
-                    self.chi_sq = copy.copy(chi_sq_trial)
-                    self.lc_list = copy.copy(lc_list_trial)
-                    self.chi_sequence.append(self.chi_sq)
-                    number_of_accepted += 1
-                    self.chi_re_sequence.append(self.get_chi_sq(self.lc_list))
-                    self.chi_trial_sequence.append(self.get_chi_sq(lc_list_trial))
-
-        for param in varied_params:
-            print("Varied params: " + param)
-        for key in self.model:
-            print(str(key)+"="+str(self.model[key].value))
-
-        print("final chi sq = "+str(self.chi_sq))
-        print(self.chi_sequence)
-
-
-
-# trajectory params
-# complex<double> ini(cos(alpha)*iniTime-q*sin(alpha), sin(alpha)*iniTime+q*cos(alpha));
-# complex<double> fin(cos(alpha)*finTime-q*sin(alpha), sin(alpha)*finTime+q*cos(alpha));
 
 
 
@@ -167,8 +163,8 @@ class MetropolisSingleLens:
 a = 1.0
 b = 1.0
 theta = 1.047197551
-m2 = 1/3
-m3 = 1/3
+m2 = 1e-2
+m3 = 1e-5
 length = 500
 
 start_time = time.time()
@@ -213,27 +209,33 @@ print("Bounding box cc: ", cc_min, cc_max)
 print("Bounding box ca: ", ca_min, ca_max)
 
 
-
-# imgs
-pos_ini_x = 0.0
-pos_ini_y = -0.7
-pos_fin_x = 1.0
-pos_fin_y = 0.7
+def get_single_amp_real(time, t_0, q, amp_scale, time_scale):
+  # A(u) = (u^2+2)/u/sqrt(u^2+4)
+  # Distance from the single lens (in the origin of coordinates)
+  # Assumption is that the trajectory is a straight line with equal time steps
+  u_r = time_scale*(time-t_0)
+  u_sq = u_r * u_r + q*q
+  return amp_scale*(u_sq+2.0)/np.sqrt(u_sq*(u_sq+4.0))
 
 # number of steps
-lc_steps = 128
-source_size = 8e-3
-points_per_radius = 100
+lc_steps = 512
+source_size = 1e-4
+points_per_radius = 50
+
+q = 0.1
+alpha = np.pi / 10.0
+ini_time = -1.0
+fin_time = 1.0
+
+pos_ini_x = math.cos(alpha)*ini_time-q*math.sin(alpha)
+pos_ini_y = math.sin(alpha)*ini_time+q*math.cos(alpha)
+pos_fin_x = math.cos(alpha)*fin_time-q*math.sin(alpha)
+pos_fin_y = math.sin(alpha)*fin_time+q*math.cos(alpha)
 
 lc_point_array = np.zeros(lc_steps, np.double)
 lc_irs_array   = np.zeros(lc_steps, np.double)
 
 lc_irs = LC_irs(a,b,theta, m2, m3, source_size, lc_steps, points_per_radius)
-
-amoeba_filename_buffer = create_string_buffer(b"Amoeba_")
-param_filename_buffer = create_string_buffer(b"Pars.dat")
-
-lc_irs.set_amoeba_printout(amoeba_filename_buffer,param_filename_buffer)
 
 lc_irs.get_lc_irs(pos_ini_x,pos_ini_y,pos_fin_x,pos_fin_y)
 lc_irs.copy_lc(lc_irs_array)
@@ -243,25 +245,112 @@ lc_irs.copy_lc(lc_point_array)
 
 print("Copied LC")
 
+time_series = np.array(lc_irs_array)
+#time_series = lc_irs_array
+
+peaks, _ = find_peaks(time_series, width=(2, int(lc_steps/5)))
+
+# Compute derivatives for all time series
+time_series_derivative = np.gradient(time_series)
+
+
+
+print("Peaks found")
+
+# Create a copy of the time series with peaks removed
+time_series_no_peaks = np.copy(time_series)
+time_series_no_peaks[peaks] = np.nan  # Remove peaks
+
+# Mask the data to exclude the peaks
+mask = ~np.isnan(time_series_no_peaks)
+
+x_data = np.arange(len(time_series))
+
+print("Time series length:", len(time_series))
+
+# Initial guesses for the parameters (t_0, q, amp_scale, time_scale)
+initial_guesses = [lc_steps/2.0, q, 1, 1.0/float(lc_steps)]
+
+
+# Fit the smooth function to the data without peaks
+popt1, pcov1 = curve_fit(get_single_amp_real, x_data[mask], time_series_no_peaks[mask],p0=initial_guesses)
+
+# Generate the fitted smooth function
+fitted_smooth1 = get_single_amp_real(x_data, *popt1)
+
+# Calculate residuals and standard deviation
+residuals1 = time_series - fitted_smooth1
+std_devs = np.abs(residuals1)
+
+# Mask the 10% of points with the highest standard deviation
+threshold = np.percentile(std_devs, 90)
+mask_high_std = std_devs < threshold
+
+# Fit the model again using the masked data
+popt2, pcov2 = curve_fit(get_single_amp_real, x_data[mask & mask_high_std], time_series_no_peaks[mask & mask_high_std], p0=initial_guesses)
+
+# Generate the fitted smooth function for the second fit
+fitted_smooth2 = get_single_amp_real(x_data, *popt2)
+
+# Calculate residuals for the second fit
+residuals2 = time_series - fitted_smooth2
+
+# Extract fitted parameter values
+t_0_1, q_1, amp_scale_1, time_scale_1 = popt1
+t_0_2, q_2, amp_scale_2, time_scale_2 = popt2
+
+# Create labels for fitted values
+fit_label1 = f'Initial fit values:\nt_0={t_0_1:.2f}, q={q_1:.2f}, amp_scale={amp_scale_1:.2f}, time_scale_reversed={1.0/time_scale_1:.2f}'
+fit_label2 = f'Second fit values:\nt_0={t_0_2:.2f}, q={q_2:.2f}, amp_scale={amp_scale_2:.2f}, time_scale_reversed={1.0/time_scale_2:.2f}'
+
+
 # Plotting
-fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+fig, ax = plt.subplots(2, 1, figsize=(12, 8), gridspec_kw={'height_ratios': [3, 1]})
 
-ax1.set_title("Source Trajectory")
+# Main plot
+ax[0].plot(x_data, time_series, label='Original Time Series')
+ax[0].plot(x_data, fitted_smooth1, label='Initial Fitted Smooth Background')
+ax[0].plot(x_data, fitted_smooth2, label='Second Fitted Smooth Background')
+ax[0].scatter(x_data[peaks], time_series[peaks], color='red', label='Detected Peaks')
+ax[0].legend()
+ax[0].set_xlabel('Time')
+ax[0].set_ylabel('Value')
+ax[0].set_title(f'Time Series with Fitted Smooth Backgrounds\n{fit_label1}\n{fit_label2}')
 
-ax1.axis(xmin=cc_min.real, xmax=cc_max.real, ymin=cc_min.imag, ymax=cc_max.imag)
-ax1.scatter(ca_real, ca_imag, s = 0.1)
-ax1.scatter(lenses_real, lenses_imag, s=200.0, marker = 'o')
-ax1.plot([pos_ini_x,pos_fin_x],[pos_ini_y,pos_fin_y])
+# Residuals plot
+ax[1].plot(x_data, residuals2, label='Residuals (Second Fit)')
+ax[1].set_xlabel('Time')
+ax[1].set_ylabel('Residuals')
+ax[1].legend()
 
-ax2.set_title("Light Curve")
+# Save the plot as a PNG file
+plt.tight_layout()
+plt.savefig('time_series_analysis_with_residuals.png')
+plt.close()  # Close the plot to avoid displaying it
 
-ax2.plot(lc_point_array, color='cyan', label='point')
-ax2.plot(lc_irs_array, color='red', label='irs')
+print("Plot saved as 'time_series_analysis_with_residuals.png'")
+print(f"Initial fit parameters: t_0={t_0_1:.2f}, q={q_1:.2f}, amp_scale={amp_scale_1:.2f}, time_scale_reversed={1.0/time_scale_1:.2f}")
+print(f"Second fit parameters: t_0={t_0_2:.2f}, q={q_2:.2f}, amp_scale={amp_scale_2:.2f}, time_scale_reversed={1.0/time_scale_1:.2f}")
 
-ax3.set_title("Ratio Curve")
-
-ax3.plot(lc_irs_array/lc_point_array, color='cyan', label='point')
-#ax3.set_ylim([1.0, 1.5])
-fig.savefig("LightCurvePoint.png", dpi=300)
-
-print("Time to initialise and calculate the images (s): ",time.time()-start_time)
+## Plotting
+#fig, (ax1, ax2, ax3) = plt.subplots(1, 3)
+#
+#ax1.set_title("Source Trajectory")
+#
+#ax1.axis(xmin=cc_min.real, xmax=cc_max.real, ymin=cc_min.imag, ymax=cc_max.imag)
+#ax1.scatter(ca_real, ca_imag, s = 0.1)
+#ax1.scatter(lenses_real, lenses_imag, s=200.0, marker = 'o')
+#ax1.plot([pos_ini_x,pos_fin_x],[pos_ini_y,pos_fin_y])
+#
+#ax2.set_title("Light Curve")
+#
+#ax2.plot(lc_point_array, color='cyan', label='point')
+#ax2.plot(lc_irs_array, color='red', label='irs')
+#
+#ax3.set_title("Ratio Curve")
+#
+#ax3.plot(lc_irs_array/lc_point_array, color='cyan', label='point')
+##ax3.set_ylim([1.0, 1.5])
+#fig.savefig("LightCurvePoint.png", dpi=300)
+#
+#print("Time to initialise and calculate the images (s): ",time.time()-start_time)
