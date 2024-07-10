@@ -247,6 +247,40 @@ class LightCurveDTW:
         
         return grouped_windows
 
+    # Takes array of features and check if within this set, there are overlapping pairs. 
+    # For each pair, take just the better of the match. 
+    def clean_overlapping_features(self, matched_tuples, features):
+        #len_feature_1 = len(feature_1) 
+        #len_feature_2 = len(feature_2)
+        num_of_matches = len(matched_tuples)
+        drop_set = set()
+        set_of_interest = set()
+
+        # focus only on matched_tuples with     
+        for idx in range(0,num_of_matches):
+          if (matched_tuples[idx][2] in features):
+            set_of_interest.add(idx)
+
+        # get rid of overlapping features
+        for idx_1 in set_of_interest:
+          for idx_2 in set_of_interest:
+            if idx_1 < idx_2 and not ((idx_1 in drop_set) or (idx_2 in drop_set)):
+              match_1 = matched_tuples[idx_1]
+              match_2 = matched_tuples[idx_2]
+
+              # is overlapping; constant factor to allow minor overlaps
+              if abs(match_1[1]-match_2[1]) < 0.6*(len(self.short_signals[match_1[2]])+len(self.short_signals[match_2[2]])):
+                if match_1[0] < match_2[0]:
+                  drop_set.add(idx_1)
+                else:
+                  drop_set.add(idx_2)
+                  break    
+        
+        new_tuple = [element for index, element in enumerate(matched_tuples) if index not in drop_set]
+        matched_tuples = new_tuple
+        return new_tuple
+
+
     def run_for_params(self, q, alpha, ini_time, fin_time):
         time_series = self.analyzer.get_light_curve(q, alpha, ini_time, fin_time)
         initial_guesses = [self.lc_steps/2.0, q, 1.0/float(self.lc_steps)]
@@ -264,12 +298,33 @@ class LightCurveDTW:
             short_signal = self.short_signals[feature_name]
             window_size = len(short_signal)
             distances, positions, alignments = self.sliding_window_dtw(short_signal, residuals, window_size)
-            min_distances_indices = np.argsort(distances)[:4]  # Get top 4 matches for each feature
+            min_distances_indices = np.argsort(distances)[:6]  # Get top 4 matches for each feature
+            
+            drop_set = set()
+
+            # get rid of overlapping features
+            for idc1 in min_distances_indices:
+              for idc2 in min_distances_indices:
+                if idc1 < idc2 and not ((idc1 in drop_set) or (idc2 in drop_set)):
+                  # is overlapping
+                  if abs(positions[idc1]-positions[idc2]) < (2 * window_size):
+                    if distances[idc1] < distances[idc2]:
+                      drop_set.add(idc2)
+                    else:
+                      drop_set.add(idc1)
+                      break
+
             for idc in min_distances_indices:
+              if idc not in drop_set:  
                 best_matches.append((distances[idc], positions[idc], feature_name, self.colors[idx], alignments[idc]))
 
+        # In order not to introduce more features than there already is, I took the best distance from overlapping features
+        best_matches = self.clean_overlapping_features(best_matches, ["cusp_approach_a", "cusp_approach_b", "dip"] )
+        best_matches = self.clean_overlapping_features(best_matches, ["caustic_entry", "caustic_exit", "cusp_transversal", "double_crossing"] )
+
+
         # Sort all matches by distance
-        best_matches = sorted(best_matches)[:5]
+        best_matches = sorted(best_matches)[:8]
 
         # Calculate the number of rows needed for short signals
         n_short_signal_rows = len(self.feature_names)
@@ -318,7 +373,7 @@ class LightCurveDTW:
             max_val = max(aligned_signal[aligned_indices])
             rect = Rectangle((min_idx, min_val), max_idx - min_idx, max_val - min_val, linewidth=2, edgecolor=color, facecolor='none')
             ax2.add_patch(rect)
-            legend_patches.append(Patch(facecolor=color, edgecolor=color, label=f'{feature_name}; d: {dist:.3f}'))
+            legend_patches.append(Patch(facecolor=color, edgecolor=color, label=f'{feature_name}; d: {dist:.3f}; p: {pos:d}'))
 
         ax2.set_title('Residuals with Matches')
         ax2.legend()

@@ -10,7 +10,7 @@ from dtaidistance import dtw
 from sklearn.cluster import KMeans
 import math
 import sys
-from matplotlib.patches import Rectangle, Patch
+
 
 from ctypes_classes import CCC
 from ctypes_classes import LC_irs
@@ -35,7 +35,7 @@ points_per_radius = 30
 ini_time = -1.0
 fin_time = 1.0
 
-q_values = [ 0.1, 0.15, 0.2, 0.3]  # Example values for q
+q_values = [ 0.05, 0.1, 0.15, 0.2, 0.3]  # Example values for q
 #alpha_values = [np.pi / 8.0, np.pi / 5.0, np.pi / 2.0, 5.0 * np.pi / 8.0, 3.0 * np.pi / 4.0, 7.0 * np.pi / 8.0]  # Example values for alpha
 alpha_values =  np.arange(0, 2 * np.pi, np.pi / 8.0)  # Example values for alpha
 
