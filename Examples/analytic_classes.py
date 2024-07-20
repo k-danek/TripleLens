@@ -185,7 +185,7 @@ class LightCurveAnalyzer:
 
 
 class LightCurveDTW:
-    def __init__(self, a, b, theta, m2, m3, source_size, lc_steps, points_per_radius, feature_names):
+    def __init__(self, a, b, theta, m2, m3, source_size, lc_steps, points_per_radius, feature_names, ):
         self.analyzer = LightCurveAnalyzer(a, b, theta, m2, m3, source_size, lc_steps, points_per_radius)
         #self.a = a
         #self.b = b
@@ -269,8 +269,8 @@ class LightCurveDTW:
               match_2 = matched_tuples[idx_2]
 
               # is overlapping; constant factor to allow minor overlaps
-              if abs(match_1[1]-match_2[1]) < 0.6*(len(self.short_signals[match_1[2]])+len(self.short_signals[match_2[2]])):
-                if match_1[0] < match_2[0]:
+              if abs(match_1[1]-match_2[1]) < 0.8*(len(self.short_signals[match_1[2]])+len(self.short_signals[match_2[2]])):
+                if match_1[0] > match_2[0]:
                   drop_set.add(idx_1)
                 else:
                   drop_set.add(idx_2)
@@ -280,8 +280,16 @@ class LightCurveDTW:
         matched_tuples = new_tuple
         return new_tuple
 
+    # Takes array of matches and removes those that have too high threshold
+    def clean_distant_features(self, matched_tuples, threshold):
+      close_enough_matches = [] 
+      for match in matched_tuples:
+        if match[0] < threshold:
+          close_enough_matches.append(match)
 
-    def run_for_params(self, q, alpha, ini_time, fin_time):
+      return close_enough_matches 
+
+    def run_for_params(self, q, alpha, ini_time, fin_time, plot_fig):
         time_series = self.analyzer.get_light_curve(q, alpha, ini_time, fin_time)
         initial_guesses = [self.lc_steps/2.0, q, 1.0/float(self.lc_steps)]
         
@@ -323,71 +331,99 @@ class LightCurveDTW:
         best_matches = self.clean_overlapping_features(best_matches, ["caustic_entry", "caustic_exit", "cusp_transversal", "double_crossing"] )
 
 
-        # Sort all matches by distance
+        best_matches = self.clean_distant_features(best_matches, 0.9)
+        # Sort all matches by distance and take only the first 8
         best_matches = sorted(best_matches)[:8]
 
-        # Calculate the number of rows needed for short signals
-        n_short_signal_rows = len(self.feature_names)
-        n_main_rows = 2  # Two main rows for time series and residuals
+        # Sort by position
+        best_matches = sorted(best_matches, key=lambda x: x[1])
+        
+        #########################################################
+        if plot_fig:
+          try:
+            # Calculate the number of rows needed for short signals
+            n_short_signal_rows = len(self.feature_names)
+            n_main_rows = 2  # Two main rows for time series and residuals
 
-                # Calculate the number of rows needed for short signals
-        n_short_signal_rows = len(self.feature_names)
-        n_main_rows = 2  # Two main rows for time series and residuals
+                    # Calculate the number of rows needed for short signals
+            n_short_signal_rows = len(self.feature_names)
+            n_main_rows = 2  # Two main rows for time series and residuals
 
-        fig = plt.figure(figsize=(24, 12))  # Adjusted figure size to accommodate new plot
-        gs = fig.add_gridspec(n_main_rows, 3, width_ratios=[2, 3, 1])
+            fig = plt.figure(figsize=(24, 12))  # Adjusted figure size to accommodate new plot
+            gs = fig.add_gridspec(n_main_rows, 3, width_ratios=[2, 3, 1])
 
-        # Plot the additional rectangular plot
-        ax0 = fig.add_subplot(gs[:, 0])
-        ax0.scatter(self.analyzer.cc_array.real, self.analyzer.cc_array.imag, color='blue', s=1, label='Critical Curve')
-        ax0.scatter(self.analyzer.ca_array.real, self.analyzer.ca_array.imag, color='red', s=1, label='Caustic')
-        ax0.scatter(self.analyzer.lenses_real, self.analyzer.lenses_imag, color='green', s=20, label='Lenses')
-        ax0.plot(traj_real, traj_imag, color='black', label='Trajectory')
-        ax0.legend()
-        ax0.set_xlabel('Real Part')
-        ax0.set_ylabel('Imaginary Part')
-        ax0.set_title('Critical Curve and Caustic')
+            # Plot the additional rectangular plot
+            ax0 = fig.add_subplot(gs[:, 0])
+            ax0.scatter(self.analyzer.cc_array.real, self.analyzer.cc_array.imag, color='blue', s=1, label='Critical Curve')
+            ax0.scatter(self.analyzer.ca_array.real, self.analyzer.ca_array.imag, color='red', s=1, label='Caustic')
+            ax0.scatter(self.analyzer.lenses_real, self.analyzer.lenses_imag, color='green', s=20, label='Lenses')
+            ax0.plot(traj_real, traj_imag, color='black', label='Trajectory')
+            ax0.legend()
+            ax0.set_xlabel('Real Part')
+            ax0.set_ylabel('Imaginary Part')
+            ax0.set_title('Critical Curve and Caustic')
 
-        # Plot time series
-        ax1 = fig.add_subplot(gs[0, 1])
-        ax1.plot(time_series, label='Time Series')
-        ax1.set_title(f'Time Series for q={q}, alpha={alpha}')
-        ax1.legend()
+            # Plot time series
+            ax1 = fig.add_subplot(gs[0, 1])
+            ax1.plot(time_series, label='Time Series')
+            ax1.set_title(f'Time Series for q={q}, alpha={alpha}')
+            ax1.legend()
 
-        legend_patches = []  # Store patches for legend
+            legend_patches = []  # Store patches for legend
 
-        # Plot residuals
-        ax2 = fig.add_subplot(gs[1, 1])
-        ax2.plot(residuals, label='Residuals')
-        for dist, pos, feature_name, color, (normalized_short_signal, normalized_window, best_path) in best_matches:
-            #ax2.axvline(x=pos, linestyle='--', color=color, label=f'{feature_name}; d: {dist:.3f}')
-            aligned_signal = np.zeros_like(residuals)
-            for (i, j) in best_path:
-                aligned_signal[pos + j] = normalized_short_signal[i]
-            ax2.plot(aligned_signal, color=color)
-            # Calculate bounding box
-            aligned_indices = [pos + j for (i, j) in best_path]
-            min_idx = min(aligned_indices)
-            max_idx = max(aligned_indices)
-            min_val = min(aligned_signal[aligned_indices])
-            max_val = max(aligned_signal[aligned_indices])
-            rect = Rectangle((min_idx, min_val), max_idx - min_idx, max_val - min_val, linewidth=2, edgecolor=color, facecolor='none')
-            ax2.add_patch(rect)
-            legend_patches.append(Patch(facecolor=color, edgecolor=color, label=f'{feature_name}; d: {dist:.3f}; p: {pos:d}'))
+            # Plot residuals
+            ax2 = fig.add_subplot(gs[1, 1])
+            ax2.plot(residuals, label='Residuals')
+            for dist, pos, feature_name, color, (normalized_short_signal, normalized_window, best_path) in best_matches:
+                #ax2.axvline(x=pos, linestyle='--', color=color, label=f'{feature_name}; d: {dist:.3f}')
+                aligned_signal = np.zeros_like(residuals)
+                for (i, j) in best_path:
+                    aligned_signal[pos + j] = normalized_short_signal[i]
+                ax2.plot(aligned_signal, color=color)
+                # Calculate bounding box
+                aligned_indices = [pos + j for (i, j) in best_path]
+                min_idx = min(aligned_indices)
+                max_idx = max(aligned_indices)
+                min_val = min(aligned_signal[aligned_indices])
+                max_val = max(aligned_signal[aligned_indices])
+                rect = Rectangle((min_idx, min_val), max_idx - min_idx, max_val - min_val, linewidth=2, edgecolor=color, facecolor='none')
+                ax2.add_patch(rect)
+                legend_patches.append(Patch(facecolor=color, edgecolor=color, label=f'{feature_name}; d: {dist:.3f}; p: {pos:d}'))
 
-        ax2.set_title('Residuals with Matches')
-        ax2.legend()
-        ax2.legend(handles=legend_patches, loc='upper right')
+            ax2.set_title('Residuals with Matches')
+            ax2.legend()
+            ax2.legend(handles=legend_patches, loc='upper right')
 
-        # Add new grid spec for short signals
-        gs_short = fig.add_gridspec(n_short_signal_rows, 1, left=0.85, right=0.99, hspace=0.4)
+            # Add new grid spec for short signals
+            gs_short = fig.add_gridspec(n_short_signal_rows, 1, left=0.85, right=0.99, hspace=0.4)
 
-        # Plot short signals
+            # Plot short signals
+            for i, feature_name in enumerate(self.feature_names):
+                ax = fig.add_subplot(gs_short[i, 0])
+                ax.plot(self.short_signals[feature_name], color=self.colors[i % len(self.colors)])
+                ax.set_title(feature_name)
+
+            plt.tight_layout()
+            plt.savefig(f"q_{q}_alpha_{alpha}.png")
+            plt.close(fig)
+          except Exception as e:
+            print(f"\nAn error occurred while creating or saving the plot: {e}")
+          #finally:
+          #  plt.close(fig)
+        #######################################################################        
+
+
+        feature_dictionary = {}
         for i, feature_name in enumerate(self.feature_names):
-            ax = fig.add_subplot(gs_short[i, 0])
-            ax.plot(self.short_signals[feature_name], color=self.colors[i % len(self.colors)])
-            ax.set_title(feature_name)
+          feature_dictionary[feature_name] = 10*float(i)
+        feature_vector = []
+        for match in best_matches:
+          feature_vector.append(float(match[1]))
+          feature_vector.append(feature_dictionary[match[2]])
+    
+        while len(feature_vector) < 15:
+          feature_vector.append(-1)
+          feature_vector.append(-1.0)
 
-        plt.tight_layout()
-        plt.savefig(f"q_{q}_alpha_{alpha}.png")
-        plt.close(fig)
+
+        return [feature_vector, time_series] 

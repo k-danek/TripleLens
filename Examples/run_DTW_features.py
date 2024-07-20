@@ -10,13 +10,15 @@ from dtaidistance import dtw
 from sklearn.cluster import KMeans
 import math
 import sys
+import csv
+import json
 
 
 from ctypes_classes import CCC
 from ctypes_classes import LC_irs
 from analytic_classes import LightCurveAnalyzer, Complex, get_trajectory, LightCurveDTW
 
-sys.setrecursionlimit(500000) 
+sys.setrecursionlimit(1500000) 
 
 
 # Define lens parameters.
@@ -35,18 +37,60 @@ points_per_radius = 30
 ini_time = -1.0
 fin_time = 1.0
 
-q_values = [ 0.05, 0.1, 0.15, 0.2, 0.3]  # Example values for q
-#alpha_values = [np.pi / 8.0, np.pi / 5.0, np.pi / 2.0, 5.0 * np.pi / 8.0, 3.0 * np.pi / 4.0, 7.0 * np.pi / 8.0]  # Example values for alpha
-alpha_values =  np.arange(0, 2 * np.pi, np.pi / 8.0)  # Example values for alpha
+
+# Define parameter ranges.
+a_values = [0.9, 0.95, 1.0, 1.1]  # Example values for a
+q_values = [0.05, 0.1, 0.15, 0.2, 0.3, 0.5]  # Example values for q
+alpha_values = np.arange(0, 2 * np.pi, np.pi / 16.0)  # Example values for alpha
+
 
 feature_names = ["caustic_entry", "caustic_exit", "cusp_approach_a", "cusp_approach_b", "cusp_transversal", "dip", "double_crossing"]
 
-analyzerDTW = LightCurveDTW(a, b, theta, m2, m3, source_size, lc_steps, points_per_radius, feature_names)
+# Output files
+csv_file = "feature_matrix.csv"
+json_file = "parameters_all.json"
 
-# Color map for different short signals
-#colors = plt.cm.get_cmap('tab10', len(feature_names))
-#colors = plt.cm.tab10.colors
+# JSON structure to hold parameter values and line ranges
+json_data = []
 
-for q in q_values:
-    for alpha in alpha_values:
-        analyzerDTW.run_for_params(q, alpha, ini_time, fin_time)
+start_line = 0
+end_line = 0
+
+
+with open("feature_matrix", 'w', newline='') as csvfile:
+    writer = csv.writer(csvfile)
+    for a in a_values:
+        analyzerDTW = LightCurveDTW(a, b, theta, m2, m3, source_size, lc_steps, points_per_radius, feature_names)
+
+        for q in q_values:
+            for alpha in alpha_values:
+                [feature_vector, light_curve] = analyzerDTW.run_for_params(q, alpha, ini_time, fin_time, end_line % 8 == 0)
+                writer.writerow(feature_vector)
+                end_line += 1
+                json_data.append({
+                    "a": a,
+                    "b": b,
+                    "theta": theta,
+                    "m2": m2,
+                    "m3": m3,
+                    "q": q,
+                    "alpha": alpha,
+                    "feature_vector": feature_vector,
+                    "light_curve": light_curve.tolist()
+                })
+
+        #json_data.append({
+        #            "a": a,
+        #            "b": b,
+        #            "theta": theta,
+        #            "m2": m2,
+        #            "m3": m3,
+        #            "qs": q_values,
+        #            "alphas": alpha_values.tolist(),
+        #            "line_range": [start_line, end_line]
+        #})
+
+        start_line = end_line
+
+with open(json_file, 'w') as jsonfile:
+    json.dump(json_data, jsonfile, indent=4)
