@@ -19,7 +19,7 @@ sys.setrecursionlimit(500000)
 # Parameters
 
 # Define lens parameters.
-a = 1.01
+a = 0.95
 b = 1.0001
 theta = 1.047197551
 m2 = 5.0e-3

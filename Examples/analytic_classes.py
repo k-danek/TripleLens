@@ -10,6 +10,7 @@ import math
 import sys
 from dtaidistance import dtw
 from matplotlib.patches import Rectangle, Patch
+import json
 
 from ctypes_classes import CCC
 from ctypes_classes import LC_irs
@@ -183,28 +184,56 @@ class LightCurveAnalyzer:
             f.write(f"{residual}\n")
 
 
+class Feature:
+  def __init__(self, feature_name, feature_data, feature_group):
+    self.feature_name = feature_name
+    self.feature_data = feature_data
+    self.feature_group = feature_group
+
+class Feature_group:
+  def __init__(self, feature_group_name, feature_names, feature_overlap_group,  group_index):
+    self.feature_group_name = feature_group_name
+    self.feature_names = feature_names
+    self.feature_overlap_group = feature_overlap_group
+    self.group_index = group_index
+
 
 class LightCurveDTW:
-    def __init__(self, a, b, theta, m2, m3, source_size, lc_steps, points_per_radius, feature_names, ):
+    def __init__(self, a, b, theta, m2, m3, source_size, lc_steps, points_per_radius, feature_file_name):
         self.analyzer = LightCurveAnalyzer(a, b, theta, m2, m3, source_size, lc_steps, points_per_radius)
-        #self.a = a
-        #self.b = b
-        #self.theta = theta
-        #self.m2 = m2
-        #self.m3 = m3
-        #self.source_size = source_size
+
         self.lc_steps = lc_steps
         self.points_per_radius = points_per_radius
-        self.feature_names = feature_names # array of string feature names
+        self.feature_names = [] # array of string feature names
         self.lc_irs = LC_irs(a, b, theta, m2, m3, source_size, lc_steps, points_per_radius)
         self.short_signals = {}
-        for feature in feature_names:
-            self.short_signals[feature] = np.loadtxt(f"./features/{feature}.txt")
+        self.feature_groups = {}
+        with open(f"./features/{feature_file_name}.json", 'r') as f:
+            feature_data = json.load(f)
+        
+            for feature_group in feature_data:
+              feature_group_name = feature_group["group_name"]
+              feature_group_names = feature_group["names"]
+              feature_ovelap_group = feature_group["related_groups"]
+              feature_group_index = feature_group["group_index"]
+              self.feature_groups[feature_group_name] = Feature_group(feature_group_name, feature_group_names, feature_ovelap_group, feature_group_index)
+              for feature_name in feature_group_names:
+                short_feature_data = np.loadtxt(f"./features/{feature_name}.txt")
+                self.short_signals[feature_name] = Feature(feature_name, short_feature_data, self.feature_groups[feature_group_name])
+
+
+        print(self.short_signals)
+
         # Color map for different short signals
         #cmap = plt.get_cmap('tab9')
         cmap = plt.get_cmap('Accent')
-        self.colors = [cmap(i) for i in range(len(feature_names))]
+        unique_feature_groups = list(self.feature_groups.keys())
+        #self.colors = [cmap(i) for i in range(len(feature_data))]
+        self.color_map = {group: cmap(i / len(unique_feature_groups)) for i, group in enumerate(unique_feature_groups)}
 
+    def get_color_for_group(self, feature_group_name):
+        # Retrieve the color for a specific feature group
+        return self.color_map.get(feature_group_name, (0, 0, 0, 1))
 
     def sliding_window_dtw(self, short_signal, long_signal, window_size):
         distances = []
@@ -249,7 +278,7 @@ class LightCurveDTW:
 
     # Takes array of features and check if within this set, there are overlapping pairs. 
     # For each pair, take just the better of the match. 
-    def clean_overlapping_features(self, matched_tuples, features):
+    def clean_overlapping_features(self, matched_tuples):
         #len_feature_1 = len(feature_1) 
         #len_feature_2 = len(feature_2)
         num_of_matches = len(matched_tuples)
@@ -280,6 +309,86 @@ class LightCurveDTW:
         matched_tuples = new_tuple
         return new_tuple
 
+
+    #def get_cleaned_overlapping_features_II(self, matched_tuples):
+    # sort by position
+    # for first one collect those that overlap with it.
+    # check if some of those would kick it out.
+    # for the one that would kick it out, check it is not kicked out itself
+    # That would be a recursive function. Add a braker to it. It should return true
+    # ************************
+    # Alternatively, I can store for each feature "eliminated by"
+    # At the end, if it was eliminated by some that got itself eliminated, it might become cleaned.
+    # Loop through eliminated by, if all the instances are eliminated themselves, it becomes clean... but it needs deeper search.
+
+    # Takes array of features and check if within this set, there are overlapping pairs. 
+    # For each pair, take just the better of the match. 
+    def get_cleaned_overlapping_features(self, matched_tuples):
+      drop_set = set()
+      cleaned_set = set()
+      
+      for idx_1 in range(0,len(matched_tuples)):
+        # make sure we did not process the match already
+        if (idx_1 not in cleaned_set) and (idx_1 not in drop_set): 
+          overlap_group_1 = matched_tuples[idx_1][2].feature_group.feature_overlap_group
+          print("\n overlap group "+ str(overlap_group_1))
+          print("idx_1 started:"+str(idx_1)+","+str(matched_tuples[idx_1][0])+","+str(matched_tuples[idx_1][1])+","+matched_tuples[idx_1][2].feature_name)
+
+          overlap_list = []
+          for idx_2 in range(idx_1+1,len(matched_tuples)):
+            pos1 = matched_tuples[idx_1][1]
+            pos2 = matched_tuples[idx_2][1]
+            len1 = len(matched_tuples[idx_1][2].feature_data)-1
+            len2 = len(matched_tuples[idx_2][2].feature_data)-1
+            # check for overlaps
+            if (pos1 <= pos2+len2) and (pos2 <= pos1+len1):
+              # check for overlapping groups
+              print("overlapping pos and len: ("+ str(pos1)+ "," +str(len1)+"),("+str(pos2)+","+str(len2)+")")
+
+              if matched_tuples[idx_2][2].feature_group.feature_group_name in overlap_group_1:
+                overlap_list.append(idx_2)
+              else:
+                print(matched_tuples[idx_2][2].feature_group.feature_group_name + " is not in " + str(overlap_group_1))
+
+          # if there is no overlap, the feature is clean by default
+          if len(overlap_list) == 0:
+            print("no overlap found, adding "+ str(idx_1)+ " to the list")
+            cleaned_set.add(idx_1)
+            continue
+
+          print("overlap found "+ str(len(overlap_list))+ " long")
+          # Iterate through the overlaps to find the minimum distance
+          min_idx = None
+          min_distance = matched_tuples[idx_1][0]
+
+          for idx_2 in overlap_list:
+            print("idx_2 in overlap list:"+str(idx_2)+","+str(matched_tuples[idx_2][0])+","+str(matched_tuples[idx_2][1])+","+matched_tuples[idx_2][2].feature_name)
+            if matched_tuples[idx_2][0] < min_distance:
+              min_distance = matched_tuples[idx_2][0]
+              if min_idx != None:
+                drop_set.add(min_idx)
+              min_idx = idx_2
+            else:
+              drop_set.add(idx_2)
+              print("dropped, dropped set: "+ str(drop_set))
+          
+          if min_idx != None:
+            cleaned_set.add(min_idx)
+            print("cleaned "+str(min_idx)+" just after overlap set as min_idx, cleaned set: "+ str(cleaned_set))
+          else:
+            # in case none of the distances was lower than the idx_1's distance, idx_1 wins its place among the features 
+            cleaned_set.add(idx_1)
+            print("cleaned "+str(idx_1)+" just after overlap set as idx_1, cleaned set: "+ str(cleaned_set))
+
+          print("\n cleaned len "+ str(len(cleaned_set))+ " and dropped len " + str(len(drop_set)))
+          print("\n cleaned set "+ str(cleaned_set)+ " and dropped set " + str(drop_set))
+
+      print("\n cleaned "+ str(len(cleaned_set))+ " and dropped " + str(len(drop_set)))
+
+      # It is possible that 1 will overlap with 2 and 3 will overlap with 2 but not with 1.
+      # In that case 1 can add 2 to cleaned_set and 3 can add it to drop_set.
+      return [matched_tuples[i] for i in cleaned_set if i not in drop_set]   
+
     # Takes array of matches and removes those that have too high threshold
     def clean_distant_features(self, matched_tuples, threshold):
       close_enough_matches = [] 
@@ -302,39 +411,33 @@ class LightCurveDTW:
         
         best_matches = []
         
-        for idx, feature_name in enumerate(self.feature_names):
-            short_signal = self.short_signals[feature_name]
-            window_size = len(short_signal)
-            distances, positions, alignments = self.sliding_window_dtw(short_signal, residuals, window_size)
+        for feature_name, short_signal in self.short_signals.items():
+            window_size = len(short_signal.feature_data)
+            distances, positions, alignments = self.sliding_window_dtw(short_signal.feature_data, residuals, window_size)
             min_distances_indices = np.argsort(distances)[:6]  # Get top 4 matches for each feature
-            
-            drop_set = set()
 
-            # get rid of overlapping features
-            for idc1 in min_distances_indices:
-              for idc2 in min_distances_indices:
-                if idc1 < idc2 and not ((idc1 in drop_set) or (idc2 in drop_set)):
-                  # is overlapping
-                  if abs(positions[idc1]-positions[idc2]) < (2 * window_size):
-                    if distances[idc1] < distances[idc2]:
-                      drop_set.add(idc2)
-                    else:
-                      drop_set.add(idc1)
-                      break
+            feature_color = self.get_color_for_group(short_signal.feature_group)
 
             for idc in min_distances_indices:
-              if idc not in drop_set:  
-                best_matches.append((distances[idc], positions[idc], feature_name, self.colors[idx], alignments[idc]))
+              best_matches.append((distances[idc], positions[idc], short_signal, feature_color, alignments[idc]))
 
+        print("\n\n len of best matches before distance cleaning "+str(len(best_matches)))
+
+        best_matches = self.clean_distant_features(best_matches, 0.7)
+
+
+        # Sort by position to make overlaps less confusing
+        best_matches = sorted(best_matches, key=lambda x: x[1])
+
+        print("\n\n len of best matches before overlap cleaning "+str(len(best_matches)))
         # In order not to introduce more features than there already is, I took the best distance from overlapping features
-        best_matches = self.clean_overlapping_features(best_matches, ["cusp_approach_a", "cusp_approach_b", "dip"] )
-        best_matches = self.clean_overlapping_features(best_matches, ["caustic_entry", "caustic_exit", "cusp_transversal", "double_crossing"] )
+        best_matches = self.get_cleaned_overlapping_features(best_matches)
 
 
-        best_matches = self.clean_distant_features(best_matches, 0.9)
-        # Sort all matches by distance and take only the first 8
-        best_matches = sorted(best_matches)[:8]
+        # Sort all matches by distance and take only the first 12
 
+        print("\n\n len of best matches before sorting position cleaning "+str(len(best_matches)))
+        
         # Sort by position
         best_matches = sorted(best_matches, key=lambda x: x[1])
         
@@ -342,11 +445,7 @@ class LightCurveDTW:
         if plot_fig:
           try:
             # Calculate the number of rows needed for short signals
-            n_short_signal_rows = len(self.feature_names)
-            n_main_rows = 2  # Two main rows for time series and residuals
-
-                    # Calculate the number of rows needed for short signals
-            n_short_signal_rows = len(self.feature_names)
+            n_short_signal_rows = len(best_matches)
             n_main_rows = 2  # Two main rows for time series and residuals
 
             fig = plt.figure(figsize=(24, 12))  # Adjusted figure size to accommodate new plot
@@ -374,8 +473,7 @@ class LightCurveDTW:
             # Plot residuals
             ax2 = fig.add_subplot(gs[1, 1])
             ax2.plot(residuals, label='Residuals')
-            for dist, pos, feature_name, color, (normalized_short_signal, normalized_window, best_path) in best_matches:
-                #ax2.axvline(x=pos, linestyle='--', color=color, label=f'{feature_name}; d: {dist:.3f}')
+            for dist, pos, short_signal, color, (normalized_short_signal, normalized_window, best_path) in best_matches:
                 aligned_signal = np.zeros_like(residuals)
                 for (i, j) in best_path:
                     aligned_signal[pos + j] = normalized_short_signal[i]
@@ -388,7 +486,7 @@ class LightCurveDTW:
                 max_val = max(aligned_signal[aligned_indices])
                 rect = Rectangle((min_idx, min_val), max_idx - min_idx, max_val - min_val, linewidth=2, edgecolor=color, facecolor='none')
                 ax2.add_patch(rect)
-                legend_patches.append(Patch(facecolor=color, edgecolor=color, label=f'{feature_name}; d: {dist:.3f}; p: {pos:d}'))
+                legend_patches.append(Patch(facecolor=color, edgecolor=color, label=f'{short_signal.feature_name}; d: {dist:.3f}; p: {pos:d}'))
 
             ax2.set_title('Residuals with Matches')
             ax2.legend()
@@ -397,11 +495,11 @@ class LightCurveDTW:
             # Add new grid spec for short signals
             gs_short = fig.add_gridspec(n_short_signal_rows, 1, left=0.85, right=0.99, hspace=0.4)
 
-            # Plot short signals
-            for i, feature_name in enumerate(self.feature_names):
-                ax = fig.add_subplot(gs_short[i, 0])
-                ax.plot(self.short_signals[feature_name], color=self.colors[i % len(self.colors)])
-                ax.set_title(feature_name)
+            #:# Plot short signals
+            #for i, short_signal in enumerate(self.short_signals.values()):
+            #    ax = fig.add_subplot(gs_short[i, 0])
+            #    ax.plot(short_signal.feature_data, color=self.colors[i % len(self.colors)])
+            #    ax.set_title(short_signal.feature_name)
 
             plt.tight_layout()
             plt.savefig(f"q_{q}_alpha_{alpha}.png")
@@ -413,17 +511,14 @@ class LightCurveDTW:
         #######################################################################        
 
 
-        feature_dictionary = {}
-        for i, feature_name in enumerate(self.feature_names):
-          feature_dictionary[feature_name] = 10*float(i)
         feature_vector = []
         for match in best_matches:
           feature_vector.append(float(match[1]))
-          feature_vector.append(feature_dictionary[match[2]])
+          feature_vector.append(match[2].feature_group.group_index)
     
         while len(feature_vector) < 15:
           feature_vector.append(-1)
           feature_vector.append(-1.0)
 
 
-        return [feature_vector, time_series] 
+        return [feature_vector, time_series, residuals] 
