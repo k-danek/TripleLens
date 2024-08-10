@@ -21,7 +21,7 @@
         "group_name": "double_crossing",
         "names": ["double_crossing", "double_crossing_6_a", "double_crossing_7_a", "double_crossing_7_b", "double_crossing_7_symmetric", "double_crossing_asymmetric_10_a"],
         "group_index": 40,
-        "related_groups": ["double_crossing", "caustic_exit", "caustic_entry", "double_crossing", "cusp_approach", "cusp_and_double"]
+        "related_groups": ["double_crossing", "caustic_exit", "caustic_entry", "cusp_transversal", "double_crossing", "cusp_approach", "cusp_and_double"]
     },
     {
         "group_name": "cusp_and_double",
@@ -37,7 +37,7 @@
     },
     {
         "group_name": "dip",
-        "names": ["dip", "dip_assymetric_36", "dip_assymetric_a_36", "dip_assymetric_b_36", "dip_pure_25", "dip_pure_27", "dip_pure_29", "dip_pure_49"],
+        "names": ["dip", "dip_assymetric_a_36", "dip_assymetric_b_36", "dip_pure_25", "dip_pure_27", "dip_pure_29", "dip_pure_49"],
         "related_groups": ["dip","cusp_approach", "cusp_and_double"],
         "group_index": 150
     }

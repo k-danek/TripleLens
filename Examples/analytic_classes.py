@@ -247,7 +247,7 @@ class LightCurveDTW:
             window_norm = np.linalg.norm(window)
 
             # Only calculate DTW distance if window has significant norm
-            if window_norm >= 0.2 * short_signal_norm:
+            if window_norm >= 0.4 * short_signal_norm:
                 normalized_short_signal = short_signal / short_signal_norm
                 normalized_window = window / window_norm
                 dist, paths = dtw.warping_paths(normalized_short_signal, normalized_window)
@@ -258,136 +258,79 @@ class LightCurveDTW:
 
         return distances, positions, alignments
 
-    def group_overlapping_windows(self, distances, positions, window_size):
-        sorted_indices = np.argsort(positions)
-        grouped_windows = []
-        current_group = []
-    
-        for idx in sorted_indices:
-            pos = positions[idx]
-            if not current_group or pos <= current_group[-1][1]:
-                current_group.append((distances[idx], pos, pos + window_size - 1))
-            else:
-                grouped_windows.append(current_group)
-                current_group = [(distances[idx], pos, pos + window_size - 1)]
-        
-        if current_group:
-            grouped_windows.append(current_group)
-        
-        return grouped_windows
-
-    # Takes array of features and check if within this set, there are overlapping pairs. 
-    # For each pair, take just the better of the match. 
-    def clean_overlapping_features(self, matched_tuples):
-        #len_feature_1 = len(feature_1) 
-        #len_feature_2 = len(feature_2)
-        num_of_matches = len(matched_tuples)
-        drop_set = set()
-        set_of_interest = set()
-
-        # focus only on matched_tuples with     
-        for idx in range(0,num_of_matches):
-          if (matched_tuples[idx][2] in features):
-            set_of_interest.add(idx)
-
-        # get rid of overlapping features
-        for idx_1 in set_of_interest:
-          for idx_2 in set_of_interest:
-            if idx_1 < idx_2 and not ((idx_1 in drop_set) or (idx_2 in drop_set)):
-              match_1 = matched_tuples[idx_1]
-              match_2 = matched_tuples[idx_2]
-
-              # is overlapping; constant factor to allow minor overlaps
-              if abs(match_1[1]-match_2[1]) < 0.8*(len(self.short_signals[match_1[2]])+len(self.short_signals[match_2[2]])):
-                if match_1[0] > match_2[0]:
-                  drop_set.add(idx_1)
-                else:
-                  drop_set.add(idx_2)
-                  break    
-        
-        new_tuple = [element for index, element in enumerate(matched_tuples) if index not in drop_set]
-        matched_tuples = new_tuple
-        return new_tuple
-
 
     #def get_cleaned_overlapping_features_II(self, matched_tuples):
-    # sort by position
-    # for first one collect those that overlap with it.
-    # check if some of those would kick it out.
-    # for the one that would kick it out, check it is not kicked out itself
-    # That would be a recursive function. Add a braker to it. It should return true
-    # ************************
-    # Alternatively, I can store for each feature "eliminated by"
-    # At the end, if it was eliminated by some that got itself eliminated, it might become cleaned.
-    # Loop through eliminated by, if all the instances are eliminated themselves, it becomes clean... but it needs deeper search.
+    # checks if two fitted features are overlapping
+    def is_overlapping(self, matched_tuple_1, matched_tuple_2):
+      pos_1, len_1 =  matched_tuple_1[1], len(matched_tuple_1[2].feature_data)-1
+      pos_2, len_2 =  matched_tuple_2[1], len(matched_tuple_2[2].feature_data)-1
+      type_1, overlap_types_1 = matched_tuple_1[2].feature_group.feature_group_name, matched_tuple_1[2].feature_group.feature_overlap_group 
+      type_2, overlap_types_2 = matched_tuple_2[2].feature_group.feature_group_name, matched_tuple_2[2].feature_group.feature_overlap_group 
 
-    # Takes array of features and check if within this set, there are overlapping pairs. 
-    # For each pair, take just the better of the match. 
-    def get_cleaned_overlapping_features(self, matched_tuples):
+      do_overlap = False
+
+      if (pos_1 <= pos_2+len_2-1) and (pos_2 <= pos_1+len_1-1):
+        if (type_1 in overlap_types_2) and (type_2 in overlap_types_1) :
+          do_overlap = True
+      
+      return do_overlap
+
+
+    def is_bested_by(self, idx_1, matched_tuples):
+      do_best_feature = set()
+      for idx_2 in range(0,len(matched_tuples)):
+        if idx_2 != idx_1:
+          if self.is_overlapping(matched_tuples[idx_1], matched_tuples[idx_2]):
+            if matched_tuples[idx_1][0] > matched_tuples[idx_2][0]:
+              do_best_feature.add(idx_1)
+
+      return do_best_feature
+
+    # removes features that overlap with features that we for sure want to keep
+    def remove_overlap_layer(self, overlap_list, cleaned_set, drop_set):
+      layer_removed = False
+      
+      # collect cleaned set, then collect drop se, i.e., the set which cleaned set overlaps
+      for idx_1 in range(0,len(overlap_list)):
+        if len(overlap_list[idx_1]) == 0:
+          # the tuples that are not bested, can be cleaned
+          cleaned_set.add(idx_1)
+          # the ones that are cleaned, will remove those that are not
+          for idx_2 in range(0,len(overlap_list)):
+            if idx_2 != idx_1:
+              if idx_1 in overlap_list[idx_2]:
+                drop_set.add(idx_2)
+
+      # clean those overlaps that are in drop set      
+      for idx_1 in range(0,len(overlap_list)):
+        if idx_1 not in cleaned_set:
+          for idx_2 in drop_set:
+            if idx_2 in overlap_sets[idx_1]:
+              overlap_list[idx_1].remove(idx_2)
+              layer_removed = True
+
+      return overlap_list, cleaned_set, drop_set, layer_removed
+
+    def get_cleaned_overlapping_features_II(self, matched_tuples):
       drop_set = set()
       cleaned_set = set()
-      
+
+      # Sort by position to make overlaps less confusing
+      matched_tuples = sorted(matched_tuples, key=lambda x: x[1])
+
+      overlap_list = []
+
+      # collect sets
       for idx_1 in range(0,len(matched_tuples)):
-        # make sure we did not process the match already
-        if (idx_1 not in cleaned_set) and (idx_1 not in drop_set): 
-          overlap_group_1 = matched_tuples[idx_1][2].feature_group.feature_overlap_group
-          print("\n overlap group "+ str(overlap_group_1))
-          print("idx_1 started:"+str(idx_1)+","+str(matched_tuples[idx_1][0])+","+str(matched_tuples[idx_1][1])+","+matched_tuples[idx_1][2].feature_name)
+        overlap_list.append(self.is_bested_by(idx_1, matched_tuples))
 
-          overlap_list = []
-          for idx_2 in range(idx_1+1,len(matched_tuples)):
-            pos1 = matched_tuples[idx_1][1]
-            pos2 = matched_tuples[idx_2][1]
-            len1 = len(matched_tuples[idx_1][2].feature_data)-1
-            len2 = len(matched_tuples[idx_2][2].feature_data)-1
-            # check for overlaps
-            if (pos1 <= pos2+len2) and (pos2 <= pos1+len1):
-              # check for overlapping groups
-              print("overlapping pos and len: ("+ str(pos1)+ "," +str(len1)+"),("+str(pos2)+","+str(len2)+")")
 
-              if matched_tuples[idx_2][2].feature_group.feature_group_name in overlap_group_1:
-                overlap_list.append(idx_2)
-              else:
-                print(matched_tuples[idx_2][2].feature_group.feature_group_name + " is not in " + str(overlap_group_1))
+      should_remove_layer = True
+      while should_remove_layer:
+        overlap_list, cleaned_set, drop_set, should_remove_layer  = self.remove_overlap_layer(overlap_list, cleaned_set, drop_set)
+      
+      return [matched_tuples[i] for i in cleaned_set if i not in drop_set]
 
-          # if there is no overlap, the feature is clean by default
-          if len(overlap_list) == 0:
-            print("no overlap found, adding "+ str(idx_1)+ " to the list")
-            cleaned_set.add(idx_1)
-            continue
-
-          print("overlap found "+ str(len(overlap_list))+ " long")
-          # Iterate through the overlaps to find the minimum distance
-          min_idx = None
-          min_distance = matched_tuples[idx_1][0]
-
-          for idx_2 in overlap_list:
-            print("idx_2 in overlap list:"+str(idx_2)+","+str(matched_tuples[idx_2][0])+","+str(matched_tuples[idx_2][1])+","+matched_tuples[idx_2][2].feature_name)
-            if matched_tuples[idx_2][0] < min_distance:
-              min_distance = matched_tuples[idx_2][0]
-              if min_idx != None:
-                drop_set.add(min_idx)
-              min_idx = idx_2
-            else:
-              drop_set.add(idx_2)
-              print("dropped, dropped set: "+ str(drop_set))
-          
-          if min_idx != None:
-            cleaned_set.add(min_idx)
-            print("cleaned "+str(min_idx)+" just after overlap set as min_idx, cleaned set: "+ str(cleaned_set))
-          else:
-            # in case none of the distances was lower than the idx_1's distance, idx_1 wins its place among the features 
-            cleaned_set.add(idx_1)
-            print("cleaned "+str(idx_1)+" just after overlap set as idx_1, cleaned set: "+ str(cleaned_set))
-
-          print("\n cleaned len "+ str(len(cleaned_set))+ " and dropped len " + str(len(drop_set)))
-          print("\n cleaned set "+ str(cleaned_set)+ " and dropped set " + str(drop_set))
-
-      print("\n cleaned "+ str(len(cleaned_set))+ " and dropped " + str(len(drop_set)))
-
-      # It is possible that 1 will overlap with 2 and 3 will overlap with 2 but not with 1.
-      # In that case 1 can add 2 to cleaned_set and 3 can add it to drop_set.
-      return [matched_tuples[i] for i in cleaned_set if i not in drop_set]   
 
     # Takes array of matches and removes those that have too high threshold
     def clean_distant_features(self, matched_tuples, threshold):
@@ -425,13 +368,9 @@ class LightCurveDTW:
 
         best_matches = self.clean_distant_features(best_matches, 0.7)
 
-
-        # Sort by position to make overlaps less confusing
-        best_matches = sorted(best_matches, key=lambda x: x[1])
-
         print("\n\n len of best matches before overlap cleaning "+str(len(best_matches)))
         # In order not to introduce more features than there already is, I took the best distance from overlapping features
-        best_matches = self.get_cleaned_overlapping_features(best_matches)
+        best_matches = self.get_cleaned_overlapping_features_II(best_matches)
 
 
         # Sort all matches by distance and take only the first 12
