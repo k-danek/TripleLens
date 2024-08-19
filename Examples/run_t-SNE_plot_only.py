@@ -36,7 +36,8 @@ def plot_event_precalculated(a, b, theta, m2, m3, q, alpha, cluster_name, featur
     title = f"a={a}, b={b}, theta={theta}, m2={m2:.3e}, m3={m3}, q={q:.4f}, alpha={alpha:.4f}"
 
     # Create the filename
-    cluster_name = os.path.basename(cluster_name).rsplit('.', 1)[0]
+    #cluster_name = os.path.basename(cluster_name).rsplit('.', 1)[0]
+    cluster_name = cluster_name.rsplit('.', 1)[0]
     filename = f"{cluster_name}_a{a:.3f}_m2{m2:.3e}_q{q:.3f}_alpha{alpha:.3f}.png"
 
     # Plot the light curve
@@ -65,7 +66,6 @@ def plot_cluster_file(file_path):
     with open(file_path, 'r') as f:
         data = json.load(f) 
     for event in data:
-        #print("event:"+str(event))
         a = event["a"] 
         b = event["b"] 
         theta = event["theta"]
@@ -78,13 +78,16 @@ def plot_cluster_file(file_path):
         plot_event_precalculated(a, b, theta, m2, m3, q, alpha, file_path, feature_vector, light_curve) 
 
 
-num_clusters = [0,1,2,3,4,5]
+num_clusters = [1,2,3,4,5]
+num_of_subcluster_dict = {1: 3, 2: 6, 3: 7, 4: 8, 5: 1}
 
 output_dir = 'cluster_results'
 
 for cluster_num in num_clusters:
-    print("\n\n\n**********cluster_num:" + str(cluster_num)+"**********\n\n\n")
-    file_path = os.path.join(output_dir, f'cluster_{cluster_num}.json')
-    print("file path:"+str(file_path))
-    plot_cluster_file(file_path)
+  if cluster_num in num_of_subcluster_dict:  
+    for subcluster_num in range(num_of_subcluster_dict[cluster_num]):
+      print("\n\n\n**********cluster_num:" + str(cluster_num)+"**********\n\n\n")
+      file_path = os.path.join(output_dir, f'subcluster_{cluster_num}_{subcluster_num}.json')
+      print("file path:"+str(file_path))
+      plot_cluster_file(file_path)
 

@@ -43,10 +43,10 @@ fin_time = 1.0
 #q_values = [0.05, 0.1, 0.15, 0.2, 0.4]  # Example values for q
 #alpha_values = np.arange(0, 2 * np.pi, np.pi / 4.0)  # Example values for alpha
 
-a_values = [0.9]  # Example values for a
-q_values = [0.05, 0.1, 0.15, 0.2]  # Example values for q
+a_values = [0.90]  # Example values for a
+q_values = [0.05, 0.1, 0.15, 0.2, 0.4]  # Example values for q
 #q_values = [0.05]  # Example values for q
-alpha_values = np.arange(0, 2 * np.pi, np.pi / 4.0) # Example values for alpha
+alpha_values = np.arange(0, 2 * np.pi, np.pi / 16.0) # Example values for alpha
 #alpha_values = [np.pi / 2.0] # Example values for alpha
 
 

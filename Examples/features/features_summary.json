@@ -2,32 +2,32 @@
     {
         "group_name": "caustic_entry",
         "names": ["caustic_entry", "caustic_entry_7", "caustic_entry_8", "caustic_entry_weak_9"],
-        "group_index": 10,
-        "related_groups": ["caustic_entry","caustic_exit", "cusp_transversal", "double_crossing", "cusp_approach", "cusp_and_double"]
+        "related_groups": ["caustic_entry","caustic_exit", "cusp_transversal", "double_crossing", "cusp_approach", "cusp_and_double"],
+        "group_index": 10
     },
     {
         "group_name": "caustic_exit",
         "names": ["caustic_exit", "caustic_exit_7", "caustic_exit_8", "caustic_exit_weak_9"],
-        "group_index": 20,
-        "related_groups": ["caustic_exit", "caustic_entry", "cusp_transversal", "double_crossing", "cusp_approach", "cusp_and_double"]
+        "related_groups": ["caustic_exit", "caustic_entry", "cusp_transversal", "double_crossing", "cusp_approach", "cusp_and_double"],
+        "group_index": 20
     },
     {
         "group_name": "cusp_transversal",
         "names": ["cusp_transversal", "cusp_transversal_17", "cusp_transversal_17_b"],
-        "group_index": 30,
-        "related_groups": ["cusp_transversal" ,"caustic_exit", "caustic_entry", "double_crossing", "cusp_approach", "cusp_and_double"]
+        "related_groups": ["cusp_transversal" ,"caustic_exit", "caustic_entry", "double_crossing", "cusp_approach", "cusp_and_double"],
+        "group_index": 30
     },
     {
         "group_name": "double_crossing",
         "names": ["double_crossing", "double_crossing_6_a", "double_crossing_7_a", "double_crossing_7_b", "double_crossing_7_symmetric", "double_crossing_asymmetric_10_a"],
-        "group_index": 40,
-        "related_groups": ["double_crossing", "caustic_exit", "caustic_entry", "cusp_transversal", "double_crossing", "cusp_approach", "cusp_and_double"]
+        "related_groups": ["double_crossing", "caustic_exit", "caustic_entry", "cusp_transversal", "double_crossing", "cusp_approach", "cusp_and_double"],
+        "group_index": 40
     },
     {
         "group_name": "cusp_and_double",
         "names": ["cusp_and_double_26_a", "cusp_and_double_26_b"],
-        "group_index": 60,
-        "related_groups": ["cusp_and_double", "double_crossing", "caustic_exit", "caustic_entry", "double_crossing", "cusp_approach", "dip"]
+        "related_groups": ["cusp_and_double", "double_crossing", "caustic_exit", "caustic_entry", "double_crossing", "cusp_approach", "dip"],
+        "group_index": 60
     },
 	{
         "group_name": "cusp_approach",
