@@ -8,6 +8,7 @@ import json
 from sklearn.cluster import DBSCAN
 from sklearn.cluster import AgglomerativeClustering
 from sklearn.cluster import SpectralClustering
+import umap
 #import hdbscan
 
 from analytic_classes import LightCurveAnalyzer,  get_single_amp_real, get_single_amp_real_scale, get_trajectory
@@ -128,8 +129,12 @@ lc_matrix = lc_df.values
 
 
 # Perform t-SNE
-tsne = TSNE(n_components=2, random_state=42)
-tsne_results = tsne.fit_transform(feature_matrix)
+#tsne = TSNE(n_components=2, random_state=42)
+#tsne_results = tsne.fit_transform(feature_matrix)
+
+# Train UMAP on the original feature matrix
+umap_model = umap.UMAP(n_components=2, random_state=42)
+tsne_results = umap_model.fit_transform(feature_matrix)
 
 # Perform k-means clustering on the t-SNE results
 num_clusters = 7  # You can change this number based on your needs
@@ -156,7 +161,7 @@ plt.title('t-SNE Visualization of Feature Vectors with Clustering')
 plt.xlabel('t-SNE Component 1')
 plt.ylabel('t-SNE Component 2')
 plt.legend()
-plt.savefig('t_sne_clusters_all.png')
+plt.savefig('umap_clusters_all.png')
 plt.close()
 
 
@@ -170,7 +175,7 @@ plt.title('t-SNE Visualization of Feature Vectors with Clustering')
 plt.xlabel('t-SNE Component 1')
 plt.ylabel('t-SNE Component 2')
 plt.legend()
-plt.savefig('t_sne_num_of_features.png')
+plt.savefig('umap_num_of_features.png')
 plt.close()
 
 # Plot the t-SNE results with num-of-features
@@ -183,7 +188,7 @@ plt.title('t-SNE Visualization of Feature Vectors with Clustering')
 plt.xlabel('t-SNE Component 1')
 plt.ylabel('t-SNE Component 2')
 plt.legend()
-plt.savefig('t_sne_num_of_peaks.png')
+plt.savefig('umap_num_of_peaks.png')
 plt.close()
 
 
@@ -210,8 +215,12 @@ for num_of_features, feature_cluster in feature_clusters.items():
   # Perform t-SNE
   feature_cluster_df = pd.DataFrame(feature_cluster)
   perplexity = min(30, len(feature_cluster)-1)
-  tsne = TSNE(n_components=2, random_state=42, perplexity = perplexity)
-  tsne_results = tsne.fit_transform(feature_cluster_df.values)
+  #tsne = TSNE(n_components=2, random_state=42, perplexity = perplexity)
+  #tsne_results = tsne.fit_transform(feature_cluster_df.values)
+
+  umap_model = umap.UMAP(n_components=2, random_state=42)
+  tsne_results = umap_model.fit_transform(feature_cluster_df.values)
+
 
   if num_of_features in num_of_subcluster_dict:
     num_clusters = num_of_subcluster_dict[num_of_features]
@@ -233,7 +242,7 @@ for num_of_features, feature_cluster in feature_clusters.items():
   plt.xlabel('t-SNE Component 1')
   plt.ylabel('t-SNE Component 2')
   plt.legend()
-  plt.savefig('t_sne_clusters_'+str(num_of_features)+'.png')  
+  plt.savefig('umap_clusters_'+str(num_of_features)+'.png')  
 
   # Output the cluster results to separate files
   for cluster_num in range(num_clusters):
@@ -246,8 +255,11 @@ for num_of_features, feature_cluster in feature_clusters.items():
     parameter_cluster_df = pd.DataFrame(cluster_params)
     if len(cluster_params) > 30:
       perplexity_params = min(30, len(cluster_params)-1)
-      tsne_params = TSNE(n_components=2, random_state=42, perplexity = perplexity_params)
-      tsne_params_results = tsne.fit_transform(parameter_cluster_df.values)
+      #tsne_params = TSNE(n_components=2, random_state=42, perplexity = perplexity_params)
+      #tsne_params_results = tsne.fit_transform(parameter_cluster_df.values)
+
+      umap_model = umap.UMAP(n_components=2, random_state=42)
+      tsne_params_results = umap_model.fit_transform(parameter_cluster_df.values)
       plt.figure(figsize=(10, 6))      
       plt.scatter(tsne_params_results[:, 0], tsne_params_results[:, 1], 
                     c=[colors(cluster_num)], s=50, alpha=0.7, label=f'Cluster {num_of_features}_{cluster_num}')
@@ -256,7 +268,7 @@ for num_of_features, feature_cluster in feature_clusters.items():
       plt.xlabel('t-SNE Component 1')
       plt.ylabel('t-SNE Component 2')
       plt.legend()
-      plt.savefig('t_sne_parameter_subclusters_'+str(num_of_features)+'_'+str(cluster_num)+'.png')
+      plt.savefig('umap_parameter_subclusters_'+str(num_of_features)+'_'+str(cluster_num)+'.png')
       plt.close()  
     else:
         print('too little samples in cluster'+str(num_of_features)+'_'+str(cluster_num)+' : '+ str(len(cluster_params)))

@@ -3,6 +3,8 @@ from ctypes import *
 import time
 import numpy as np
 from numpy.ctypeslib import ndpointer
+import matplotlib
+matplotlib.use('Agg')  # Use a non-GUI backend
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
@@ -191,11 +193,12 @@ class Feature:
     self.feature_group = feature_group
 
 class Feature_group:
-  def __init__(self, feature_group_name, feature_names, feature_overlap_group,  group_index):
+  def __init__(self, feature_group_name, feature_names, feature_overlap_group,  group_index, num_of_peaks):
     self.feature_group_name = feature_group_name
     self.feature_names = feature_names
     self.feature_overlap_group = feature_overlap_group
     self.group_index = group_index
+    self.num_of_peaks = num_of_peaks
 
 
 class LightCurveDTW:
@@ -216,7 +219,8 @@ class LightCurveDTW:
               feature_group_names = feature_group["names"]
               feature_ovelap_group = feature_group["related_groups"]
               feature_group_index = feature_group["group_index"]
-              self.feature_groups[feature_group_name] = Feature_group(feature_group_name, feature_group_names, feature_ovelap_group, feature_group_index)
+              num_of_peaks = feature_group["num_of_peaks"]
+              self.feature_groups[feature_group_name] = Feature_group(feature_group_name, feature_group_names, feature_ovelap_group, feature_group_index, num_of_peaks)
               for feature_name in feature_group_names:
                 short_feature_data = np.loadtxt(f"./features/{feature_name}.txt")
                 self.short_signals[feature_name] = Feature(feature_name, short_feature_data, self.feature_groups[feature_group_name])
@@ -239,7 +243,7 @@ class LightCurveDTW:
         distances = []
         positions = []
         alignments = []
-        step_size = max(1, window_size // 4)
+        step_size = max(1, window_size // 5)
         short_signal_norm = np.linalg.norm(short_signal)
 
         for i in range(0, len(long_signal) - window_size + 1, step_size):
@@ -247,7 +251,7 @@ class LightCurveDTW:
             window_norm = np.linalg.norm(window)
 
             # Only calculate DTW distance if window has significant norm
-            if window_norm >= 0.4 * short_signal_norm:
+            if (window_norm >= 0.4 * short_signal_norm) and (window_norm <= 10.0 * short_signal_norm):
                 normalized_short_signal = short_signal / short_signal_norm
                 normalized_window = window / window_norm
                 dist, paths = dtw.warping_paths(normalized_short_signal, normalized_window)
@@ -269,7 +273,7 @@ class LightCurveDTW:
 
       do_overlap = False
 
-      if (pos_1 <= pos_2+len_2-1) and (pos_2 <= pos_1+len_1-1):
+      if (pos_1 <= pos_2+len_2-3) and (pos_2 <= pos_1+len_1-3):
         if (type_1 in overlap_types_2) and (type_2 in overlap_types_1) :
           do_overlap = True
       
@@ -381,7 +385,8 @@ class LightCurveDTW:
         best_matches = sorted(best_matches, key=lambda x: x[1])
         
         #########################################################
-        if plot_fig:
+        # Plot if instructed to do so and add the check for zero amplification
+        if plot_fig and (sum(time_series) > 0.5*len(time_series)):
           try:
             # Calculate the number of rows needed for short signals
             n_short_signal_rows = len(best_matches)
@@ -441,7 +446,7 @@ class LightCurveDTW:
             #    ax.set_title(short_signal.feature_name)
 
             plt.tight_layout()
-            plt.savefig(f"q_{q}_alpha_{alpha}.png")
+            plt.savefig(f"a={self.analyzer.a:.3f}_q={q:.3f}_alpha={alpha:.4f}.png")
             plt.close(fig)
           except Exception as e:
             print(f"\nAn error occurred while creating or saving the plot: {e}")
@@ -449,15 +454,16 @@ class LightCurveDTW:
           #  plt.close(fig)
         #######################################################################        
 
-
-        feature_vector = []
+        # set the first 3 elements to fit params of single lens
+        feature_vector = popt2.tolist()
+        
         for match in best_matches:
           feature_vector.append(float(match[1]))
           feature_vector.append(match[2].feature_group.group_index)
+          feature_vector.append(match[2].feature_group.num_of_peaks)
     
-        while len(feature_vector) < 15:
-          feature_vector.append(-1)
+        while len(feature_vector) < 29:
           feature_vector.append(-1.0)
 
 
-        return [feature_vector, time_series, residuals] 
+        return [feature_vector[:29], time_series, residuals] 

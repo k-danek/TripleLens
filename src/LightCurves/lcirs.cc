@@ -50,7 +50,7 @@ void LightCurveIRS::_getCaBoxes()
 
 void LightCurveIRS::_getImgPlanePars()
 {
-  const double resizingFactor = 3.0;
+  const double resizingFactor = 4.5;
   complex<double> min = {0.0,0.0}, max = {0.0,0.0};
   complex<double> centre;
   double halfEdge;
@@ -118,8 +118,8 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
   {
     //pos = (endPoint-startPoint)*(i/(_lcLength-1.0));
     pos = startPoint + (endPoint-startPoint)*(double(i)/double(_lcLength));
-    cout << "started pos:" << i << ", (" << pos.real()
-         << "," << pos.imag() <<")\n";
+    //cout << "started pos:" << i << ", (" << pos.real()
+    //     << "," << pos.imag() <<")\n";
     vector<complex<double>> imgPos = _pointImages.getImages(pos);
     complex<double> trialPoint;
     bool pointTaken = false;
@@ -173,8 +173,8 @@ void LightCurveIRS::getLCIRS(complex<double> startPoint,
       lineFloodFill(xToNx(imgSeed.real()), yToNy(imgSeed.imag()), pos);
     }
 
-    cout << "irs amplification: " << _amplification*_ampScale << " and the count " << _irsCount
-         << " and amp scale " << _ampScale << "\n";
+    //cout << "irs amplification: " << _amplification*_ampScale << " and the count " << _irsCount
+    //     << " and amp scale " << _ampScale << "\n";
 
     // As the size of the lcVec is determined at the initialisation of LightCurveIRS class
     // we use looping over the indices rather than push_back.

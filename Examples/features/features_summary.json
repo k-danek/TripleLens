@@ -1,44 +1,58 @@
 [
     {
         "group_name": "caustic_entry",
-        "names": ["caustic_entry", "caustic_entry_7", "caustic_entry_8", "caustic_entry_weak_9"],
-        "related_groups": ["caustic_entry","caustic_exit", "cusp_transversal", "double_crossing", "cusp_approach", "cusp_and_double"],
-        "group_index": 10
+        "names": ["caustic_entry", "caustic_entry_7", "caustic_entry_8", "caustic_entry_weak_9", "caustic_entry_beak-to-beak_21"],
+        "related_groups": ["caustic_entry","caustic_exit", "cusp_transversal", "double_crossing", "cusp_approach_short", "cusp_and_double"],
+        "group_index": 10,
+        "num_of_peaks": 1
     },
     {
         "group_name": "caustic_exit",
-        "names": ["caustic_exit", "caustic_exit_7", "caustic_exit_8", "caustic_exit_weak_9"],
-        "related_groups": ["caustic_exit", "caustic_entry", "cusp_transversal", "double_crossing", "cusp_approach", "cusp_and_double"],
-        "group_index": 20
+        "names": ["caustic_exit", "caustic_exit_7", "caustic_exit_8", "caustic_exit_weak_9", "caustic_exit_beak-to-beak_20"],
+        "related_groups": ["caustic_exit", "caustic_entry", "cusp_transversal", "double_crossing", "cusp_approach_short", "cusp_and_double"],
+        "group_index": 20,
+        "num_of_peaks": 1
     },
     {
         "group_name": "cusp_transversal",
-        "names": ["cusp_transversal", "cusp_transversal_17", "cusp_transversal_17_b"],
-        "related_groups": ["cusp_transversal" ,"caustic_exit", "caustic_entry", "double_crossing", "cusp_approach", "cusp_and_double"],
-        "group_index": 30
+        "names": ["cusp_transversal_23", "cusp_transversal_17", "cusp_transversal_17_b", "cusp_traversal_with_dips_17"],
+        "related_groups": ["cusp_transversal" ,"caustic_exit", "caustic_entry", "double_crossing", "cusp_and_double", "cusp_approach_short"],
+        "group_index": 30,
+        "num_of_peaks": 1
     },
     {
         "group_name": "double_crossing",
         "names": ["double_crossing", "double_crossing_6_a", "double_crossing_7_a", "double_crossing_7_b", "double_crossing_7_symmetric", "double_crossing_asymmetric_10_a"],
-        "related_groups": ["double_crossing", "caustic_exit", "caustic_entry", "cusp_transversal", "double_crossing", "cusp_approach", "cusp_and_double"],
-        "group_index": 40
+        "related_groups": ["double_crossing", "caustic_exit", "caustic_entry", "cusp_transversal", "double_crossing", "cusp_approach_short", "cusp_and_double"],
+        "group_index": 40,
+        "num_of_peaks": 2
     },
     {
         "group_name": "cusp_and_double",
         "names": ["cusp_and_double_26_a", "cusp_and_double_26_b"],
-        "related_groups": ["cusp_and_double", "double_crossing", "caustic_exit", "caustic_entry", "double_crossing", "cusp_approach", "dip"],
-        "group_index": 60
+        "related_groups": ["cusp_and_double", "double_crossing", "caustic_exit", "caustic_entry", "double_crossing", "cusp_approach_short", "cusp_approach_long", "dip"],
+        "group_index": 60,
+        "num_of_peaks": 3
     },
 	{
-        "group_name": "cusp_approach",
-        "names": ["cusp_approach_a", "cusp_approach_b", "cusp_approach_b_17", "cusp_approach_b_111", "cusp_approach_c", "cusp_approach_d", "cusp_approach_small", "cusp_approach_small_27", "cusp_approach_tall_32", "cusp_approach_tall_41"],
-        "related_groups": ["cusp_approach","dip", "cusp_and_double"],
-        "group_index": 250
+        "group_name": "cusp_approach_short",
+        "names": ["cusp_approach_38", "cusp_approach_d_21", "cusp_approach_b_17", "cusp_approach_small_33", "cusp_approach_small_27", "cusp_approach_tall_32", "cusp_approach_tall_41"],
+        "related_groups": ["cusp_approach_short" ,"cusp_approach_long", "caustic_exit", "caustic_entry", "cusp_transversal", "double_crossing", "cusp_approach", "cusp_and_double"],
+        "group_index": 70,
+        "num_of_peaks": 1
+    },
+    {
+        "group_name": "cusp_approach_long",
+        "names": ["cusp_approach_a_130", "cusp_approach_b_140", "cusp_approach_b_111", "cusp_approach_c_121"],
+        "related_groups": [ "cusp_approach_long", "cusp_approach_short","dip", "cusp_and_double"],
+        "group_index": 250,
+        "num_of_peaks": 1
     },
     {
         "group_name": "dip",
-        "names": ["dip", "dip_assymetric_a_36", "dip_assymetric_b_36", "dip_pure_25", "dip_pure_27", "dip_pure_29", "dip_pure_49"],
-        "related_groups": ["dip","cusp_approach", "cusp_and_double"],
-        "group_index": 150
+        "names": ["dip_104", "dip_assymetric_a_36", "dip_assymetric_b_36", "dip_pure_25", "dip_pure_27", "dip_pure_29", "dip_pure_49", "dip_with_zeros_25", "dip_negative_23"],
+        "related_groups": ["dip","cusp_approach_long", "cusp_and_double"],
+        "group_index": 350,
+        "num_of_peaks": 1
     }
 ]

@@ -155,7 +155,7 @@ class LC_irs(object):
                                            ctypes.c_double,
                                            ctypes.c_double
                                           ] 
-        self.lib_lc.get_lc_irs.restypes = ctypes.c_void_p
+        self.lib_lc.get_lc_irs.restypes = None
 
         self.lib_lc.copy_lc.argtypes = [ctypes.c_void_p,
                                         ndpointer(dtype=np.double,flags="C_CONTIGUOUS")
