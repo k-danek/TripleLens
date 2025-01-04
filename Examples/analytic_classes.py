@@ -1,6 +1,5 @@
 import ctypes
 from ctypes import *
-import time
 import numpy as np
 from numpy.ctypeslib import ndpointer
 import matplotlib
@@ -9,13 +8,12 @@ import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
 import math
-import sys
 from dtaidistance import dtw
 from matplotlib.patches import Rectangle, Patch
 import json
 
-from ctypes_classes import CCC
-from ctypes_classes import LC_irs
+from .ctypes_classes import CCC
+from .ctypes_classes import LC_irs
 
 class Complex(ctypes.Structure):
    _fields_ = [("real", ctypes.c_double),

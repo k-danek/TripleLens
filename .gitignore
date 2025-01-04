@@ -13,3 +13,4 @@ bin/*
 tests/googletest/*
 Examples/__pycache__/*
 Examples/.idea/*
+Examples/ml_project/cluster_result/*

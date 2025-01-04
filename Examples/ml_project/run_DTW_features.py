@@ -1,18 +1,13 @@
-import ctypes
+# This script takes a range of parameters, generate light curves, labels with feature vectors
+
 from ctypes import *
-import time
 import numpy as np
 from numpy.ctypeslib import ndpointer
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 from scipy.optimize import curve_fit
-from dtaidistance import dtw
-from sklearn.cluster import KMeans
-import math
 import sys
-import csv
 import json
-import gc
 import faulthandler
 import os
 import multiprocessing
@@ -20,18 +15,13 @@ import multiprocessing
 # Enable faulthandler to catch crashes
 faulthandler.enable()
 
-from ctypes_classes import CCC
-from ctypes_classes import LC_irs
-from analytic_classes import LightCurveAnalyzer, Complex, get_trajectory, LightCurveDTW
-
 sys.setrecursionlimit(10000)
 
 
 def run_dtw_task(a, b, th, m2, m3, source_size, lc_len, points_per_radius, q_list, alpha_list, ini_time, fin_time, result_queue):
     try:
         # Import necessary modules and classes
-        from ctypes_classes import LC_irs
-        from analytic_classes import LightCurveAnalyzer, Complex, get_trajectory, LightCurveDTW
+        from examples.analytic_classes import LightCurveDTW
 
         # Initialize the LC_irs object
         analyzerDTW = LightCurveDTW(a, b, th, m2, m3, source_size, lc_len, points_per_radius, "features_summary")
@@ -64,13 +54,13 @@ def run_dtw_task(a, b, th, m2, m3, source_size, lc_len, points_per_radius, q_lis
         # Put the result in the queue
             result_queue.put(json_data)
         else:
-            result_queue.put({"error": f"No usable data for a={a}, q={q}, alpha={alpha}"})    
+            result_queue.put({"error": f"No usable data for a={a}"})    
     
 
     except Exception as e:
         print(f"Process {os.getpid()} failed with exception: {e}")
         # In case of failure, send an error message or empty result
-        result_queue.put({"error": f"Failed for a={a}, q={q}, alpha={alpha} with exception: {e}"})
+        result_queue.put({"error": f"Failed for a={a} with exception: {e}"})
 
 
 def orchestrator_dtw():
@@ -90,15 +80,12 @@ def orchestrator_dtw():
     ini_time = -1.0
     fin_time = 1.0
 
-
     # Create a queue to collect results
     result_queue = multiprocessing.Queue()
 
-    alpha_lists = [alpha_values[i:i + alphas_in_pi] for i in range(0, len(alpha_values), min(4, alphas_in_pi))]
+    #alpha_lists = [alpha_values[i:i + alphas_in_pi] for i in range(0, len(alpha_values), min(4, alphas_in_pi))]
 
-    json_file = "parameters_"
-    start_line = 0
-    end_line = 0
+    json_file = "./ml_project/parameters_"
     
     for a in a_values:
         json_data = []
@@ -128,94 +115,6 @@ def orchestrator_dtw():
           print(f"JSON file created for a={a}")
         except Exception as e:
           print(f"Failed to write JSON file for a={a}: {e}")
-
-
-
-## noisy memory leak outputs
-##gc.set_debug(gc.DEBUG_LEAK)
-#
-## Define lens parameters.
-#a = 1.01
-#b = 1.0001
-#theta = 1.047197551
-#m2 = 5.0e-3
-#m3 = 0.0
-#length = 500
-#
-#
-## Define source parameters.
-#source_size = 1e-4
-#lc_steps = 512
-#points_per_radius = 30
-#ini_time = -1.0
-#fin_time = 1.0
-#
-#
-## Define parameter ranges.
-##a_values = [0.9, 0.95, 1.0, 1.1]  # Example values for a
-##q_values = [0.05, 0.1, 0.15, 0.2, 0.4]  # Example values for q
-##alpha_values = np.arange(0, 2 * np.pi, np.pi / 4.0)  # Example values for alpha
-#
-#a_values = [0.9, 0.95]  # Example values for a
-#q_values = [0.05, 0.1, 0.15, 0.2, 0.3, 0.35, 0.4]  # Example values for q
-##q_values = [0.05]  # Example values for q
-#alpha_values = np.arange(0, 2 * np.pi, np.pi / 2.0) # Example values for alpha
-##alpha_values = [np.pi / 2.0] # Example values for alpha
-#
-## Output files
-#csv_file = "feature_matrix.csv"
-#json_file = "parameters_"
-#feature_file_name = "features_summary"
-#
-## JSON structure to hold parameter values and line ranges
-#json_data = []
-#
-#start_line = 0
-#end_line = 0
-
-
-#for a in a_values:
-#  analyzerDTW = LightCurveDTW(a, b, theta, m2, m3, source_size, lc_steps, points_per_radius, feature_file_name)
-#
-#  json_data = []
-#  for q in q_values:
-#      for alpha in alpha_values:
-      #    try:
-      #      [feature_vector, light_curve, residual] = analyzerDTW.run_for_params(q, alpha, ini_time, fin_time, end_line % 4 == 0)
-      #      #writer.writerow(feature_vector)
-      #      end_line += 1
-      #      json_data.append({
-      #          "a": a,
-      #          "b": b,
-      #          "theta": theta,
-      #          "m2": m2,
-      #          "m3": m3,
-      #          "q": q,
-      #          "alpha": alpha,
-      #          "feature_vector": feature_vector,
-      #          "light_curve": residual.tolist()
-      #      })
-      #    except Exception as e:
-      #      print(f"\nAn error occurred while running for params: {e}")
-      #      print(f"Values: a={a}, q={q}, alpha={alpha}")
-      #      traceback.print_exc()
-
-
-#  start_line = end_line
-#
-#  try:
-#    # Write to JSON file after processing all q and alpha values for the current a
-#    with open(json_file + "a=" + str(a) + ".json", 'w') as jsonfile:
-#        json.dump(json_data, jsonfile, indent=2)
-#    print(f"JSON file created for a={a}")
-#  except Exception as e:
-#    print(f"Failed to write JSON file for a={a}: {e}")
-#
-#  analyzerDTW = None
-#  gc.collect()
-
-
-
 
 if __name__ == "__main__":
     orchestrator_dtw()

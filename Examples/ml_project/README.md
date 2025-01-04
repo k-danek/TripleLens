@@ -1,0 +1,1 @@
+These scripts should be called from parent (examples) directory using, 'PYTHONPATH=.. python ml_project/<scriptname>' command

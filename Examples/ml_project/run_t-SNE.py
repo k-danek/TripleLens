@@ -10,7 +10,7 @@ from sklearn.cluster import AgglomerativeClustering
 from sklearn.cluster import SpectralClustering
 #import hdbscan
 
-from analytic_classes import LightCurveAnalyzer,  get_single_amp_real, get_single_amp_real_scale, get_trajectory
+from examples.analytic_classes import LightCurveAnalyzer
 
 def plot_event(a, b, theta, m2, m3, q, alpha):
     lc_steps = 512
@@ -58,9 +58,7 @@ class Feature_cluster:
        self.data_vector = data_vector
        self.t_sne = t_sne 
 
-
-#file_list = ['parameters_all_a=0.8.json', 'parameters_all_a=0.9.json','parameters_all_a=0.95.json','parameters_all_a=1.0.json','parameters_all_a=1.05.json','parameters_all_a=1.1.json','parameters_all_a=1.2.json','parameters_all_a=1.5.json']
-file_path = "./parameters_backup/32/"
+file_path = "./ml_project/parameters_backup/32/"
 file_list = ['parameters_a=0.75.json',
              'parameters_a=0.8.json',
              'parameters_a=0.85.json',
@@ -98,9 +96,7 @@ for file in file_list:
   # t-sne cannot work with NaNs, it is better to remove data that have NaNs in them directly
   clean_datum = [
       item for item in datum 
-      #if not (np.any(np.isnan(item['feature_vector'])) or np.any(np.isnan(item['light_curve'])))
       if not (np.any(np.isnan(item['feature_vector'])) or np.any(np.isnan(item['light_curve'])) or get_number_of_features(item['feature_vector']) == 0)
-      #if not (np.any(np.isnan(item['feature_vector'])) or np.any(np.isnan(item['light_curve'])) or len(item['feature_vector']) != 29)
   ]
 
   data.extend(clean_datum)      
@@ -111,8 +107,6 @@ for file in file_list:
   print("opened "+ file_path + file + " with " + str(len(clean_datum)) + " events")
   lc_vectors.extend(lc_vector_per_file)
   feature_vectors.extend(feature_vectors_per_file)
-
-
 
 # Convert to DataFrame for easier handling
 df = pd.DataFrame(feature_vectors)
@@ -140,8 +134,10 @@ agglomerative = AgglomerativeClustering(n_clusters=num_clusters, linkage='single
 clusters = agglomerative.fit_predict(tsne_results)
 
 # Create a directory for cluster output files
-output_dir = 'cluster_results'
-os.makedirs(output_dir, exist_ok=True)
+cluster_output_dir = os.path.join('ml_project', 'cluster_results')
+os.makedirs(cluster_output_dir, exist_ok=True)
+
+fig_output_dir = './ml_project/'
 
 # Plot the t-SNE results with clusters
 plt.figure(figsize=(10, 6))
@@ -156,7 +152,7 @@ plt.title('t-SNE Visualization of Feature Vectors with Clustering')
 plt.xlabel('t-SNE Component 1')
 plt.ylabel('t-SNE Component 2')
 plt.legend()
-plt.savefig('t_sne_clusters_all.png')
+plt.savefig(fig_output_dir+'t_sne_clusters_all.png')
 plt.close()
 
 
@@ -170,7 +166,7 @@ plt.title('t-SNE Visualization of Feature Vectors with Clustering')
 plt.xlabel('t-SNE Component 1')
 plt.ylabel('t-SNE Component 2')
 plt.legend()
-plt.savefig('t_sne_num_of_features.png')
+plt.savefig(fig_output_dir+'t_sne_num_of_features.png')
 plt.close()
 
 # Plot the t-SNE results with num-of-features
@@ -183,7 +179,7 @@ plt.title('t-SNE Visualization of Feature Vectors with Clustering')
 plt.xlabel('t-SNE Component 1')
 plt.ylabel('t-SNE Component 2')
 plt.legend()
-plt.savefig('t_sne_num_of_peaks.png')
+plt.savefig(fig_output_dir+'t_sne_num_of_peaks.png')
 plt.close()
 
 
@@ -201,9 +197,7 @@ for idx in range(len(feature_vectors)):
     feature_clusters[num_of_features].append(feature_vectors[idx])
     data_clusters[num_of_features].append(data[idx])
 
-num_of_subcluster_dict = {1: 6, 2: 3, 3: 7, 4: 4, 5: 1, 6: 1}
-
-
+num_of_subcluster_dict = {1: 6, 2: 4, 3: 12, 4: 6, 5: 1, 6: 1}
 
 for num_of_features, feature_cluster in feature_clusters.items():
   print("num_of_features: " +str(num_of_features) + ", num of events: " + str(len(feature_cluster))) 
@@ -233,13 +227,13 @@ for num_of_features, feature_cluster in feature_clusters.items():
   plt.xlabel('t-SNE Component 1')
   plt.ylabel('t-SNE Component 2')
   plt.legend()
-  plt.savefig('t_sne_clusters_'+str(num_of_features)+'.png')  
+  plt.savefig(fig_output_dir+'t_sne_clusters_'+str(num_of_features)+'.png')  
 
   # Output the cluster results to separate files
   for cluster_num in range(num_clusters):
     cluster_indices = np.where(clusters == cluster_num)[0]
     cluster_data = [data_clusters[num_of_features][idx] for idx in cluster_indices]
-    with open(os.path.join(output_dir, f'subcluster_{num_of_features}_{cluster_num}.json'), 'w') as f:
+    with open(os.path.join(cluster_output_dir, f'subcluster_{num_of_features}_{cluster_num}.json'), 'w') as f:
       json.dump(cluster_data, f, indent=2)
 
     cluster_params = [[item['a'], item['b'], item['theta'], item['q'], item['alpha']] for item in cluster_data]
@@ -256,7 +250,7 @@ for num_of_features, feature_cluster in feature_clusters.items():
       plt.xlabel('t-SNE Component 1')
       plt.ylabel('t-SNE Component 2')
       plt.legend()
-      plt.savefig('t_sne_parameter_subclusters_'+str(num_of_features)+'_'+str(cluster_num)+'.png')
+      plt.savefig(fig_output_dir+'t_sne_parameter_subclusters_'+str(num_of_features)+'_'+str(cluster_num)+'.png')
       plt.close()  
     else:
         print('too little samples in cluster'+str(num_of_features)+'_'+str(cluster_num)+' : '+ str(len(cluster_params)))
