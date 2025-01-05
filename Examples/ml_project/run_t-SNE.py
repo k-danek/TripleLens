@@ -125,10 +125,7 @@ lc_matrix = lc_df.values
 tsne = TSNE(n_components=2, random_state=42)
 tsne_results = tsne.fit_transform(feature_matrix)
 
-# Perform k-means clustering on the t-SNE results
 num_clusters = 7  # You can change this number based on your needs
-#kmeans = KMeans(n_clusters=num_clusters, random_state=42)
-#clusters = kmeans.fit_predict(tsne_results)
 
 agglomerative = AgglomerativeClustering(n_clusters=num_clusters, linkage='single')
 clusters = agglomerative.fit_predict(tsne_results)
@@ -188,6 +185,7 @@ data_clusters = {}
 cluster_dict = {}
 num_of_subclusters_dict = {}
 
+# Fill in dictionaries num_of_features : data
 for idx in range(len(feature_vectors)):
   num_of_features = get_number_of_features(feature_vectors[idx])  
   if num_of_features not in feature_clusters:
@@ -197,7 +195,51 @@ for idx in range(len(feature_vectors)):
     feature_clusters[num_of_features].append(feature_vectors[idx])
     data_clusters[num_of_features].append(data[idx])
 
-num_of_subcluster_dict = {1: 6, 2: 4, 3: 12, 4: 6, 5: 1, 6: 1}
+num_of_subcluster_dict = {1: 6, 2: 4, 3: 11, 4: 6, 5: 1, 6: 1}
+
+# Par cluster dict is a dictionary to represent number of sub-subclusters that emerge
+# by clustering subcluster based on parameters
+num_of_par_cluster_dict = {
+  1: {  # Cluster 0
+    0: 4,
+    1: 4,
+    2: 1,
+    3: 1,
+    4: 1,
+    5: 1
+  },
+  2: {  # Cluster 0
+    0: 2,
+    1: 4,
+    2: 1,
+    3: 2
+  },
+  3: {  # Cluster 0
+    0: 2,
+    1: 1,
+    2: 2,
+    3: 2,
+    4: 2,
+    5: 1,
+    6: 2,
+    7: 1,
+    8: 2,
+    9: 1,
+    10: 1
+  },
+  4: {  # Cluster 0
+    0: 1,
+    1: 1,
+    2: 1,
+    3: 1
+  }, 
+  5: {  # Cluster 0
+    0: 2
+  },
+  6: {
+    0: 1
+  }    
+}
 
 for num_of_features, feature_cluster in feature_clusters.items():
   print("num_of_features: " +str(num_of_features) + ", num of events: " + str(len(feature_cluster))) 
@@ -229,24 +271,43 @@ for num_of_features, feature_cluster in feature_clusters.items():
   plt.legend()
   plt.savefig(fig_output_dir+'t_sne_clusters_'+str(num_of_features)+'.png')  
 
-  # Output the cluster results to separate files
+
+
+  # For each subcluster, try to cluster even more based on the parameters
   for cluster_num in range(num_clusters):
     cluster_indices = np.where(clusters == cluster_num)[0]
     cluster_data = [data_clusters[num_of_features][idx] for idx in cluster_indices]
     with open(os.path.join(cluster_output_dir, f'subcluster_{num_of_features}_{cluster_num}.json'), 'w') as f:
       json.dump(cluster_data, f, indent=2)
 
-    cluster_params = [[item['a'], item['b'], item['theta'], item['q'], item['alpha']] for item in cluster_data]
+    cluster_params = [[item['a'], item['b'], item['theta'],item['m2'], item['q'], item['alpha']] for item in cluster_data]
     parameter_cluster_df = pd.DataFrame(cluster_params)
+
+    num_parclusters = 1
+
+    if num_of_features in num_of_subcluster_dict:
+      if cluster_num in num_of_par_cluster_dict[num_of_features]:
+        num_parclusters = num_of_par_cluster_dict[num_of_features][cluster_num]
+
     if len(cluster_params) > 30:
       perplexity_params = min(30, len(cluster_params)-1)
       tsne_params = TSNE(n_components=2, random_state=42, perplexity = perplexity_params)
       tsne_params_results = tsne.fit_transform(parameter_cluster_df.values)
-      plt.figure(figsize=(10, 6))      
-      plt.scatter(tsne_params_results[:, 0], tsne_params_results[:, 1], 
-                    c=[colors(cluster_num)], s=50, alpha=0.7, label=f'Cluster {num_of_features}_{cluster_num}')
 
-      plt.title('t-SNE of parameters of lc subclusters')
+      paragglomerative = AgglomerativeClustering(n_clusters=num_parclusters, linkage='single')
+      parclusters = paragglomerative.fit_predict(tsne_params_results)
+
+      plt.figure(figsize=(10, 6))
+      colors = plt.colormaps['tab10']
+
+      plt.figure(figsize=(10, 6))
+
+      for parcluster_num in range(num_parclusters):
+        indices = np.where(parclusters == parcluster_num)[0]
+        plt.scatter(tsne_params_results[indices, 0], tsne_params_results[indices, 1], 
+                      c=[colors(parcluster_num)], s=50, alpha=0.7, label=f'Cluster {parcluster_num}')
+
+      plt.title('t-SNE of parameters of lc subclusters ('+str(num_of_features)+'_'+str(cluster_num)+')')
       plt.xlabel('t-SNE Component 1')
       plt.ylabel('t-SNE Component 2')
       plt.legend()
@@ -255,7 +316,11 @@ for num_of_features, feature_cluster in feature_clusters.items():
     else:
         print('too little samples in cluster'+str(num_of_features)+'_'+str(cluster_num)+' : '+ str(len(cluster_params)))
 
-
+    for parcluster_num in range(num_parclusters):
+      parcluster_indices = np.where(clusters == parcluster_num)[0]
+      parcluster_data = [data_clusters[num_of_features][idx] for idx in parcluster_indices]
+      with open(os.path.join(cluster_output_dir, f'parcluster_{num_of_features}_{cluster_num}_{parcluster_num}.json'), 'w') as f:
+        json.dump(parcluster_data, f, indent=2)
   
       
 
